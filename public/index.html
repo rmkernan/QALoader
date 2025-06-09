@@ -1,0 +1,107 @@
+<!--
+ * @file public/index.html
+ * @description Main HTML entry point for the Q&A Loader application. Sets up the page structure, imports TailwindCSS, Google Fonts, global styles, and the import map for ES modules. Initializes the root div for React and a global process.env shim for the Gemini SDK.
+ * @created 2025.06.08 9:00 PM ET
+ * @updated 2025.06.09 1:45 PM ET - Refactored project structure into src/ and public/ directories, added script tag for entry point, and updated JSDoc.
+ *
+ * @architectural-context
+ * Layer: Entry Point / Page Structure
+ * Dependencies: TailwindCSS (CDN), Google Fonts (Inter), ES Modules via import map (react, react-dom, @google/genai, react-hot-toast).
+ * Pattern: Single Page Application (SPA) host.
+ *
+ * @workflow-context
+ * User Journey: Application Load.
+ * Sequence Position: Initial file loaded by the browser.
+ * Inputs: Browser request.
+ * Outputs: Renders the basic page structure and loads the main JavaScript bundle (index.tsx via import map).
+ *
+ * @authentication-context: N/A (Pre-authentication structural page).
+ * @mock-data-context: N/A (Initializes process.env shim but doesn't directly handle mock data logic).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Loader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; /* slate-100 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* slate-300 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* slate-400 */
+        }
+        /* Simple transition for view switching (can be enhanced with React Transition Group if needed) */
+        .view-enter {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .view-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 300ms, transform 300ms;
+        }
+        .modal-overlay {
+            animation: fadeIn 0.2s ease-out;
+        }
+        .modal-content {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.4.0",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react-hot-toast": "https://esm.sh/react-hot-toast@^2.4.1"
+  }
+}
+</script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!-- Ensure process is defined for Gemini SDK -->
+    <script>
+      if (typeof process === 'undefined') {
+        window.process = {
+          env: {
+            // API_KEY will be set by the environment running this code.
+            // For local development, you might need to set this manually if not using a build process.
+            // e.g. window.process = { env: { API_KEY: "YOUR_API_KEY_HERE_FOR_LOCAL_TESTING_ONLY" } };
+            // IMPORTANT: Never commit API keys directly into your codebase for production.
+          }
+        };
+      } else if (typeof process.env === 'undefined') {
+        process.env = {};
+      }
+    </script>
+    <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>
