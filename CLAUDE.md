@@ -146,9 +146,58 @@ src/
 - **Virtual Environment:** `source venv/bin/activate` before any Python commands
 - **Database:** Supabase project xxgrrgmrzhayboraohin connected and working
 
+## Automated Quality Assurance (MANDATORY)
+
+### After Every Code Change
+- **Frontend linting**: `npm run lint && npm run typecheck` (must pass with zero warnings)
+- **Backend linting**: `flake8 app/ && mypy app/ --ignore-missing-imports` (must pass completely)
+- **Manual smoke test**: Verify changed functionality works (server starts, pages load, features work)
+- **Console check**: No errors in browser console or terminal output
+- **Document any issues** and fix immediately before proceeding
+
+### Before Any Git Commit (NON-NEGOTIABLE)
+- [ ] **All linting passes** with zero warnings for touched files
+- [ ] **Type checking passes** completely (TypeScript/mypy)
+- [ ] **Manual functionality test** of changed features completed
+- [ ] **No console errors** in browser or server logs
+- [ ] **Documentation updated** for any changed behavior
+- [ ] **Report format**: "✅ Linting clean, ✅ Types pass, ✅ Manual test OK"
+
+### Python Backend Quality Tools
+```bash
+# Install tools (run once per environment)
+pip install flake8 mypy black pytest
+
+# Run before every commit
+flake8 app/ --max-line-length=88
+mypy app/ --ignore-missing-imports
+python -c "from app.main import app; print('✅ App loads')"
+black app/  # Auto-format code
+```
+
+### Frontend Quality Tools
+```bash
+# Run before every commit  
+npm run lint
+npm run typecheck
+npm run dev  # Verify server starts clean
+```
+
+### Quality Reporting (REQUIRED)
+Always include this in responses after code changes:
+```
+🔍 QUALITY CHECK RESULTS:
+✅ Linting: Clean (0 warnings)
+✅ Type Check: Passed
+✅ Manual Test: [Specific functionality tested]
+✅ Console: No errors
+✅ Ready for commit
+```
+
 ## Code Review Checklist
 
 Before suggesting changes are complete:
+- [ ] **Quality assurance completed** (linting, type checking, testing)
 - [ ] **Documentation standards applied** (DocumentationStandards.md)
 - [ ] **File headers include** architectural/workflow context with timestamps
 - [ ] **All functions documented** with JSDoc and examples

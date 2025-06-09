@@ -316,9 +316,58 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
 };
 ```
 
+## Automated Quality Assurance (MANDATORY - FRONTEND)
+
+### After Every Frontend Code Change
+- **Run linting**: `npm run lint` (must pass with zero warnings)
+- **Run type checking**: `npm run typecheck` (must pass completely)
+- **Test functionality**: Start dev server `npm run dev`, verify changes work
+- **Browser console**: Check for JavaScript errors, warnings, or TypeScript issues
+- **Responsive test**: Verify mobile/desktop layouts work correctly
+
+### Before Any Git Commit (NON-NEGOTIABLE)
+- [ ] **ESLint passes**: `npm run lint` with zero warnings
+- [ ] **TypeScript compiles**: `npm run typecheck` with no errors
+- [ ] **Manual functionality test**: Changed components/features tested
+- [ ] **No console errors**: Browser console clean during testing
+- [ ] **Accessibility verified**: Screen reader/keyboard navigation tested
+- [ ] **Performance check**: No obvious performance regressions
+
+### Frontend Quality Commands
+```bash
+# Essential quality checks (run every time)
+npm run lint                    # ESLint check
+npm run typecheck              # TypeScript compilation  
+npm run dev                    # Start server, verify no crashes
+
+# Development server verification
+curl http://localhost:3000     # Verify server responds
+# Open browser, check console for errors
+```
+
+### Quality Reporting (REQUIRED)
+Always include after frontend changes:
+```
+🔍 FRONTEND QUALITY CHECK:
+✅ ESLint: Clean (0 warnings)
+✅ TypeScript: Compiled successfully
+✅ Manual Test: [Component/feature tested]
+✅ Browser Console: No errors
+✅ Responsive: Mobile/desktop verified
+✅ Ready for commit
+```
+
+### React-Specific Quality Checks
+- **Component rendering**: No React warnings in console
+- **State updates**: No memory leaks or infinite re-renders
+- **Props validation**: TypeScript interfaces enforced
+- **Event handlers**: Proper cleanup and no memory leaks
+- **Accessibility**: Proper ARIA labels and keyboard navigation
+
 ## Code Review Checklist (Frontend)
 
 Before completing frontend work:
+- [ ] **Quality assurance completed** (linting, type checking, browser testing)
 - [ ] **Documentation standards applied** with proper timestamps
 - [ ] **Component headers include** architectural/workflow context
 - [ ] **All functions documented** with JSDoc and examples

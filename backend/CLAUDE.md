@@ -172,7 +172,66 @@ backend/
 3. **Update file headers with current timestamps**
 4. **Document new functions immediately**
 
+## Automated Quality Assurance (MANDATORY - BACKEND)
+
+### After Every Backend Code Change
+- **Install quality tools**: `pip install flake8 mypy black pytest` (if not already installed)
+- **Run linting**: `flake8 app/ --max-line-length=88` (must pass with zero warnings)
+- **Run type checking**: `mypy app/ --ignore-missing-imports` (must pass completely)
+- **Test basic functionality**: Verify app loads and endpoints respond
+- **Auto-format code**: `black app/` for consistent code styling
+
+### Before Any Git Commit (NON-NEGOTIABLE)
+- [ ] **Flake8 passes**: Zero linting warnings or errors
+- [ ] **MyPy passes**: All type checking successful
+- [ ] **App loads**: `python -c "from app.main import app; print('✅ App loads')"`
+- [ ] **Manual endpoint test**: Test changed functionality with curl/browser
+- [ ] **No Python errors**: Server starts without exceptions
+- [ ] **Documentation complete**: All new functions documented
+
+### Backend Quality Commands
+```bash
+# Essential quality checks (run before every commit)
+cd backend && source venv/bin/activate
+
+# Code quality and formatting
+flake8 app/ --max-line-length=88         # Linting
+mypy app/ --ignore-missing-imports       # Type checking  
+black app/                               # Auto-format code
+
+# Functionality verification
+python -c "from app.main import app; print('✅ App loads')"
+python -c "from app.database import supabase; print('✅ DB connected')"
+uvicorn app.main:app --reload --port 8000 &  # Start server
+curl http://localhost:8000               # Test response
+```
+
+### Quality Reporting (REQUIRED)
+Always include after backend changes:
+```
+🔍 BACKEND QUALITY CHECK:
+✅ Flake8: Clean (0 warnings)  
+✅ MyPy: All types valid
+✅ App Load: Successful
+✅ Server Start: No exceptions
+✅ Endpoint Test: [Specific endpoint tested]
+✅ Ready for commit
+```
+
+### Database Quality Checks
+- **Connection test**: Verify Supabase client initializes
+- **Query validation**: Test database operations don't fail
+- **Transaction integrity**: Verify rollback behavior works
+- **Error handling**: Confirm graceful database error handling
+
+### API Quality Checks  
+- **Endpoint response**: Verify JSON structure matches models
+- **Status codes**: Confirm appropriate HTTP status returns
+- **Authentication**: Test protected endpoints require valid JWT
+- **CORS**: Verify frontend can access API endpoints
+
 ### Pre-Commit Checklist
+- [ ] **Quality assurance completed** (flake8, mypy, functionality tests)
 - [ ] All files have complete headers with timestamps
 - [ ] All functions documented with examples
 - [ ] Authentication patterns documented
