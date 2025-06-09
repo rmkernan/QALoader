@@ -3,6 +3,71 @@
 **Created:** June 9, 2025 19:00 ET  
 **Purpose:** Complete context for Claude Code to implement Phase 5 - Bootstrap & Activity System Enhancement
 
+## 🚨 MANDATORY GIT SAFETY PROTOCOLS (CRITICAL - READ FIRST)
+
+### ⚠️ PHASE 4 DATA LOSS INCIDENT SUMMARY:
+During Phase 4 development, **600+ lines of backend code were lost** due to automatic branch switching from `main` to `feature/frontend-enhancements`. Unknown process (formatter/VS Code/linter) caused Claude Code to work on wrong branch, resulting in code overwrite and requiring complete reconstruction.
+
+### 🔒 MANDATORY SAFETY CHECKS - BEFORE ANY WORK:
+
+```bash
+echo "🔍 BACKEND SAFETY CHECK:"
+cd /mnt/c/PythonProjects/QALoader/backend
+pwd && git branch && git status
+source venv/bin/activate
+```
+
+**VERIFY THESE EXACT OUTPUTS:**
+- ✅ **Directory:** `/mnt/c/PythonProjects/QALoader/backend`
+- ✅ **Branch:** `* main` (NOT `feature/frontend-enhancements` or any other branch)
+- ✅ **Status:** Clean or expected Phase 5 work files only
+- ✅ **Venv:** Activated successfully
+
+### 🚨 STOP WORK IMMEDIATELY IF:
+- Branch shows `feature/frontend-enhancements` or anything other than `main`
+- Directory is not `/mnt/c/PythonProjects/QALoader/backend`
+- Phase 4 files are missing (`app/services/question_service.py` or `app/routers/questions.py`)
+
+### 🔧 RECOVERY PROCEDURE IF ON WRONG BRANCH:
+```bash
+# 1. Check if Phase 4 work exists on main
+git checkout main
+git log --oneline -3
+ls -la app/services/question_service.py app/routers/questions.py
+
+# 2. Verify Phase 4 commit exists
+git log --grep="Phase 4 Complete" --oneline
+
+# 3. If files missing, STOP and request help immediately
+```
+
+### 📋 BEFORE EVERY COMMIT - SAFETY CHECKLIST:
+```bash
+# Verify correct branch
+git branch | grep "* main" || echo "❌ WRONG BRANCH - STOP!"
+
+# Verify correct directory  
+pwd | grep "/backend$" || echo "❌ WRONG DIRECTORY - STOP!"
+
+# Check staged files (should be backend files only)
+git status --porcelain | grep -E "(src/|\.tsx|\.ts)" && echo "❌ FRONTEND FILES DETECTED!"
+
+# Verify Phase 4 integrity
+ls -la app/services/question_service.py app/routers/questions.py || echo "❌ PHASE 4 FILES MISSING!"
+```
+
+### 🎯 COMMIT SAFETY PROTOCOL:
+- **Stage files individually:** `git add specific_file.py` (never `git add .`)
+- **Verify only backend files:** Check `git status` before commit
+- **Include documentation:** Update context files in same commit
+- **Commit frequently:** Don't accumulate large changes
+
+### 🔄 BRANCH SWITCHING PREVENTION:
+- **Never manually switch branches** unless explicitly required
+- **Always verify branch** before and after any git operation  
+- **Report immediately** if you find yourself on wrong branch
+- **Document any branch changes** and reason
+
 ## PROJECT STATUS
 
 ### ✅ COMPLETED PHASES
@@ -140,6 +205,19 @@ INSERT INTO activity_log (action, details, timestamp) VALUES
 - Activity frequency by time periods
 - Search pattern analysis
 - System performance tracking
+
+## PHASE 5 STARTUP PROTOCOL
+
+### MANDATORY FIRST STEPS:
+1. **Execute safety checks** (above) and verify all outputs
+2. **Report status:** "Backend developer on main branch in backend/ directory - ready for Phase 5"
+3. **Verify Phase 4 integrity:** Confirm both service and router files exist and are correct size
+4. **Read implementation sequence** below
+
+### IF ANY SAFETY CHECK FAILS:
+- **STOP all work immediately**
+- **Report the issue** with exact command outputs
+- **Do not proceed** until safety verified
 
 ## IMPLEMENTATION SEQUENCE
 
