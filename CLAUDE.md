@@ -90,7 +90,7 @@ src/
 - Test error conditions and edge cases
 - Verify TypeScript compilation passes
 
-## Backend Development (When Implemented)
+## Backend Development (In Progress - Phase 1 Complete)
 
 ### API Design
 - Follow RESTful conventions
@@ -104,6 +104,18 @@ src/
 - Include created/updated timestamps
 - Index frequently queried fields
 - Design for extensibility
+
+### Backend Context Files
+- **Read `backend/BACKEND_CONTEXT.md`** at start of each backend session
+- **Update ProjectStatus.md** after completing phases
+- **Reference TechnicalImplementationGuide.md** for implementation steps
+- **Working Directory:** `/mnt/c/PythonProjects/QALoader/backend`
+
+### Backend Development Notes
+- **Phase 1 Complete:** FastAPI foundation with Supabase connection
+- **Current State:** Server runs on port 8000, all endpoints accessible (placeholders)
+- **Virtual Environment:** `source venv/bin/activate` before any Python commands
+- **Database:** Supabase project xxgrrgmrzhayboraohin connected and working
 
 ## Code Review Checklist
 
