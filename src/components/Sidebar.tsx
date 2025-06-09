@@ -66,12 +66,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 p-6 flex flex-col flex-shrink-0 justify-between">
-      <div>
-        <div className="flex items-center gap-3 mb-10">
-          <AppLogoIcon />
-          <h1 className="text-xl font-bold text-slate-900">{APP_TITLE}</h1>
+    <aside className="w-72 bg-gradient-to-b from-slate-50 to-stone-100 border-r border-slate-200/50 shadow-xl shadow-slate-900/5 flex flex-col flex-shrink-0 justify-between">
+      <div className="p-8">
+        {/* App Header */}
+        <div className="flex items-center gap-4 mb-12 pb-6 border-b border-slate-200/50">
+          <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+            <AppLogoIcon className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800 tracking-tight">{APP_TITLE}</h1>
+            <p className="text-xs text-slate-600 mt-0.5">Question Management</p>
+          </div>
         </div>
+        
+        {/* Navigation */}
         <nav className="flex flex-col gap-2">
           {NAV_ITEMS.map((item) => {
             const IconComponent = iconMap[item.id as View];
@@ -84,31 +92,42 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
                   e.preventDefault();
                   setActiveView(item.id as View);
                 }}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 ${isActive 
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold focus:ring-indigo-300' 
-                    : 'text-slate-600 hover:bg-slate-100 font-medium focus:ring-slate-300'
+                className={`group flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 transform ${isActive 
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-500/25 scale-105 focus:ring-emerald-300' 
+                    : 'text-slate-700 hover:bg-white/80 hover:shadow-md hover:scale-105 font-medium focus:ring-slate-300 hover:text-slate-900'
                   }`}
-                aria-current={isActive ? 'page' : undefined} // Accessibility: Indicate current page
+                aria-current={isActive ? 'page' : undefined}
               >
-                {IconComponent && <IconComponent className="h-5 w-5" aria-hidden="true" />}
-                {item.label}
+                <div className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-emerald-600'}`}>
+                  {IconComponent && <IconComponent className="h-5 w-5 transition-colors duration-200" aria-hidden="true" />}
+                </div>
+                <span className="text-sm tracking-wide">{item.label}</span>
+                {isActive && (
+                  <div className="ml-auto">
+                    <div className="w-2 h-2 bg-white rounded-full opacity-80"></div>
+                  </div>
+                )}
               </a>
             );
           })}
         </nav>
       </div>
       
-      {/* Logout Button */}
-      <div className="mt-auto pt-6 border-t border-slate-200">
-        <a
-          href="#"
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-700 font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-300"
-          role="button" // Accessibility: Indicate this link acts as a button
-        >
-          <LogoutIcon className="h-5 w-5" aria-hidden="true" />
-          Logout
-        </a>
+      {/* Logout Section */}
+      <div className="p-8 mt-auto">
+        <div className="pt-6 border-t border-slate-200/50">
+          <a
+            href="#"
+            onClick={handleLogout}
+            className="group flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-700 font-medium transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 hover:shadow-md transform hover:scale-105"
+            role="button"
+          >
+            <div className="flex-shrink-0 text-slate-400 group-hover:text-red-600">
+              <LogoutIcon className="h-5 w-5 transition-colors duration-200" aria-hidden="true" />
+            </div>
+            <span className="text-sm tracking-wide">Logout</span>
+          </a>
+        </div>
       </div>
     </aside>
   );

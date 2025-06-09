@@ -212,9 +212,13 @@ const LoaderView: React.FC = () => {
   const canLoadToDB = validationReport?.success && parsedData && parsedData.length > 0 && !isLoadingToDB && !isAnalyzing;
 
   return (
-    <div className="view-enter-active p-8">
-      <h2 className="text-3xl font-bold text-slate-900 mb-6">Load Questions from Markdown</h2>
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+    <div className="view-enter-active p-8 bg-stone-50 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold text-slate-800 tracking-tight">Load Questions from Markdown</h2>
+          <p className="text-slate-600 mt-2">Upload and process markdown files to expand your Q&A database</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg shadow-slate-900/5 border-0 p-8">
         {/* Step 1: Topic and File Selection */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 1: Select Topic and File</h3>
@@ -225,7 +229,7 @@ const LoaderView: React.FC = () => {
                 id="topic-select" 
                 value={isNewTopic ? "_new_topic_" : selectedTopic}
                 onChange={handleTopicChange}
-                className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900"
+                className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900"
                 disabled={isAnalyzing || isLoadingToDB}
               >
                 <option value="" disabled={!isNewTopic}>Select a topic</option>
@@ -238,7 +242,7 @@ const LoaderView: React.FC = () => {
                     placeholder="Enter new topic name"
                     value={newTopicName}
                     onChange={(e) => setNewTopicName(e.target.value)}
-                    className="mt-2 w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900"
+                    className="mt-2 w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900"
                     disabled={isAnalyzing || isLoadingToDB}
                 />
               )}
@@ -256,18 +260,18 @@ const LoaderView: React.FC = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }} // For accessibility
                 aria-label="Upload Markdown file or drag and drop"
                 className={`mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer
-                  ${isDraggingOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-slate-400'}
+                  ${isDraggingOver ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 hover:border-slate-400'}
                   transition-colors duration-150 ease-in-out`}
               >
                 <div className="space-y-1 text-center">
-                  <UploadIcon className={`mx-auto h-12 w-12 ${isDraggingOver ? 'text-indigo-500' : 'text-slate-400'}`} aria-hidden="true" />
+                  <UploadIcon className={`mx-auto h-12 w-12 ${isDraggingOver ? 'text-emerald-500' : 'text-slate-400'}`} aria-hidden="true" />
                   <div className="flex text-sm text-slate-600">
                     <p className="relative">
                       {file ? (
-                        <span className="font-medium text-indigo-600">{file.name}</span>
+                        <span className="font-medium text-emerald-600">{file.name}</span>
                       ) : (
                         <>
-                          <span className="font-medium text-indigo-600 hover:text-indigo-500">Upload a file</span>
+                          <span className="font-medium text-emerald-600 hover:text-emerald-500">Upload a file</span>
                           <span className="pl-1">or drag and drop</span>
                         </>
                       )}
@@ -290,10 +294,15 @@ const LoaderView: React.FC = () => {
           </div>
           <button 
             onClick={handleAnalyzeFile}
-            className="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors duration-150 ease-in-out"
+            className="mt-8 w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg shadow-emerald-500/25 disabled:transform-none"
             disabled={!canAnalyze}
           >
-            {isAnalyzing ? 'Analyzing...' : 'Analyze File (Dry Run)'}
+            {isAnalyzing ? (
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Analyzing File...
+              </div>
+            ) : 'Analyze File (Dry Run)'}
           </button>
         </div>
         
@@ -391,7 +400,7 @@ const LoaderView: React.FC = () => {
               type="text"
               value={confirmationInput}
               onChange={(e) => setConfirmationInput(e.target.value)}
-              className="w-full p-2 border border-slate-300 rounded-md shadow-sm mb-6 bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full p-2 border border-slate-300 rounded-md shadow-sm mb-6 bg-white text-slate-900 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Type topic name here"
               aria-describedby="confirmation-modal-title"
             />
@@ -416,6 +425,7 @@ const LoaderView: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -243,188 +243,272 @@ const CurationView: React.FC = () => {
 
 
   return (
-    <div className="view-enter-active p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-slate-900">Manage Content</h2>
-        <button 
-          onClick={handleAddNewQuestion}
-          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 flex items-center gap-2 transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <PlusIcon />
-          Add New Question
-        </button>
-      </div>
-      
-      {/* Filter Controls */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-          <select name="topic" value={filters.topic} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="All Topics">All Topics</option>
-            {contextTopics.sort().map(topic => <option key={topic} value={topic}>{topic}</option>)}
-          </select>
-          <select name="subtopic" value={filters.subtopic} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500">
-             {availableSubtopics.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-          </select>
-          <select name="difficulty" value={filters.difficulty} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="All Difficulties">All Difficulties</option>
-            {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <select name="type" value={filters.type} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="All Types">All Types</option>
-            {QUESTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <input 
-            type="text" 
-            name="searchText"
-            placeholder="Search ID, question, answer..." 
-            value={filters.searchText}
-            onChange={handleFilterChange}
-            className="w-full p-2 border border-slate-300 rounded-md text-sm col-span-1 md:col-span-3 lg:col-span-1 bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
-          />
+    <div className="view-enter-active p-8 bg-stone-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-4xl font-bold text-slate-800 tracking-tight">Manage Content</h2>
+            <p className="text-slate-600 mt-2">Create, edit, and organize your Q&A database</p>
+          </div>
+          <button 
+            onClick={handleAddNewQuestion}
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-emerald-700 hover:to-teal-700 flex items-center gap-2 transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25"
+          >
+            <PlusIcon />
+            Add New Question
+          </button>
         </div>
-      </div>
-
-      {/* Table Area Header: Summary & Bulk Actions */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="p-4 flex flex-wrap justify-between items-center border-b border-slate-200 gap-4">
-          <p className="text-sm font-medium text-slate-600">
-            Showing {filteredQuestions.length} matching question(s).
-            {selectedQuestionIds.size > 0 && ` ${selectedQuestionIds.size} selected.`}
-          </p>
-          <div className="flex items-center gap-3">
-            {selectedQuestionIds.size > 0 && (
-              <div className="relative" ref={bulkActionsRef}>
-                <button
-                  onClick={() => setIsBulkActionsOpen(prev => !prev)}
-                  className="bg-indigo-600 text-white font-semibold py-1 px-3 rounded-md hover:bg-indigo-700 text-sm flex items-center gap-2 transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
-                  aria-haspopup="true"
-                  aria-expanded={isBulkActionsOpen}
-                >
-                  Bulk Actions ({selectedQuestionIds.size})
-                  <ChevronDownIcon className={`h-4 w-4 transform transition-transform ${isBulkActionsOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isBulkActionsOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20 origin-top-right">
-                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                      <button
-                        onClick={handleBulkDeleteSelected}
-                        className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 ease-in-out"
-                        role="menuitem"
-                        disabled={isContextLoading}
-                      >
-                        Delete Selected
-                      </button>
-                      <button
-                        onClick={handleBulkMoveSelected}
-                        className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-150 ease-in-out"
-                        role="menuitem"
-                        disabled={isContextLoading}
-                      >
-                        Move Selected to...
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <button 
-              onClick={handleExport}
-              className="bg-slate-100 text-slate-700 font-semibold py-1 px-3 rounded-md hover:bg-slate-200 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
-              disabled={filteredQuestions.length === 0 || isContextLoading}
-            >
-              <DownloadIcon />
-              Export Results to Markdown
-            </button>
+      
+        {/* Advanced Filter Controls */}
+        <div className="bg-white rounded-xl shadow-lg shadow-slate-900/5 border-0 p-8 mb-8">
+          <div className="border-b border-slate-100 pb-4 mb-6">
+            <h3 className="text-xl font-bold text-slate-800 tracking-tight">Filter & Search</h3>
+            <p className="text-sm text-slate-600 mt-1">Narrow down questions by topic, difficulty, and content</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Topic</label>
+              <select 
+                name="topic" 
+                value={filters.topic} 
+                onChange={handleFilterChange} 
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-sm hover:border-slate-300"
+              >
+                <option value="All Topics">All Topics</option>
+                {contextTopics.sort().map(topic => <option key={topic} value={topic}>{topic}</option>)}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Subtopic</label>
+              <select 
+                name="subtopic" 
+                value={filters.subtopic} 
+                onChange={handleFilterChange} 
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-sm hover:border-slate-300"
+              >
+                {availableSubtopics.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Difficulty</label>
+              <select 
+                name="difficulty" 
+                value={filters.difficulty} 
+                onChange={handleFilterChange} 
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-sm hover:border-slate-300"
+              >
+                <option value="All Difficulties">All Difficulties</option>
+                {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Type</label>
+              <select 
+                name="type" 
+                value={filters.type} 
+                onChange={handleFilterChange} 
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-sm hover:border-slate-300"
+              >
+                <option value="All Types">All Types</option>
+                {QUESTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            
+            <div className="space-y-2 col-span-1 lg:col-span-1">
+              <label className="text-sm font-semibold text-slate-700">Search</label>
+              <input 
+                type="text" 
+                name="searchText"
+                placeholder="Search questions, answers, IDs..." 
+                value={filters.searchText}
+                onChange={handleFilterChange}
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-sm hover:border-slate-300 placeholder-slate-400"
+              />
+            </div>
           </div>
         </div>
+
+        {/* Enhanced Table Area: Summary & Bulk Actions */}
+        <div className="bg-white rounded-xl shadow-lg shadow-slate-900/5 border-0 overflow-hidden">
+          <div className="p-6 flex flex-wrap justify-between items-center border-b border-slate-100 gap-4">
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-lg font-bold text-slate-800">
+                  {filteredQuestions.length} {filteredQuestions.length === 1 ? 'Question' : 'Questions'}
+                </p>
+                <p className="text-sm text-slate-600">
+                  {selectedQuestionIds.size > 0 ? `${selectedQuestionIds.size} selected` : 'Use checkboxes to select items'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {selectedQuestionIds.size > 0 && (
+                <div className="relative" ref={bulkActionsRef}>
+                  <button
+                    onClick={() => setIsBulkActionsOpen(prev => !prev)}
+                    className="bg-gradient-to-r from-slate-600 to-slate-700 text-white font-semibold py-2 px-4 rounded-lg hover:from-slate-700 hover:to-slate-800 text-sm flex items-center gap-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-500 shadow-lg shadow-slate-500/25"
+                    aria-haspopup="true"
+                    aria-expanded={isBulkActionsOpen}
+                  >
+                    Bulk Actions ({selectedQuestionIds.size})
+                    <ChevronDownIcon className={`h-4 w-4 transform transition-transform ${isBulkActionsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isBulkActionsOpen && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-xl shadow-xl bg-white ring-1 ring-slate-200 z-20 origin-top-right border-0">
+                      <div className="py-2" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                        <button
+                          onClick={handleBulkDeleteSelected}
+                          className="block w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 ease-in-out rounded-lg mx-2"
+                          role="menuitem"
+                          disabled={isContextLoading}
+                        >
+                          🗑️ Delete Selected
+                        </button>
+                        <button
+                          onClick={handleBulkMoveSelected}
+                          className="block w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors duration-150 ease-in-out rounded-lg mx-2"
+                          role="menuitem"
+                          disabled={isContextLoading}
+                        >
+                          📁 Move Selected to...
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <button 
+                onClick={handleExport}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:from-amber-600 hover:to-orange-600 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-amber-500 shadow-lg shadow-amber-500/25"
+                disabled={filteredQuestions.length === 0 || isContextLoading}
+              >
+                <DownloadIcon />
+                Export to Markdown
+              </button>
+            </div>
+          </div>
         
-        {/* Questions Table */}
-        <div className="overflow-x-auto max-h-[calc(100vh-25rem)]"> {/* Adjusted max-height for viewability */}
-          {isContextLoading && <div className="p-4 text-center text-slate-500">Updating table...</div>}
-          {!isContextLoading && (
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-xs text-slate-600 uppercase sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 w-12 text-center">
-                    <label htmlFor="select-all-checkbox" className="sr-only">Select all questions</label>
-                    <input 
-                      ref={headerCheckboxRef}
-                      type="checkbox"
-                      id="select-all-checkbox"
-                      className="form-checkbox h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                      checked={isAllSelected}
-                      onChange={handleSelectAll}
-                      disabled={filteredQuestions.length === 0}
-                    />
-                  </th>
-                  <th className="px-6 py-3">Question ID</th>
-                  <th className="px-6 py-3">Topic</th>
-                  <th className="px-6 py-3">Subtopic</th>
-                  <th className="px-6 py-3">Difficulty</th>
-                  <th className="px-6 py-3">Type</th>
-                  <th className="px-6 py-3">Question</th>
-                  <th className="px-6 py-3 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredQuestions.length > 0 ? filteredQuestions.map(q => (
-                  <tr key={q.id} className={`border-b hover:bg-slate-50 transition-colors duration-100 ${selectedQuestionIds.has(q.id) ? 'bg-indigo-50' : 'bg-white'}`}>
-                    <td className="px-4 py-4 text-center">
-                       <label htmlFor={`select-q-${q.id}`} className="sr-only">Select question {q.id}</label>
-                      <input 
-                        type="checkbox"
-                        id={`select-q-${q.id}`}
-                        className="form-checkbox h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                        checked={selectedQuestionIds.has(q.id)}
-                        onChange={() => handleSelectRow(q.id)}
-                      />
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-600">{q.id}</td>
-                    <td className="px-6 py-4 text-slate-700">{q.topic}</td>
-                    <td className="px-6 py-4 font-medium text-slate-800">{q.subtopic}</td>
-                    <td className="px-6 py-4 text-slate-700">{q.difficulty}</td>
-                    <td className="px-6 py-4 text-slate-700">{q.type}</td>
-                    <td 
-                      className="px-6 py-4 text-slate-600 max-w-md truncate" 
-                      title={q.questionText}
-                    >
-                      {q.questionText}
-                    </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <button 
-                        onClick={() => handleEditQuestion(q)} 
-                        className="font-medium text-indigo-600 hover:text-indigo-900 mr-2 inline-flex items-center p-1 hover:bg-indigo-50 rounded transition-colors duration-150 ease-in-out focus:outline-none focus:ring-1 focus:ring-indigo-300"
-                        title="Edit question"
-                      >
-                        <EditIcon className="h-4 w-4"/> <span className="ml-1 sr-only md:not-sr-only">Edit</span>
-                      </button>
-                      <button 
-                        onClick={() => handleDuplicateQuestion(q)} 
-                        className="font-medium text-sky-600 hover:text-sky-900 mr-2 inline-flex items-center p-1 hover:bg-sky-50 rounded transition-colors duration-150 ease-in-out focus:outline-none focus:ring-1 focus:ring-sky-300"
-                        title="Duplicate question"
-                      >
-                        <DuplicateIcon className="h-4 w-4"/> <span className="ml-1 sr-only md:not-sr-only">Duplicate</span>
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteQuestion(q)} 
-                        className="font-medium text-red-600 hover:text-red-900 inline-flex items-center p-1 hover:bg-red-50 rounded transition-colors duration-150 ease-in-out focus:outline-none focus:ring-1 focus:ring-red-300"
-                        title="Delete question"
-                      >
-                        <DeleteIcon className="h-4 w-4"/> <span className="ml-1 sr-only md:not-sr-only">Delete</span>
-                      </button>
-                    </td>
-                  </tr>
-                )) : (
+          {/* Enhanced Questions Table */}
+          <div className="overflow-x-auto"> 
+            {isContextLoading && (
+              <div className="p-8 text-center">
+                <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p className="text-slate-600 font-medium">Updating table...</p>
+              </div>
+            )}
+            {!isContextLoading && (
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0 z-10">
                   <tr>
-                      <td colSpan={8} className="text-center py-10 text-slate-500">
-                          No questions match the current filters.
-                      </td>
+                    <th className="px-6 py-4 w-12 text-center">
+                      <label htmlFor="select-all-checkbox" className="sr-only">Select all questions</label>
+                      <input 
+                        ref={headerCheckboxRef}
+                        type="checkbox"
+                        id="select-all-checkbox"
+                        className="form-checkbox h-4 w-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                        checked={isAllSelected}
+                        onChange={handleSelectAll}
+                        disabled={filteredQuestions.length === 0}
+                      />
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700 tracking-wide">Question ID</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700 tracking-wide">Topic</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700 tracking-wide">Subtopic</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700 tracking-wide">Difficulty</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700 tracking-wide">Type</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700 tracking-wide">Question</th>
+                    <th className="px-6 py-4 text-center font-semibold text-slate-700 tracking-wide">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredQuestions.length > 0 ? filteredQuestions.map(q => (
+                    <tr key={q.id} className={`hover:bg-slate-50/50 transition-colors duration-150 ${selectedQuestionIds.has(q.id) ? 'bg-emerald-50/30 border-l-4 border-emerald-400' : 'bg-white'}`}>
+                      <td className="px-6 py-5 text-center">
+                         <label htmlFor={`select-q-${q.id}`} className="sr-only">Select question {q.id}</label>
+                        <input 
+                          type="checkbox"
+                          id={`select-q-${q.id}`}
+                          className="form-checkbox h-4 w-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                          checked={selectedQuestionIds.has(q.id)}
+                          onChange={() => handleSelectRow(q.id)}
+                        />
+                      </td>
+                      <td className="px-6 py-5">
+                        <code className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-mono">{q.id}</code>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                          {q.topic}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 font-medium text-slate-800">{q.subtopic}</td>
+                      <td className="px-6 py-5">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          q.difficulty === 'Basic' ? 'bg-sky-100 text-sky-800' :
+                          q.difficulty === 'Advanced' ? 'bg-amber-100 text-amber-800' :
+                          'bg-slate-100 text-slate-800'
+                        }`}>
+                          {q.difficulty}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-slate-700">{q.type}</td>
+                      <td className="px-6 py-5 max-w-md">
+                        <p className="text-slate-600 truncate" title={q.questionText}>
+                          {q.questionText}
+                        </p>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button 
+                            onClick={() => handleEditQuestion(q)} 
+                            className="inline-flex items-center p-2 text-emerald-600 hover:text-emerald-900 hover:bg-emerald-50 rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                            title="Edit question"
+                          >
+                            <EditIcon className="h-4 w-4"/>
+                          </button>
+                          <button 
+                            onClick={() => handleDuplicateQuestion(q)} 
+                            className="inline-flex items-center p-2 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                            title="Duplicate question"
+                          >
+                            <DuplicateIcon className="h-4 w-4"/>
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteQuestion(q)} 
+                            className="inline-flex items-center p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
+                            title="Delete question"
+                          >
+                            <DeleteIcon className="h-4 w-4"/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                        <td colSpan={8} className="text-center py-16">
+                          <div className="flex flex-col items-center">
+                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                              <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <p className="text-slate-500 font-medium">No questions match the current filters</p>
+                            <p className="text-slate-400 text-sm mt-1">Try adjusting your search criteria</p>
+                          </div>
+                        </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
       </div>
 
       {/* Question Add/Edit/Duplicate Modal */}
@@ -472,6 +556,7 @@ const CurationView: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
