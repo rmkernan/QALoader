@@ -22,8 +22,9 @@ Security: CORS restricted to localhost frontend ports, JWT validation in protect
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, questions, upload
+
 from app.database import init_db
+from app.routers import auth, questions, upload
 
 app = FastAPI(title="Q&A Loader API", version="1.0.0")
 
@@ -41,6 +42,7 @@ app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(questions.router, prefix="/api", tags=["questions"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
+
 @app.on_event("startup")
 async def startup_event():
     """
@@ -52,6 +54,7 @@ async def startup_event():
         # No manual invocation required
     """
     await init_db()
+
 
 @app.get("/")
 def read_root():
@@ -66,6 +69,7 @@ def read_root():
         # Response: {"message": "Q&A Loader API is running"}
     """
     return {"message": "Q&A Loader API is running"}
+
 
 @app.get("/health")
 def health_check():

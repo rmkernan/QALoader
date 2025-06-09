@@ -25,10 +25,11 @@ Operations: Full CRUD operations via Supabase REST API
 Transactions: Supported through Supabase client for batch operations
 """
 
-from supabase import create_client, Client
-from app.config import settings
-import asyncio
 from typing import Optional
+
+from supabase import Client, create_client
+
+from app.config import settings
 
 # Initialize Supabase client (will be None if not configured)
 # PATTERN: Singleton client instance shared across the application
@@ -46,6 +47,7 @@ except Exception as e:
     print(f"⚠ Supabase initialization failed: {e}")
     supabase = None
 
+
 async def init_db():
     """
     @function init_db
@@ -59,6 +61,7 @@ async def init_db():
     # For now, we assume tables are created via Supabase dashboard
     # Future enhancement: Add migration system for automated table creation
     print("Database initialization completed")
+
 
 async def get_db():
     """
