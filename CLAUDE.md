@@ -2,6 +2,32 @@
 
 This file provides specific guidance for AI assistants (Claude) working on the Q&A Loader project.
 
+## Documentation Standards (CRITICAL - READ FIRST)
+
+### Required for ALL Code Files
+- **ALWAYS read `Docs/DocumentationStandards.md`** before creating/modifying any code
+- **Apply documentation standards automatically** after any code changes
+- **Use trigger phrase**: "Apply documentation standards" for comprehensive review
+
+### Key Requirements
+- **File Headers**: JSDoc with architectural context, workflow context, American timestamps
+- **Function Documentation**: Complete JSDoc with examples for all exported functions  
+- **Timestamp Format**: `Month Day, Year. Hour:Minute a.m./p.m. Eastern Time`
+- **Security Documentation**: Required for all auth-related code
+- **Component Documentation**: Include accessibility and usage examples
+
+### Backend-Specific Documentation
+- Document Supabase integration patterns and error handling
+- Include environment variable dependencies and security implications
+- Explain FastAPI route patterns, validation, and authentication requirements
+- Document transaction handling and database operation patterns
+
+### Automatic Application Required
+- After any code modifications or bug fixes
+- When adding new functions, components, or files
+- Before git commits (especially for significant changes)
+- When refactoring or restructuring code
+
 ## Performance & Efficiency
 
 ### Tool Usage
@@ -16,7 +42,9 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
   - Adding new major features
   - Before major architectural changes
   - After completing milestone work
+- **Apply documentation standards before commits**
 - Suggest meaningful commit messages that explain the "why" not just the "what"
+- Include timestamps in commit messages: `Timestamp: YYYY-MM-DD HH:MM ET`
 
 ## Code Quality Standards
 
@@ -32,6 +60,7 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 - Create interfaces in `src/types.ts` for shared data structures
 - Use union types for constrained values (e.g., `'Basic' | 'Advanced'`)
 - Prefer type safety over convenience
+- **Document complex types** with JSDoc comments explaining purpose and usage
 
 ### React Patterns
 - Use functional components with hooks
@@ -120,6 +149,9 @@ src/
 ## Code Review Checklist
 
 Before suggesting changes are complete:
+- [ ] **Documentation standards applied** (DocumentationStandards.md)
+- [ ] **File headers include** architectural/workflow context with timestamps
+- [ ] **All functions documented** with JSDoc and examples
 - [ ] TypeScript compilation passes without errors
 - [ ] No console errors in browser
 - [ ] UI is responsive and accessible
@@ -127,7 +159,7 @@ Before suggesting changes are complete:
 - [ ] Loading states provide user feedback
 - [ ] Code follows project conventions
 - [ ] No obvious performance issues
-- [ ] Documentation is updated if needed
+- [ ] Security implications documented for auth code
 
 ## Common Patterns
 
