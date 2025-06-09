@@ -194,13 +194,18 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
   const submitButtonText = isLoading ? 'Saving...' : isDuplicateMode ? 'Duplicate Question' : questionToEdit ? 'Save Changes' : 'Add Question';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 modal-overlay" role="dialog" aria-modal="true" aria-labelledby="question-modal-title">
-      <div className="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl modal-content transform transition-all">
-        <div className="flex justify-between items-center mb-6">
-          <h2 id="question-modal-title" className="text-2xl font-bold text-slate-800">{modalTitle}</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 modal-overlay" role="dialog" aria-modal="true" aria-labelledby="question-modal-title">
+      <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 w-full max-w-3xl modal-content transform transition-all border border-slate-200/50">
+        <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100">
+          <div>
+            <h2 id="question-modal-title" className="text-2xl font-bold text-slate-800 tracking-tight">{modalTitle}</h2>
+            <p className="text-slate-600 mt-1 text-sm">
+              {isDuplicateMode ? 'Creating a copy of the selected question' : questionToEdit ? 'Modify question details below' : 'Add a new question to your database'}
+            </p>
+          </div>
           <button 
             onClick={onClose} 
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400"
             aria-label="Close modal"
             disabled={isLoading}
           >
@@ -208,7 +213,9 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="p-8">
+
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Topic Selection */}
           <div>
             <label htmlFor="topic" className="block text-sm font-medium text-slate-700 mb-1">Topic</label>
@@ -217,7 +224,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
               name="topic" 
               value={topic} 
               onChange={handleTopicChange}
-              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
               disabled={isLoading || isAppLoading}
             >
               {uniqueContextTopics.length === 0 && !isNewTopic && <option value="" disabled>No topics available</option>}
@@ -236,7 +243,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
                 name="newTopicName"
                 value={newTopicName}
                 onChange={(e) => setNewTopicName(e.target.value)}
-                className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+                className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
                 placeholder="Enter the name for the new topic"
                 disabled={isLoading}
                 required={isNewTopic}
@@ -253,7 +260,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
               name="subtopic"
               value={subtopic}
               onChange={(e) => setSubtopic(e.target.value)}
-              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
               placeholder="e.g., Calculating WACC, Perpetuity Growth"
               disabled={isLoading}
               required
@@ -269,7 +276,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
                 name="difficulty" 
                 value={difficulty} 
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+                className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
                 disabled={isLoading}
               >
                 {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
@@ -284,7 +291,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
                 name="type" 
                 value={type} 
                 onChange={(e) => setType(e.target.value)}
-                className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+                className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
                 disabled={isLoading}
               >
                 {QUESTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -301,7 +308,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
               rows={4}
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
-              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
               placeholder="Enter the question text..."
               disabled={isLoading}
               required
@@ -317,7 +324,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
               rows={6}
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
-              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 sm:text-sm"
               placeholder="Enter the answer text..."
               disabled={isLoading}
               required
@@ -325,24 +332,30 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-2">
+          <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
             <button 
               type="button" 
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400 transition-colors duration-150 ease-in-out"
+              className="px-6 py-3 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400 transition-colors duration-150 ease-in-out"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 disabled:opacity-60 transition-colors duration-150 ease-in-out"
+              className="px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl shadow-lg shadow-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 disabled:opacity-60 transition-all duration-200 transform hover:-translate-y-0.5 disabled:transform-none"
               disabled={isLoading || isAppLoading}
             >
-              {submitButtonText}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  {submitButtonText}
+                </div>
+              ) : submitButtonText}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
