@@ -29,6 +29,7 @@ Transactions: Individual operations are atomic, service layer handles complex op
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from supabase import Client
 
 from app.database import get_db
 from app.models.question import Question, QuestionCreate, QuestionUpdate
@@ -55,32 +56,58 @@ def get_question_service(db=Depends(get_db)) -> QuestionService:
 
 @router.get("/bootstrap-data")
 async def get_bootstrap_data(
+    enhanced: bool = False,
     current_user: str = Depends(get_current_user),
     service: QuestionService = Depends(get_question_service)
 ):
     """
     @api GET /api/bootstrap-data
     @description Retrieves all data needed for dashboard initialization including questions, topics, and activity log
+    @param enhanced: If true, returns enhanced data with statistics, metrics, and system health
     @returns: Bootstrap data object with questions array, topics array, last upload timestamp, and activity log
     @authentication: Required JWT token in Authorization header
     @errors: 
         - 401: Invalid or missing JWT token
         - 500: Database connection error
     @example:
-        # Request
+        # Basic Request
         GET /api/bootstrap-data
         Authorization: Bearer <jwt_token>
         
-        # Response
+        # Enhanced Request
+        GET /api/bootstrap-data?enhanced=true
+        Authorization: Bearer <jwt_token>
+        
+        # Enhanced Response includes:
         {
             "questions": [Question[]],
             "topics": ["DCF", "Valuation", ...],
+            "statistics": {
+                "totalQuestions": 150,
+                "questionsByDifficulty": {"Basic": 50, "Intermediate": 60, "Advanced": 40},
+                "questionsByType": {"Definition": 40, "Problem": 110},
+                "questionsByTopic": {"DCF": 30, "Valuation": 45, ...},
+                "recentActivity": 25
+            },
+            "systemHealth": {
+                "status": "healthy",
+                "databaseConnected": true,
+                "totalStorageUsed": "2.45 MB",
+                "avgResponseTime": 0.05
+            },
+            "activityTrends": [
+                {"date": "2025-06-03", "activityCount": 5, "questionsCreated": 2},
+                ...
+            ],
             "lastUploadTimestamp": "2025-06-09T18:30:00Z",
             "activityLog": [ActivityLogItem[]]
         }
     """
     try:
-        data = await service.get_bootstrap_data()
+        if enhanced:
+            data = await service.get_enhanced_bootstrap_data()
+        else:
+            data = await service.get_bootstrap_data()
         return data
     except Exception as e:
         raise HTTPException(
@@ -377,4 +404,223 @@ async def delete_question(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete question: {str(e)}"
+        )
+
+
+# Analytics Endpoints (Phase 5)
+
+@router.get("/analytics/dashboard")
+async def get_dashboard_analytics(
+    current_user: str = Depends(get_current_user),
+    db: Client = Depends(get_db)
+):
+    """
+    @api GET /api/analytics/dashboard
+    @description Detailed dashboard analytics including question metrics, activity summaries, and engagement data
+    @returns: Comprehensive analytics object with multiple metric categories
+    @authentication: Required JWT token in Authorization header
+    @errors: 
+        - 401: Invalid or missing JWT token
+        - 500: Analytics calculation error
+    @example:
+        # Request
+        GET /api/analytics/dashboard
+        Authorization: Bearer <jwt_token>
+        
+        # Response
+        {
+            "questionMetrics": {
+                "total": 150,
+                "byDifficulty": {"Basic": 50, "Intermediate": 60, "Advanced": 40},
+                "byType": {"Definition": 40, "Problem": 60, ...},
+                "recentAdditions": 15,
+                "averagePerTopic": 25
+            },
+            "activityMetrics": {
+                "total": 500,
+                "byType": {"Question Created": 150, "Search Performed": 200, ...},
+                "last24Hours": 45,
+                "dailyAverage": 16.7,
+                "peakHour": 14
+            },
+            "topicMetrics": {...},
+            "engagementMetrics": {...},
+            "timeMetrics": {...},
+            "generatedAt": "2025-06-10T00:45:00Z"
+        }
+    """
+    try:
+        from app.services.analytics_service import AnalyticsService
+        analytics_service = AnalyticsService(db)
+        metrics = await analytics_service.get_dashboard_metrics()
+        return metrics
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate dashboard analytics: {str(e)}"
+        )
+
+
+@router.get("/analytics/activity-trends")
+async def get_activity_trends(
+    days: int = 7,
+    current_user: str = Depends(get_current_user),
+    db: Client = Depends(get_db)
+):
+    """
+    @api GET /api/analytics/activity-trends
+    @description Activity trends over specified period with daily breakdown and trend indicators
+    @param days: Number of days to analyze (default: 7, max: 90)
+    @returns: List of daily activity summaries with trends
+    @authentication: Required JWT token in Authorization header
+    @errors: 
+        - 401: Invalid or missing JWT token
+        - 400: Invalid days parameter
+        - 500: Trend calculation error
+    @example:
+        # Request
+        GET /api/analytics/activity-trends?days=30
+        Authorization: Bearer <jwt_token>
+        
+        # Response
+        [
+            {
+                "date": "2025-06-01",
+                "dayOfWeek": "Saturday",
+                "totalActivities": 25,
+                "questionsCreated": 5,
+                "activityBreakdown": {"Question Created": 5, "Search Performed": 15, ...},
+                "peakHour": 14,
+                "activityChange": 3,
+                "questionChange": 2,
+                "trend": "up"
+            },
+            ...
+        ]
+    """
+    try:
+        # Validate days parameter
+        if days < 1 or days > 90:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Days parameter must be between 1 and 90"
+            )
+        
+        from app.services.analytics_service import AnalyticsService
+        analytics_service = AnalyticsService(db)
+        trends = await analytics_service.get_activity_trends(days=days)
+        return trends
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to calculate activity trends: {str(e)}"
+        )
+
+
+@router.get("/analytics/content")
+async def get_content_analytics(
+    current_user: str = Depends(get_current_user),
+    db: Client = Depends(get_db)
+):
+    """
+    @api GET /api/analytics/content
+    @description Content analytics including question distribution, coverage gaps, and quality metrics
+    @returns: Content analysis with distribution and balance metrics
+    @authentication: Required JWT token in Authorization header
+    @errors: 
+        - 401: Invalid or missing JWT token
+        - 500: Content analysis error
+    @example:
+        # Request
+        GET /api/analytics/content
+        Authorization: Bearer <jwt_token>
+        
+        # Response
+        {
+            "distribution": {
+                "topicSubtopicBreakdown": {"DCF": {"WACC": 10, "Terminal Value": 8}, ...},
+                "totalCombinations": 25
+            },
+            "coverage": {
+                "expectedTopics": 6,
+                "coveredTopics": 5,
+                "missingTopics": ["LBO"],
+                "coveragePercentage": 83.3,
+                "additionalTopics": ["ESG"]
+            },
+            "difficultyBalance": {
+                "distribution": {"Basic": {"count": 50, "percentage": 33.3, "deviation": 0.1}},
+                "overallBalance": 95.2,
+                "recommendation": "Good balance across difficulty levels"
+            },
+            "typeDistribution": {...}
+        }
+    """
+    try:
+        from app.services.analytics_service import AnalyticsService
+        analytics_service = AnalyticsService(db)
+        content_analysis = await analytics_service.get_content_analytics()
+        return content_analysis
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze content: {str(e)}"
+        )
+
+
+@router.get("/system/health")
+async def get_system_health(
+    current_user: str = Depends(get_current_user),
+    db: Client = Depends(get_db)
+):
+    """
+    @api GET /api/system/health
+    @description System health and performance metrics including database status and resource usage
+    @returns: System health object with performance metrics
+    @authentication: Required JWT token in Authorization header
+    @errors: 
+        - 401: Invalid or missing JWT token
+        - 500: Health check error
+    @example:
+        # Request
+        GET /api/system/health
+        Authorization: Bearer <jwt_token>
+        
+        # Response
+        {
+            "database": {
+                "status": "healthy",
+                "connectionActive": true,
+                "lastQueryTime": "12.5ms",
+                "healthScore": 95
+            },
+            "queryPerformance": {
+                "avgTime": 25.3,
+                "queries": [{"type": "simple", "time": 12.5, "status": "success"}],
+                "performance": "good"
+            },
+            "resourceUsage": {
+                "storage": {"totalMB": 2.45, "questionsKB": 300, "activitiesKB": 150},
+                "records": {"questions": 150, "activities": 300, "total": 450}
+            },
+            "apiMetrics": {
+                "avgResponseTime": 45.2,
+                "successRate": 99.5,
+                "errorRate": 0.5,
+                "requestsPerMinute": 12
+            },
+            "timestamp": "2025-06-10T00:45:00Z"
+        }
+    """
+    try:
+        from app.services.analytics_service import AnalyticsService
+        analytics_service = AnalyticsService(db)
+        performance = await analytics_service.get_performance_metrics()
+        return performance
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to check system health: {str(e)}"
         )

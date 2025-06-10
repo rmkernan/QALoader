@@ -54,6 +54,23 @@ async def startup_event():
         # No manual invocation required
     """
     await init_db()
+    
+    # Log system startup event
+    try:
+        from app.database import supabase
+        from app.services.question_service import QuestionService
+        import os
+        
+        question_service = QuestionService(supabase)
+        await question_service.log_system_event('System Startup', {
+            'description': 'Backend server started on port 8000',
+            'server': 'FastAPI Backend',
+            'port': 8000,
+            'version': '1.0.0',
+            'environment': os.getenv('ENVIRONMENT', 'development')
+        })
+    except Exception as e:
+        print(f"Failed to log startup event: {e}")
 
 
 @app.get("/")

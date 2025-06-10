@@ -118,6 +118,82 @@ class QuestionService:
             # Log activity errors shouldn't break main operations
             print(f"Warning: Failed to log activity: {e}")
 
+    async def log_system_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """
+        @function log_system_event
+        @description Enhanced activity logging for system events and monitoring
+        @param event_type: Type of system event (startup, query, error, etc.)
+        @param event_data: Dictionary containing event-specific data
+        @example:
+            # Log system startup
+            await service.log_system_event("System Startup", {
+                "server": "backend",
+                "port": 8000,
+                "version": "1.0.0"
+            })
+            
+            # Log search query
+            await service.log_system_event("Search Query", {
+                "filters": {"topic": "DCF", "difficulty": "Basic"},
+                "results": 5,
+                "response_time": 45.2
+            })
+        """
+        try:
+            # Format action based on event type
+            action_mapping = {
+                'System Startup': 'System Started',
+                'System Shutdown': 'System Stopped',
+                'Database Query': 'Database Query Executed',
+                'Search Query': 'Search Performed',
+                'User Session': 'User Activity',
+                'Performance Alert': 'Performance Issue Detected',
+                'File Upload': 'File Processing',
+                'Error Occurred': 'System Error',
+                'Batch Operation': 'Batch Process Executed'
+            }
+            
+            action = action_mapping.get(event_type, event_type)
+            
+            # Create detailed description
+            details_parts = []
+            if 'description' in event_data:
+                details_parts.append(event_data['description'])
+            
+            # Add specific details based on event type
+            if event_type == 'Search Query':
+                filters = event_data.get('filters', {})
+                filter_str = ', '.join([f"{k}={v}" for k, v in filters.items()])
+                if filter_str:
+                    details_parts.append(f"Filters: {filter_str}")
+                if 'results' in event_data:
+                    details_parts.append(f"Results: {event_data['results']}")
+                    
+            elif event_type == 'Database Query':
+                if 'query_type' in event_data:
+                    details_parts.append(f"Type: {event_data['query_type']}")
+                if 'response_time' in event_data:
+                    details_parts.append(f"Time: {event_data['response_time']}ms")
+                    
+            elif event_type == 'Performance Alert':
+                if 'metric' in event_data:
+                    details_parts.append(f"Metric: {event_data['metric']}")
+                if 'value' in event_data:
+                    details_parts.append(f"Value: {event_data['value']}")
+                    
+            elif event_type == 'File Upload':
+                if 'filename' in event_data:
+                    details_parts.append(f"File: {event_data['filename']}")
+                if 'questions_processed' in event_data:
+                    details_parts.append(f"Questions: {event_data['questions_processed']}")
+            
+            details = '; '.join(details_parts) if details_parts else str(event_data)
+            
+            await self.log_activity(action, details)
+            
+        except Exception as e:
+            print(f"Failed to log system event: {e}")
+
     async def create_question(self, question_data: QuestionCreate, username: str) -> Question:
         """
         @function create_question
@@ -245,7 +321,31 @@ class QuestionService:
         # Order by created_at descending (newest first)
         query = query.order('created_at', desc=True)
         
+        # Track query performance
+        from datetime import datetime
+        start_time = datetime.now()
         result = query.execute()
+        query_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
+        
+        # Log search activity with analytics
+        filters_used = {}
+        if topic:
+            filters_used['topic'] = topic
+        if subtopic:
+            filters_used['subtopic'] = subtopic
+        if difficulty:
+            filters_used['difficulty'] = difficulty
+        if question_type:
+            filters_used['type'] = question_type
+        if search_text:
+            filters_used['search_text'] = search_text
+        
+        await self.log_system_event('Search Query', {
+            'filters': filters_used,
+            'results': len(result.data),
+            'response_time': round(query_time, 2),
+            'limit': limit
+        })
         
         return [Question(**row) for row in result.data]
 
@@ -398,3 +498,146 @@ class QuestionService:
             'lastUploadTimestamp': last_upload_timestamp,
             'activityLog': activity_log
         }
+
+    async def get_enhanced_bootstrap_data(self) -> Dict[str, Any]:
+        """
+        @function get_enhanced_bootstrap_data
+        @description Enhanced bootstrap with detailed statistics, metrics, and system health
+        @returns: Comprehensive dashboard data including statistics and analytics
+        @example:
+            # Get enhanced dashboard data
+            data = await service.get_enhanced_bootstrap_data()
+            print(f"Total questions: {data['statistics']['totalQuestions']}")
+            print(f"System status: {data['systemHealth']['status']}")
+        """
+        # Get basic bootstrap data
+        basic_data = await self.get_bootstrap_data()
+        questions = basic_data['questions']
+        
+        # Calculate statistics
+        statistics = {
+            'totalQuestions': len(questions),
+            'questionsByDifficulty': self._count_by_field(questions, 'difficulty'),
+            'questionsByType': self._count_by_field(questions, 'type'),
+            'questionsByTopic': self._count_by_field(questions, 'topic'),
+            'recentActivity': await self._count_recent_activity(days=7)
+        }
+        
+        # Get system health metrics
+        system_health = await self._get_system_health()
+        
+        # Get activity trends
+        activity_trends = await self._get_activity_trends(days=7)
+        
+        return {
+            'questions': questions,
+            'topics': basic_data['topics'],
+            'statistics': statistics,
+            'lastUploadTimestamp': basic_data['lastUploadTimestamp'],
+            'activityLog': basic_data['activityLog'],
+            'systemHealth': system_health,
+            'activityTrends': activity_trends
+        }
+
+    def _count_by_field(self, questions: List[Question], field: str) -> Dict[str, int]:
+        """
+        @function _count_by_field
+        @description Helper to count questions by a specific field
+        @param questions: List of question objects
+        @param field: Field name to count by (difficulty, type, topic)
+        @returns: Dictionary mapping field values to counts
+        """
+        counts = {}
+        for q in questions:
+            value = getattr(q, field)
+            counts[value] = counts.get(value, 0) + 1
+        return counts
+
+    async def _count_recent_activity(self, days: int) -> int:
+        """
+        @function _count_recent_activity
+        @description Count activities in the past N days
+        @param days: Number of days to look back
+        @returns: Count of recent activities
+        """
+        from datetime import timedelta
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        result = self.db.table('activity_log').select('id', count='exact').gte('timestamp', cutoff_date.isoformat()).execute()
+        return result.count or 0
+
+    async def _get_system_health(self) -> Dict[str, Any]:
+        """
+        @function _get_system_health
+        @description Get system health metrics and status
+        @returns: Dictionary with database status, storage usage, and performance metrics
+        """
+        try:
+            # Test database connection with a simple query
+            test_result = self.db.table('all_questions').select('question_id').limit(1).execute()
+            db_connected = len(test_result.data) >= 0  # Will be True if query succeeds
+            
+            # Get storage metrics (estimated)
+            questions_count = self.db.table('all_questions').select('*', count='exact').execute().count or 0
+            activity_count = self.db.table('activity_log').select('*', count='exact').execute().count or 0
+            
+            # Estimate storage (rough approximation)
+            avg_question_size_kb = 2  # Estimated 2KB per question
+            avg_activity_size_kb = 0.5  # Estimated 0.5KB per activity log entry
+            total_storage_mb = (questions_count * avg_question_size_kb + activity_count * avg_activity_size_kb) / 1024
+            
+            return {
+                'status': 'healthy',
+                'databaseConnected': db_connected,
+                'totalStorageUsed': f"{total_storage_mb:.2f} MB",
+                'questionsCount': questions_count,
+                'activitiesCount': activity_count,
+                'avgResponseTime': 0.05,  # Placeholder - would implement actual monitoring
+                'uptime': '100%'  # Placeholder - would track actual uptime
+            }
+        except Exception as e:
+            return {
+                'status': 'degraded',
+                'databaseConnected': False,
+                'error': str(e),
+                'totalStorageUsed': 'Unknown',
+                'avgResponseTime': None
+            }
+
+    async def _get_activity_trends(self, days: int) -> List[Dict[str, Any]]:
+        """
+        @function _get_activity_trends
+        @description Get activity trends over the past N days
+        @param days: Number of days to analyze
+        @returns: List of daily activity summaries
+        """
+        from datetime import timedelta, date
+        
+        trends = []
+        today = date.today()
+        
+        for i in range(days):
+            target_date = today - timedelta(days=i)
+            start_time = datetime.combine(target_date, datetime.min.time())
+            end_time = start_time + timedelta(days=1)
+            
+            # Count activities for this day
+            activities = self.db.table('activity_log').select('*', count='exact').gte(
+                'timestamp', start_time.isoformat()
+            ).lt('timestamp', end_time.isoformat()).execute()
+            
+            # Count questions created on this day
+            questions = self.db.table('all_questions').select('*', count='exact').gte(
+                'created_at', start_time.isoformat()
+            ).lt('created_at', end_time.isoformat()).execute()
+            
+            trends.append({
+                'date': target_date.isoformat(),
+                'activityCount': activities.count or 0,
+                'questionsCreated': questions.count or 0,
+                'dayOfWeek': target_date.strftime('%A')
+            })
+        
+        # Reverse to show oldest to newest
+        trends.reverse()
+        return trends

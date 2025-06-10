@@ -61,6 +61,23 @@ async def login(login_data: LoginRequest):
         )
 
     access_token = create_access_token(data={"sub": user})
+    
+    # Log successful login
+    try:
+        from app.database import supabase
+        from app.services.question_service import QuestionService
+        from datetime import datetime
+        
+        question_service = QuestionService(supabase)
+        await question_service.log_system_event('User Session', {
+            'description': f'User login successful',
+            'username': user,
+            'timestamp': datetime.now().isoformat(),
+            'ip_address': 'localhost'  # In production, get from request
+        })
+    except Exception as e:
+        print(f"Failed to log login event: {e}")
+    
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
