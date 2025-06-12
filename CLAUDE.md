@@ -58,16 +58,28 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 - Resume work with full awareness of previous progress
 
 ### 🎯 MODEL SELECTION STRATEGY (For Orchestrators)
-**🚨 CRITICAL: Confirm model before major work - MUST WAIT for response:**
+**🚨 CRITICAL: Assess model appropriateness before EVERY major task:**
+
+**Initial Confirmation (First Time Only):**
 - **Ask user**: "Am I currently running on Opus or Sonnet?"
 - **STOP ALL ACTIVITY** until user responds - DO NOT proceed with decisions/actions
-- **Recommend strategic switches after confirmation**: 
+
+**Ongoing Assessment (Every Major Task):**
+- **BEFORE each significant task**: Self-assess model appropriateness
+- **Recommend switches proactively**: 
   - "This synthesis work requires Opus reasoning - should we switch?"
   - "This routine task is better for Sonnet - recommend switching to save Opus budget"
 - **WAIT** for user decision before proceeding with major work
 
 **Use Opus for**: Strategic synthesis, architecture design, complex decision-making
 **Use Sonnet for**: Routine coordination, file organization, status reporting, implementation execution
+
+### 🚨 GIT OPERATIONS PROTOCOL (Critical)
+**ORCHESTRATOR EXCLUSIVE RESPONSIBILITY:**
+- **ALL git operations** performed by Orchestrator only
+- **Agents NEVER use git commands** (add, commit, push, status, etc.)
+- **Centralized coordination** prevents conflicts and ensures safety
+- **Backup before risky operations** always orchestrator-managed
 
 ### Backend-Specific Documentation
 - Document Supabase integration patterns and error handling

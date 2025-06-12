@@ -84,6 +84,14 @@ You have access to all standard tools:
 - **LS**: List directory contents
 - **Task**: Launch sub-agents for complex searches
 
+## 🚨 CRITICAL RESTRICTIONS
+
+### Git Operations - ORCHESTRATOR ONLY
+- **AGENTS NEVER perform git commands** (add, commit, push, status, etc.)
+- **All git operations coordinated through Orchestrator**
+- **File modifications allowed** - git coordination is separate concern
+- **Report to Orchestrator** when files are ready for git backup
+
 ## Memory Integration (Neo4j) - MANDATORY PROTOCOL
 
 ### **🚨 START EVERY SESSION WITH MEMORY SEARCH**

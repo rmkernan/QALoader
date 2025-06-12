@@ -94,12 +94,13 @@ Context Status: [Approaching limit - recommend compacting]
 #### **1.5 Model Confirmation Protocol (Orchestrator Only)**
 **🚨 CRITICAL: Must complete BEFORE any strategic decisions or agent launches**
 
-**Step 1: Ask and WAIT for Response**
+**Step 1: Ask and WAIT for Response (First Time Only)**
 - Ask user: "Am I currently running on Opus or Sonnet?"
 - **STOP ALL ACTIVITY** until user responds
 - **DO NOT proceed** with any major decisions or actions
 
-**Step 2: Model Appropriateness Assessment**
+**Step 2: Model Appropriateness Assessment (Every Major Task)**
+- **BEFORE each significant task**: Assess if current model is appropriate
 - If Sonnet and task requires strategic synthesis: "This strategic work requires Opus reasoning - should we switch models?"
 - If Opus and task is routine coordination: "This routine task is better suited for Sonnet - recommend switching to save Opus budget"
 - **WAIT** for user decision before proceeding
@@ -107,6 +108,19 @@ Context Status: [Approaching limit - recommend compacting]
 **Step 3: Confirmation Before Action**
 - Only proceed with major decisions/launches after model confirmation
 - Document model used for session in all deliverables and coordination files
+
+#### **1.6 Git Operations Protocol (Orchestrator Only)**
+**🚨 CRITICAL: Centralized git control for safety**
+
+**Orchestrator Responsibilities:**
+- ALL git operations (status, add, commit, push, branch operations)
+- Coordinate backups before risky operations
+- Handle merge conflicts and repository state
+
+**Agent Restrictions:**
+- NEVER use git commands
+- Report when files are ready for backup
+- Focus on content creation/modification only
 
 #### **2. Memory Retrieval Sequence**
 ```bash
