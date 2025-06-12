@@ -4,6 +4,7 @@
 
 **Created on:** June 4, 2025. 5:22 p.m. Eastern Time  
 **Updated:** June 6, 2025. 12:45 p.m. Eastern Time - Enhanced timestamp format and added required timestamp headers for all documents
+**Updated:** June 10, 2025. 9:35 a.m. Eastern Time - Added critical timestamp management rules and bash command requirements
 
 ## When to Apply Documentation Standards
 
@@ -126,10 +127,36 @@ const useDevMode = isDevelopmentMode || devBypassActive;
 
 ## Timestamp and Update Standards
 
+### 🚨 CRITICAL TIMESTAMP RULES (MUST FOLLOW)
+
+#### **Rule 1: NEVER Overwrite Existing Timestamps**
+- **❌ WRONG:** Replace existing "Updated:" line with new timestamp
+- **✅ CORRECT:** Add new "Updated:" line below existing ones
+- **Purpose:** Preserves complete update history and change tracking
+
+#### **Rule 2: ALWAYS Use Bash Command for Time**
+- **❌ WRONG:** Guess what time it is
+- **✅ CORRECT:** Run `date` command and use exact output
+- **Required Process:**
+```bash
+# Step 1: Get actual current time
+date
+# Step 2: Use the exact time from command output for timestamp
+```
+
+#### **Rule 3: Cumulative Update History**
+**Correct timestamp progression:**
+```markdown
+**Updated:** June 6, 2025. 12:45 p.m. Eastern Time - Enhanced timestamp format
+**Updated:** June 7, 2025. 3:15 p.m. Eastern Time - Fixed authentication bug  
+**Updated:** June 10, 2025. 9:35 a.m. Eastern Time - Added error handling
+```
+
 ### Timestamp Format
 **All documents must include both "Created on" and "Updated" timestamps in American format:**
 - **Timezone:** Eastern Time always
 - **Format:** `Month Day, Year. Hour:Minute a.m./p.m. Eastern Time`
+- **Source:** MUST come from `date` bash command output
 - **Examples:** 
   - `Created on: June 6, 2025. 12:45 p.m. Eastern Time`
   - `Updated: June 6, 2025. 1:30 p.m. Eastern Time - Added RAG deployment validation`
@@ -139,9 +166,28 @@ const useDevMode = isDevelopmentMode || devBypassActive;
 ```markdown
 **Purpose:** [Clear one-sentence description of document's purpose]
 
-**Created on:** [Timestamp in American format]
-**Updated:** [Timestamp with one-sentence summary of changes]
+**Created on:** [Timestamp in American format from date command]
+**Updated:** [First update timestamp with description]
+**Updated:** [Second update timestamp with description]
+**Updated:** [Most recent update timestamp with description]
 ```
+
+### Mandatory Process for Adding Timestamps
+**LLMs MUST follow this exact sequence:**
+
+1. **Run date command:**
+   ```bash
+   date
+   ```
+
+2. **Convert to American format:**
+   - Input: `Tue Jun 10 09:35:50 EDT 2025`
+   - Output: `June 10, 2025. 9:35 a.m. Eastern Time`
+
+3. **Add new updated line (do NOT overwrite existing):**
+   ```markdown
+   **Updated:** June 10, 2025. 9:35 a.m. Eastern Time - [One sentence description]
+   ```
 
 ### Update Descriptions
 **Include meaningful change descriptions:**
@@ -179,6 +225,8 @@ const isDevelopmentMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
 When applying documentation standards, verify:
 
+- [ ] **TIMESTAMP RULES FOLLOWED:** Used `date` command for accurate time
+- [ ] **NO TIMESTAMP OVERWRITING:** Added new "Updated:" lines without replacing existing ones
 - [ ] **File headers** have current timestamps and change descriptions
 - [ ] **All modified functions** have complete JSDoc comments
 - [ ] **New components** include architectural and workflow context

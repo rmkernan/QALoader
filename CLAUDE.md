@@ -1,3 +1,4 @@
+Creation Date: 6/9/25 ~ 1PM ET
 # Claude Development Guidelines for Q&A Loader
 
 This file provides specific guidance for AI assistants (Claude) working on the Q&A Loader project.
@@ -12,9 +13,59 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 ### Key Requirements
 - **File Headers**: JSDoc with architectural context, workflow context, American timestamps
 - **Function Documentation**: Complete JSDoc with examples for all exported functions  
-- **Timestamp Format**: `Month Day, Year. Hour:Minute a.m./p.m. Eastern Time`
+- **Timestamp Format**: `Month Day, Year. Hour:Minute a.m./p.m. Eastern Time` (MUST use `date` bash command)
+- **Timestamp Rules**: NEVER overwrite existing timestamps, ALWAYS add new "Updated:" lines
 - **Security Documentation**: Required for all auth-related code
 - **Component Documentation**: Include accessibility and usage examples
+
+### 🚨 CRITICAL TIMESTAMP PROCESS
+**ALWAYS follow this exact sequence for any file updates:**
+1. Run `date` command to get actual current time
+2. Convert to American format: `June 10, 2025. 9:37 a.m. Eastern Time`
+3. Add NEW "Updated:" line (do NOT overwrite existing timestamps)
+4. Include one-sentence description of what changed
+
+### 🧠 MEMORY RETRIEVAL PROTOCOL (CRITICAL)
+**ALWAYS search project memory at session start:**
+1. **Search for your task area**: `mcp__neo4j-memory-global__search_nodes` with relevant terms
+2. **Check for previous work**: Look for entities related to your current assignment  
+3. **Review project context**: Search for project initiatives and ongoing efforts
+4. **Update memory with findings**: Add new observations as you work
+
+**Common search terms for QA Loader project:**
+- "QALoader project" - Overall project context
+- "Documentation" - Documentation-related work and standards
+- "Agent coordination" - Multi-agent collaboration efforts  
+- Your specific task area (e.g., "API", "frontend", "deployment")
+
+**When to create new memories:**
+- Key discoveries about project architecture or patterns
+- Important decisions or recommendations
+- Significant findings that other LLMs should know
+- Progress updates on major initiatives
+
+### 🔄 CONTEXT MANAGEMENT & CONTINUITY
+**When approaching context limit (80% full):**
+1. **STOP work immediately** and execute handoff protocol
+2. **Read `AgentCoord/HandoffProtocol.md`** for complete procedures  
+3. **Update memory** with all critical session information
+4. **Create handoff document** for seamless transition
+5. **Prefer COMPACTING over clearing** to preserve context
+
+**After context management:**
+- Search memory for project context and handoff information
+- Review most recent handoff document for critical context
+- Resume work with full awareness of previous progress
+
+### 🎯 MODEL SELECTION STRATEGY (For Orchestrators)
+**Confirm model before major work:**
+- **Ask user**: "Am I currently running on Opus or Sonnet?"
+- **Recommend strategic switches**: 
+  - "This synthesis work requires Opus reasoning - should we switch?"
+  - "This routine task is better for Sonnet - recommend switching to save Opus budget"
+
+**Use Opus for**: Strategic synthesis, architecture design, complex decision-making
+**Use Sonnet for**: Routine coordination, file organization, status reporting, implementation execution
 
 ### Backend-Specific Documentation
 - Document Supabase integration patterns and error handling

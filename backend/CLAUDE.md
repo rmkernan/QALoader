@@ -4,8 +4,16 @@
 
 **Created on:** June 9, 2025. 4:05 p.m. Eastern Time
 **Updated:** June 9, 2025. 4:05 p.m. Eastern Time - Initial creation with comprehensive backend documentation standards
+**Updated:** June 10, 2025. 9:37 a.m. Eastern Time - Added critical timestamp management rules and bash command requirements
 
 ## Documentation Standards (CRITICAL - APPLY FIRST)
+
+### 🚨 MANDATORY TIMESTAMP PROCESS 
+**BEFORE any file modifications, ALWAYS:**
+1. Run `date` command to get actual current time
+2. Convert to American format: `Month Day, Year. H:MM a.m./p.m. Eastern Time`  
+3. NEVER overwrite existing @updated lines - ADD new ones
+4. Example: `@updated 2025.06.10 9:37 AM ET - Added error handling for file uploads`
 
 ### Required File-Level Documentation for Python Files
 **All .py files must include:**
@@ -15,7 +23,7 @@
 @file backend/path/to/file.py
 @description Brief description of the file's purpose and main functionality
 @created YYYY.MM.DD H:MM PM ET
-@updated YYYY.MM.DD H:MM PM ET - Description of what changed and why
+@updated YYYY.MM.DD H:MM PM ET - Description of what changed and why (NEVER overwrite, always add new lines)
 
 @architectural-context
 Layer: [API Route/Service/Model/Utility/Database/etc.]

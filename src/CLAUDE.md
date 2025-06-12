@@ -4,6 +4,7 @@
 
 **Created on:** June 9, 2025. 4:15 p.m. Eastern Time  
 **Updated:** June 9, 2025. 4:15 p.m. Eastern Time - Initial creation of frontend-specific guidelines
+**Updated:** June 10, 2025. 9:37 a.m. Eastern Time - Added critical timestamp management rules and bash command requirements
 
 ---
 
@@ -13,6 +14,14 @@
 - **Read `../Docs/DocumentationStandards.md`** before modifying any React components
 - **Apply documentation standards** to all .tsx/.ts files
 - **Use American timestamp format**: `Month Day, Year. Hour:Minute a.m./p.m. Eastern Time`
+
+### 🚨 CRITICAL TIMESTAMP RULES FOR FRONTEND FILES
+**MANDATORY process for .tsx/.ts file updates:**
+1. **Run `date` command** to get actual current time
+2. **NEVER overwrite existing timestamps** in file headers
+3. **ADD new @updated lines** preserving complete history
+4. **Convert bash time to American format**: `June 10, 2025. 9:37 a.m. Eastern Time`
+5. **Include one-sentence change description**
 
 ### Component Documentation Requirements
 ```typescript
