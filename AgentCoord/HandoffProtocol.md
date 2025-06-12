@@ -91,6 +91,23 @@ Context Status: [Approaching limit - recommend compacting]
 - Confirm agent identity (Agent1, Agent2, or Orchestrator)
 - Understand current project phase and coordination state
 
+#### **1.5 Model Confirmation Protocol (Orchestrator Only)**
+**🚨 CRITICAL: Must complete BEFORE any strategic decisions or agent launches**
+
+**Step 1: Ask and WAIT for Response**
+- Ask user: "Am I currently running on Opus or Sonnet?"
+- **STOP ALL ACTIVITY** until user responds
+- **DO NOT proceed** with any major decisions or actions
+
+**Step 2: Model Appropriateness Assessment**
+- If Sonnet and task requires strategic synthesis: "This strategic work requires Opus reasoning - should we switch models?"
+- If Opus and task is routine coordination: "This routine task is better suited for Sonnet - recommend switching to save Opus budget"
+- **WAIT** for user decision before proceeding
+
+**Step 3: Confirmation Before Action**
+- Only proceed with major decisions/launches after model confirmation
+- Document model used for session in all deliverables and coordination files
+
 #### **2. Memory Retrieval Sequence**
 ```bash
 # Core project context
@@ -121,6 +138,39 @@ Understanding Confirmed: [Brief summary of current state]
 Ready for: [Next specific task or coordination]
 Context Status: Fresh and ready for productive work
 ```
+
+## Multi-Agent Communication Protocol
+
+### **🚨 CRITICAL: Asynchronous Communication System**
+**All communication happens through Agent[N].md files with user-mediated triggers**
+
+**Communication Flow:**
+1. **Orchestrator** writes task instructions to Agent1.md/Agent2.md (max 15 lines)
+2. **User triggers** agents: "A1 ready for O" → Agent1 checks file and executes
+3. **Agent** completes work, writes response back to Agent[N].md (max 15 lines)
+4. **User triggers** orchestrator: "O ready for A1" → Orchestrator checks response
+
+**Communication Efficiency:**
+- **Turn-by-turn limit**: 15 lines per communication in Agent[N].md files
+- **Complex instructions**: Write to separate file, reference in 15-line slot
+- **Format**: "DETAILED INSTRUCTIONS: Read /AgentCoord/[filename]"
+- **Always include**: Status, task summary, deliverable within 15 lines
+- **NO TIME CONSTRAINTS**: Process is fully asynchronous, no deadlines or time estimates
+
+**Key Constraints:**
+- **NO direct triggering** - only user can ping others to check files
+- **Agents cannot communicate with each other** - only through Orchestrator mediation
+- **All communication** flows through designated Agent[N].md files
+- **Process is fully asynchronous** - everyone waits for user triggers
+
+**Communication Capabilities:**
+- ✅ Orchestrator writes instructions to Agent[N].md files
+- ✅ Agents read instructions from their Agent[N].md file
+- ✅ Agents write responses back to their Agent[N].md file  
+- ✅ Orchestrator reads agent responses from Agent[N].md files
+- ❌ No one can trigger others to check for updates (user-only)
+
+**Updated:** June 12, 2025. 11:12 a.m. Eastern Time - Corrected to reflect actual asynchronous workflow
 
 ## Orchestrator-Specific Handoff Procedures
 

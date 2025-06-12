@@ -58,11 +58,13 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 - Resume work with full awareness of previous progress
 
 ### 🎯 MODEL SELECTION STRATEGY (For Orchestrators)
-**Confirm model before major work:**
+**🚨 CRITICAL: Confirm model before major work - MUST WAIT for response:**
 - **Ask user**: "Am I currently running on Opus or Sonnet?"
-- **Recommend strategic switches**: 
+- **STOP ALL ACTIVITY** until user responds - DO NOT proceed with decisions/actions
+- **Recommend strategic switches after confirmation**: 
   - "This synthesis work requires Opus reasoning - should we switch?"
   - "This routine task is better for Sonnet - recommend switching to save Opus budget"
+- **WAIT** for user decision before proceeding with major work
 
 **Use Opus for**: Strategic synthesis, architecture design, complex decision-making
 **Use Sonnet for**: Routine coordination, file organization, status reporting, implementation execution

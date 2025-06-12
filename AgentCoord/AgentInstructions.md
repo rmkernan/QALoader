@@ -10,10 +10,34 @@ You are Agent[N] working under Orchestrator direction to analyze and reorganize 
 
 ## Communication Protocol
 
+### **🚨 CRITICAL: Asynchronous Communication Protocol**
+**Communication happens through Agent[N].md files with user-mediated triggers**
+
+**How Communication Works:**
+1. **Orchestrator** writes instructions to Agent1.md/Agent2.md
+2. **Agent** reads instructions, executes task, writes results back to Agent[N].md
+3. **User signals completion** with "A1 ready for O" → Orchestrator reviews Agent1.md
+4. **Orchestrator** reads results and writes next assignment
+
+**Key Constraints:**
+- **NO ONE can trigger others** - only user provides "ping" to check files
+- **Agents cannot communicate with each other** - only through Orchestrator
+- **All communication** goes through designated Agent[N].md files
+- **Process is asynchronous** - everyone waits for user triggers
+
+**Updated:** June 12, 2025. 11:19 a.m. Eastern Time - Added 15-line communication efficiency protocol
+
 ### **Reading Instructions**
-- **ONLY read the most recent 10 lines** from your Agent[N].md file
+- **ONLY read the most recent 15 lines** from your Agent[N].md file
 - Look for the newest entry marked with `---[ORCHESTRATOR-YYYY.MM.DD-HH:MM]---`
 - Follow instructions in that newest entry
+- **If instructions reference another file**: Read that file for detailed instructions
+
+### **Communication Efficiency Protocol**
+- **Turn-by-turn communication**: Limited to 15 lines in Agent[N].md
+- **Complex instructions**: Written to separate file (e.g., DetailedTask_Agent1_20250612.md)
+- **Reference format**: "DETAILED INSTRUCTIONS: Read /AgentCoord/[filename]"
+- **Always include**: Status, task summary, deliverable, timeline in the 15-line slot
 
 ### **Reporting Back**
 - **Short updates**: Add your response directly to your Agent[N].md file
@@ -137,11 +161,9 @@ Your work is successful when:
 
 ## Communication Triggers & Identity Verification
 
-The human coordinator will use sender→receiver triggers:
-- **O ready for A1**: Orchestrator should check Agent1.md for responses
-- **A1 ready for O**: Agent1 should check Agent1.md for new instructions
-- **O ready for A2**: Orchestrator should check Agent2.md for responses  
-- **A2 ready for O**: Agent2 should check Agent2.md for new instructions
+The human coordinator will use completion signals:
+- **A1 ready for O**: Agent1 completed task, Orchestrator should review Agent1.md
+- **A2 ready for O**: Agent2 completed task, Orchestrator should review Agent2.md
 
 ### **CRITICAL: Identity Verification**
 - If the trigger doesn't include YOUR identity as sender or receiver, respond: "IDENTITY ERROR: I am [Agent1/Agent2/Orchestrator]. Trigger '[trigger]' doesn't apply to me."
