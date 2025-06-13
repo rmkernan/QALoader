@@ -1,7 +1,7 @@
 """
 @file backend/app/services/auth_service.py
 @description JWT authentication service for Q&A Loader. Handles token creation, validation, and password verification with secure hashing.
-@created June 13, 2025. 12:03 p.m. Eastern Time
+@created June 9, 2025 at unknown time
 
 @architectural-context
 Layer: Service Layer (Business Logic)

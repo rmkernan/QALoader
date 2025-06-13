@@ -1,13 +1,18 @@
 /**
  * @file components/QuestionModal.tsx
  * @description A modal dialog component for creating, editing, and duplicating Q&A items. It manages form state, including dynamic topic creation, and interacts with `AppContext` to persist changes.
- * @created 2024.06.09 1:00 PM ET
- * @updated 2024.06.09 1:12 PM ET - Applied comprehensive documentation standards, corrected date formats, completed component JSDoc, and fleshed out implementation.
+ * @created June 9, 2025 at unknown time
+ * @updated June 9, 2025 at unknown time - Applied comprehensive documentation standards, corrected date formats, completed component JSDoc, and fleshed out implementation.
+ * @updated June 13, 2025. 6:34 p.m. Eastern Time - Fixed modal positioning using React Portal to prevent parent container constraints and ensure proper full-screen overlay behavior.
  * 
  * @architectural-context
  * Layer: UI Component (Modal/Dialog)
- * Dependencies: react, ../types (Question), ../contexts/AppContext (topics, addNewQuestion, updateQuestion), ../constants (DIFFICULTIES, QUESTION_TYPES), react-hot-toast.
- * Pattern: Form-based data entry/modification within a modal. State management via `useState` and `useEffect`. Interaction with global context (`AppContext`).
+ * Dependencies: react, react-dom (createPortal), ../types (Question), ../contexts/AppContext (topics, addNewQuestion, updateQuestion), ../constants (DIFFICULTIES, QUESTION_TYPES), react-hot-toast.
+ * Pattern: Form-based data entry/modification within a modal using React Portal for proper overlay positioning. State management via `useState` and `useEffect`. Interaction with global context (`AppContext`).
+ * 
+ * @portal-rendering
+ * Uses React Portal (createPortal) to render modal at document.body level, ensuring it's not constrained by parent container layouts.
+ * This prevents modal cutoff issues and ensures true full-screen overlay behavior independent of parent component positioning.
  * 
  * @workflow-context  
  * User Journey: Content Curation (Adding, Editing, Duplicating Questions).
@@ -25,6 +30,7 @@
  * Activation: N/A
  */
 import React, { useState, useEffect, FormEvent, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Question } from '../types';
 import { useAppContext } from '../contexts/AppContext';
 import { DIFFICULTIES, QUESTION_TYPES } from '../constants';
@@ -193,9 +199,9 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
   const modalTitle = isDuplicateMode ? 'Duplicate Question' : questionToEdit ? 'Edit Question' : 'Add New Question';
   const submitButtonText = isLoading ? 'Saving...' : isDuplicateMode ? 'Duplicate Question' : questionToEdit ? 'Save Changes' : 'Add Question';
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 modal-overlay" role="dialog" aria-modal="true" aria-labelledby="question-modal-title">
-      <div className="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl modal-content transform transition-all">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start justify-center z-50 modal-overlay overflow-y-auto py-4" role="dialog" aria-modal="true" aria-labelledby="question-modal-title">
+      <div className="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl modal-content transform transition-all mx-4 max-h-full overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 id="question-modal-title" className="text-2xl font-bold text-slate-800">{modalTitle}</h2>
           <button 
@@ -344,7 +350,8 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

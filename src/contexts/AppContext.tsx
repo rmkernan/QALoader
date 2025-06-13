@@ -2,7 +2,8 @@
 /**
  * @file contexts/AppContext.tsx
  * @description Manages global application state including Q&A data, topics, user authentication, activity logging, and file operations. Provides this state and related functions to the application via React Context.
- * @created June 13, 2025. 12:03 p.m. Eastern Time
+ * @created June 9, 2025 at unknown time
+ * @updated June 13, 2025. 6:34 p.m. Eastern Time - Fixed fetchInitialData to include JWT token in Authorization header for authenticated bootstrap-data endpoint calls
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -79,11 +80,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
    * @function fetchInitialData
    * @description Fetches initial application data (questions, topics, last upload timestamp, activity log) from the backend endpoint `/api/bootstrap-data`. Handles loading states and potential errors, displaying a toast notification if the backend is unreachable.
    * @returns {Promise<void>}
+   * 
+   * @critical-authentication-note
+   * This function MUST include JWT token in Authorization header for authenticated endpoints.
+   * Silent authentication failures can cause the app to appear "connected" while actually showing empty mock data.
+   * Symptoms of missing auth: Login works but Manage Content shows no data despite database having content.
+   * 
+   * @error-handling
+   * Falls back to empty/mock data on failure, which can mask authentication issues.
+   * Always check browser network tab if data seems missing after successful login.
    */
   const fetchInitialData = useCallback(async () => {
     setIsContextLoading(true);
     try {
-      const response = await fetch('/api/bootstrap-data');
+      const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const response = await fetch('http://localhost:8000/api/bootstrap-data', { headers });
       if (!response.ok) {
         throw new Error(`Failed to fetch initial data: ${response.statusText} (Status: ${response.status})`);
       }

@@ -18,12 +18,21 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 - **Security Documentation**: Required for all auth-related code
 - **Component Documentation**: Include accessibility and usage examples
 
-### 🚨 CRITICAL TIMESTAMP PROCESS
-**ALWAYS follow this exact sequence for any file updates:**
-1. Run `date` command to get actual current time
-2. Convert to American format: `June 10, 2025. 9:37 a.m. Eastern Time`
-3. Add NEW "Updated:" line (do NOT overwrite existing timestamps)
-4. Include one-sentence description of what changed
+### 🚨 CRITICAL TIMESTAMP PROCESS (MANDATORY - NO EXCEPTIONS)
+**❌ STOP ALL WORK if you attempt to modify timestamps without following this process ❌**
+
+**REQUIRED SEQUENCE (Cannot be skipped):**
+1. **MANDATORY**: Run `date` command to get actual current time - NEVER guess times
+2. **MANDATORY**: Convert to American format: `June 10, 2025. 9:37 a.m. Eastern Time`
+3. **FORBIDDEN**: Modifying existing @created timestamps (immediate session termination offense)
+4. **REQUIRED**: Add NEW "Updated:" line only
+5. **REQUIRED**: Include one-sentence description of what changed
+
+**🚨 TIMESTAMP CORRUPTION PREVENTION:**
+- If you see 2024 dates in a 2025 project - STOP and ask user about timeline
+- If @created timestamps seem wrong - STOP and ask user for clarification  
+- If you're unsure about any timestamp - STOP and run `date` command
+- NEVER assume you know what time it is
 
 ### 🧠 ENHANCED MEMORY & CONTEXTUAL UNDERSTANDING PROTOCOL (CRITICAL)
 **ALWAYS search project memory at session start:**
@@ -33,32 +42,30 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 4. **Load architectural knowledge**: Search for "QALoader Architecture", "Code Patterns", "File Dependency Graph"
 5. **Update memory with findings**: Add new observations as you work
 
-**🚀 AUGMENT CODE-STYLE CONTEXTUAL UNDERSTANDING:**
-- **Use ProjectRadar/ARCHITECTURE_MAP.md** for dynamic dependency analysis and impact assessment
-- **Apply ProjectRadar/CONTEXT_DISCOVERY.md** algorithms for automatic file relevance identification
-- **Leverage ProjectRadar/SMART_DOCUMENTATION.md** for living documentation and pattern recognition
-- **Follow context loading strategies** based on task intent and file relationships
+**🚀 SMART CONTEXTUAL UNDERSTANDING (Updated Protocol):**
+1. **Try Simple First**: Use Glob/Grep/Read for obvious file searches before loading complex context
+2. **Reality Check**: If simple tools don't solve it, ask user for more context before escalating
+3. **User-Guided Escalation**: Only load full Project Radar context if user confirms complexity
+4. **Apply Patterns**: Use ProjectRadar files only after confirming genuine complexity
+
+**Simple-First Workflow:**
+1. **Quick assessment** - Parse request for file extensions, specific errors, single files
+2. **Direct tool attempts** - Try 1-2 basic searches (30 seconds max)
+3. **Stop and ask** - If not solved, ask user for more details instead of assuming complexity
+4. **Escalate if confirmed** - Load Project Radar context only if user confirms multi-component task
 
 **Enhanced search terms for QA Loader project:**
-- "QALoader Architecture" - System architecture and component relationships
+- "QALoader Architecture" - System architecture and component relationships  
 - "Backend Code Patterns" - Service layer, dependency injection, validation patterns
 - "Frontend Code Patterns" - Context providers, component composition, type safety
 - "File Dependency Graph" - File relationships and impact analysis
 - Your specific task area (e.g., "API", "frontend", "deployment", "authentication")
 
-**Contextual understanding workflow:**
-1. **Analyze task intent** using context discovery algorithms
-2. **Load relevant files** based on architectural understanding (score 8.0+ priority)  
-3. **Apply known patterns** from memory and architectural knowledge
-4. **Understand impact radius** through dependency graph analysis
-5. **Execute with full system awareness** of component relationships
-
 **When to create new memories:**
-- Architectural discoveries and pattern recognition insights
-- Code relationships and dependency mappings
-- Successful task-to-file association patterns
-- Performance optimizations and architectural improvements
-- Cross-component integration patterns and solutions
+- Successful simple-first workflows and tool combinations
+- Failed over-engineering attempts and lessons learned
+- User-guided escalation patterns and outcomes
+- Effective "stop and ask" interaction patterns
 
 ### 🔄 CONTEXT MANAGEMENT & CONTINUITY
 **When approaching context limit (80% full):**
@@ -231,6 +238,8 @@ src/
 
 Before suggesting changes are complete:
 - [ ] **Documentation standards applied** (DocumentationStandards.md)
+- [ ] **TIMESTAMP VALIDATION**: All timestamps verified against `date` command output
+- [ ] **NO @created MODIFICATIONS**: Existing @created timestamps left untouched
 - [ ] **File headers include** architectural/workflow context with timestamps
 - [ ] **All functions documented** with JSDoc and examples
 - [ ] TypeScript compilation passes without errors

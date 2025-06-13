@@ -1,7 +1,8 @@
 /**
  * @file src/services/api.ts
  * @description API service layer for QA Loader frontend - handles all backend communication with type safety and error handling
- * @created June 13, 2025. 12:03 p.m. Eastern Time
+ * @created June 9, 2025 at unknown time
+ * @updated June 13, 2025. 6:34 p.m. Eastern Time - Updated API_BASE_URL to point to backend server and added development notes about restart requirements
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -20,7 +21,9 @@
  */
 
 // API Base Configuration
-const API_BASE_URL = '/api';
+// NOTE: Changes to this URL require frontend server restart (npm run dev restart)
+// Vite does not hot-reload changes to const declarations in some cases
+const API_BASE_URL = 'http://localhost:8000/api';
 const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
 };

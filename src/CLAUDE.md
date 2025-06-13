@@ -242,6 +242,19 @@ const statusClasses = {
 - **Loading states**: Proper loading indicators for async operations
 - **Type safety**: API responses match TypeScript interfaces
 
+### Critical Development Notes
+- **API URL Changes**: Modifying `API_BASE_URL` in `services/api.ts` requires frontend server restart
+- **Vite Hot Reload Limitation**: Const declarations don't always hot-reload - restart with `npm run dev`
+- **CORS Issues**: Ensure backend CORS includes all frontend URLs (localhost, 127.0.0.1, 0.0.0.0)
+- **WSL Development**: Browser may redirect localhost to 127.0.0.1 - add both to CORS origins
+
+### Authentication Debugging (CRITICAL)
+- **Silent Auth Failures**: Login can succeed while data fetching fails due to missing JWT tokens
+- **Symptoms**: Login works, app appears "connected", but Manage Content shows empty data
+- **Debugging**: Check browser Network tab for 403 errors on `/api/bootstrap-data` calls
+- **Root Cause**: All authenticated API calls must include `Authorization: Bearer <token>` header
+- **Prevention**: Always test full user workflows, not just login success
+
 ### API Service Documentation
 ```typescript
 /**

@@ -1,7 +1,7 @@
 """
 @file backend/app/routers/auth.py
 @description Authentication endpoints for Q&A Loader. Handles login and JWT token management for secure API access.
-@created June 13, 2025. 12:03 p.m. Eastern Time
+@created June 9, 2025 at unknown time
 
 @architectural-context
 Layer: API Router (FastAPI endpoints)

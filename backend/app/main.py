@@ -3,6 +3,7 @@
 @description FastAPI application entry point for Q&A Loader backend API. Configures CORS, includes routers, and initializes database connection.
 @created 2025.06.09 3:26 PM ET
 @updated 2025.06.09 4:07 PM ET - Added comprehensive documentation headers and function documentation
+@updated June 13, 2025. 6:34 p.m. Eastern Time - Added additional CORS origins for WSL development environment compatibility
 
 @architectural-context
 Layer: API Application Entry Point
@@ -31,7 +32,7 @@ app = FastAPI(title="Q&A Loader API", version="1.0.0")
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Including Vite's default port
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://0.0.0.0:3000"],  # Including Vite's default port
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
