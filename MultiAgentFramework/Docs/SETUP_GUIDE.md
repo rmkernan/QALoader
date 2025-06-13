@@ -194,16 +194,45 @@ Orchestrator → Synthesizes findings
 
 ### When Mission Completes:
 1. Orchestrator provides final synthesis
-2. All deliverables in project
+2. All deliverables remain in project
 3. Memory updated with outcomes
-4. Consider git commit of results
+4. **Execute cleanup protocol** (critical for next mission)
+5. Consider git commit of results
+
+### Mission Cleanup Protocol (Essential)
+
+**Why Cleanup Matters:**
+Without cleanup, Agent files accumulate hundreds of lines from previous missions, causing context bloat and slower agent startup.
+
+**Cleanup Steps:**
+```bash
+# 1. Create mission archive
+mkdir -p MultiAgentFramework/Missions/[MissionName]/
+cp MultiAgentFramework/Core/Agent*.md → Missions/[MissionName]/Communication_Archive.md
+
+# 2. Reset agent files to fresh templates
+# Agent1.md and Agent2.md should contain only:
+# - Instructions header
+# - Empty CURRENT ASSIGNMENT section
+# - Empty RECENT RESPONSES section  
+# - Empty ARCHIVED EXCHANGES section
+```
+
+**Result:**
+- **Before cleanup:** Next agents read 400+ lines of irrelevant history
+- **After cleanup:** Next agents read ~30 lines of clean workspace
+- **Improvement:** 90%+ token efficiency gain for future missions
 
 ### Typical Deliverables:
-- For Documentation Audit:
-  - PROJECT_OVERVIEW.md
-  - DOCUMENTATION_CATALOG.md
-  - Audit reports
-  - Synthesis document
+- **Mission outputs:** Remain in project structure
+- **Communication archive:** Preserved in `Missions/[MissionName]/`
+- **Fresh workspace:** Agent files reset for next mission
+- **Memory updates:** Key insights stored in Neo4j
+
+**Example Deliverables by Mission:**
+- Documentation Audit: PROJECT_OVERVIEW.md, DOCUMENTATION_CATALOG.md, audit reports
+- Memory Cleanup: Neo4j optimization, framework discovery improvements
+- Security Audit: Vulnerability reports, remediation plans
 
 ## Next Steps
 

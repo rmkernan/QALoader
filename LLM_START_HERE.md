@@ -44,8 +44,7 @@
 - **`STARTUP_scripts/README_STARTUP.md`** ← Local development setup
 
 #### **🤝 Multi-Agent Coordination:**
-- **`AgentCoord/AgentInstructions.md`** ← Agent coordination protocol
-- **`AgentCoord/HandoffProtocol.md`** ← Session handoff procedures
+- **`MultiAgentFramework/Docs/SETUP_GUIDE.md`** ← Complete setup instructions
 
 ---
 

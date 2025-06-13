@@ -283,8 +283,37 @@ mcp__neo4j-memory-global__add_observations([{
 - [ ] Update OrchestrationPlan.md
 - [ ] Create comprehensive handoff document
 - [ ] Update memory with critical context
+- [ ] **Execute mission cleanup protocol**
 - [ ] Commit all work to git
 - [ ] Document next orchestrator priorities
+
+### Mission Cleanup Protocol (Critical)
+
+**When to Execute:** After mission completion, before starting new mission
+
+**Steps:**
+```bash
+# 1. Archive agent communication
+mkdir -p MultiAgentFramework/Missions/[MissionName]/
+# Combine Agent1.md and Agent2.md content into Communication_Archive.md
+
+# 2. Reset agent workspaces
+# Replace Agent1.md and Agent2.md with fresh templates:
+# - Instructions header only
+# - Empty CURRENT ASSIGNMENT section
+# - "Ready for new mission assignment" placeholder
+```
+
+**Critical Insight from Real Testing:**
+- **Without cleanup:** Agent2 read 429 lines (accumulated context from previous missions)
+- **After cleanup:** Agent2 reads 31 lines (clean workspace)
+- **Result:** 93% token reduction, faster agent startup, mission-focused context
+
+**Why This Matters:**
+- Agents naturally read entire Agent[N].md files
+- Mission history creates exponential context growth
+- Fresh workspaces ensure optimal agent performance
+- Archive preserves audit trail without workspace pollution
 
 ### Handoff Document Contents:
 ```markdown

@@ -30,6 +30,30 @@ User: "radar: load context for optimizing performance"
 
 ---
 
+## 🧠 NEW: Adaptive Intelligence (30 seconds)
+
+### Let Radar Recommend Your Approach
+```markdown
+# Analyze task complexity first
+User: "radar: analyze implementing payment processing"
+
+Radar: "High complexity detected (Score: 75/100)
+       Recommend: Multi-agent coordination
+       Reason: Frontend + Backend + Security requirements"
+
+# Or for simpler tasks
+User: "radar: analyze fixing typo in header"
+
+Radar: "Low complexity (Score: 20/100)
+       Recommend: Single-agent execution
+       Reason: Single file, no dependencies"
+
+# Testing commands (for validation)
+User: "radar: start testing mode"
+User: "radar: run test [test-id]"
+User: "radar: generate test report"
+```
+
 ## 🎯 Common Scenarios (90 seconds)
 
 ### Scenario 1: Starting New Feature
@@ -190,7 +214,7 @@ Radar: *Proceeds with targeted fix*
 
 - **Full Guide**: See CONTEXT_LOADER.md
 - **Architecture**: See ARCHITECTURE_MAP.md
-- **Patterns**: See SMART_DOCUMENTATION.md
+- **Context Discovery**: See CONTEXT_DISCOVERY.md
 - **Multi-Agent**: See MultiAgent/ORCHESTRATOR_RADAR.md
 
 ---

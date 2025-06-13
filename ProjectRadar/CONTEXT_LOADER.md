@@ -89,11 +89,11 @@ def analyze_current_architecture():
     }
 ```
 
-### Step 3: Task-Specific Context
+### Step 3: Task-Specific Context with Adaptive Intelligence
 ```python
 def load_task_context(task_description: str):
     """
-    Load context specific to the described task
+    Load context specific to the described task with complexity analysis
     """
     # Classify task intent
     task_intent = classify_intent(task_description)
@@ -108,13 +108,27 @@ def load_task_context(task_description: str):
     patterns = find_applicable_patterns(task_intent)
     
     # Generate focused context
-    return {
+    context = {
         'intent': task_intent,
         'primary_files': filter_files(relevant_files, score=8.0),
         'supporting_files': filter_files(relevant_files, score=6.0-7.9),
         'patterns': patterns,
         'documentation': find_relevant_docs(task_intent)
     }
+    
+    # NEW: Analyze complexity and recommend approach
+    from adaptive_intelligence import TaskComplexityAnalyzer
+    analyzer = TaskComplexityAnalyzer()
+    complexity_analysis = analyzer.calculate_complexity_score(
+        task_description, 
+        context
+    )
+    
+    # Add recommendation to context
+    context['complexity_analysis'] = complexity_analysis
+    context['coordination_recommendation'] = complexity_analysis['recommendation']
+    
+    return context
 ```
 
 ---
@@ -168,6 +182,34 @@ def load_task_context(task_description: str):
 2. Component-specific patterns
 3. Integration points
 4. Common issues and solutions
+```
+
+### Adaptive Intelligence Context Load
+```markdown
+## Command: "radar: analyze [task description]"
+
+### Examples:
+- "radar: analyze implementing user notifications"
+- "radar: analyze fixing database performance issues"
+- "radar: analyze building admin dashboard"
+
+### Provides:
+1. Full context loading PLUS complexity analysis
+2. Single vs multi-agent recommendation
+3. Confidence score for recommendation
+4. Reasoning behind the recommendation
+
+### Response Format:
+## Task Analysis Complete
+
+**Complexity Assessment:** [Low/Medium/High] (Score: X/100)
+**Recommendation:** [Single-agent/Multi-agent] approach
+**Confidence:** X%
+
+**Reasoning:**
+[Detailed explanation of factors]
+
+[Specific recommendation with next steps]
 ```
 
 ---
@@ -602,10 +644,18 @@ If files are missing:
    - MANDATORY: Apply all project documentation standards
    - MANDATORY: Use actual current timestamp, never guess
 
-5. ✅ **ONLY THEN IMPLEMENT**
+5. ✅ **IMPLEMENT WITH AWARENESS**
    - Proceed with confidence and clear direction
    - Follow approved approach exactly
-   - Maintain communication throughout
+   - Track which patterns and files were actually useful
+   - Note any missing context or incorrect predictions
+
+6. ✅ **UPDATE PROJECT RADAR** (CRITICAL - NEVER SKIP)
+   - MANDATORY: Update ARCHITECTURE_MAP.md with new components/flows
+   - MANDATORY: Add validated patterns to CONTEXT_DISCOVERY.md
+   - MANDATORY: Document actual vs predicted complexity in ADAPTIVE_INTELLIGENCE.md
+   - MANDATORY: Update effectiveness metrics with real results
+   - MANDATORY: Fix any inaccurate claims or outdated information
 ```
 
 ### 🚨 DOCUMENTATION STANDARDS ENFORCEMENT
@@ -661,4 +711,52 @@ Apply ALL mandatory formatting rules
 
 ---
 
-*The Context Loader provides the semi-automatic contextual understanding that transforms Claude Code into an Augment Code-equivalent development environment.*
+## 📝 Project Radar Feedback Protocol
+
+### CRITICAL: Update Project Radar After Every Use
+
+```markdown
+## Why This Matters
+- Project Radar improves through real usage feedback
+- Future context loading becomes more accurate
+- Claims stay validated with actual data
+- Patterns evolve with your codebase
+
+## What to Update After Task Completion
+
+### 1. ARCHITECTURE_MAP.md
+- Add new component relationships discovered
+- Update data flow diagrams with actual implementations
+- Document integration patterns that worked
+- Fix any outdated architectural information
+
+### 2. CONTEXT_DISCOVERY.md
+- Add validated file relevance scores (actual vs predicted)
+- Update task-to-file mappings with real results
+- Document which patterns were most useful
+- Note any files that should have been included
+
+### 3. ADAPTIVE_INTELLIGENCE.md (if used)
+- Record actual complexity vs predicted score
+- Document if recommendation was accepted
+- Note actual time/efficiency gains
+- Update pattern recognition rules
+
+### 4. README.md
+- Update effectiveness metrics with measured results
+- Correct any claims that proved inaccurate
+- Add new proven capabilities discovered
+- Keep success metrics current
+
+## Update Example
+```
+After implementing password reset:
+- ARCHITECTURE_MAP.md: Added password reset flow (Email → Token → Update → Login)
+- CONTEXT_DISCOVERY.md: Validated auth files scored 9.0/10 relevance (accurate)
+- README.md: Updated "77% token savings validated in production use"
+```
+```
+
+---
+
+*The Context Loader provides contextual understanding that improves through systematic feedback and updates.*

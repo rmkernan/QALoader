@@ -1,18 +1,21 @@
 # QALoader Architecture Map & Contextual Understanding System
 
-**Purpose:** Dynamic architecture mapping and intelligent context analysis for enhanced LLM understanding of the codebase.  
+**Purpose:** Architecture mapping and context analysis for enhanced LLM understanding of the codebase.  
 **Created:** June 13, 2025. 10:03 a.m. Eastern Time  
-**Type:** Living documentation - automatically updated with code changes  
+**Updated:** June 13, 2025. 1:50 p.m. Eastern Time - Added validated password reset authentication flow
+**Type:** Manually maintained documentation - updated after significant architectural changes  
 
 ---
 
 ## 🧠 Contextual Understanding System
 
-This document implements Augment Code-style contextual awareness by providing:
-1. **Dynamic Architecture Analysis** - Real-time component relationships
-2. **Intelligent Context Discovery** - Automatic relevant file identification  
-3. **Pattern Recognition** - Code patterns and development workflows
-4. **Impact Assessment** - Change impact analysis across components
+This document provides contextual awareness through:
+1. **Architecture Documentation** - Manually maintained component relationships
+2. **Context Discovery Patterns** - File relevance scoring algorithms  
+3. **Pattern Documentation** - Documented code patterns and workflows
+4. **Impact Guidelines** - Change impact analysis guidance
+
+**NOTE:** This is manually maintained documentation. Update after significant architectural changes using the Project Radar Feedback Protocol.
 
 ---
 
@@ -260,6 +263,15 @@ Impact: Security, user access, session management
 Context Files: config.py (JWT settings), middleware configuration
 ```
 
+#### 5. Password Reset Flow (VALIDATED)
+```
+Flow: Email Request → Token Generation → Email Delivery → Token Validation → Password Update → Login
+Files: auth_service.py → routers/auth.py → api.ts → PasswordResetView.tsx → AppContext.tsx
+Impact: User account recovery, enhanced security, email integration
+Context Files: config.py (email settings), models/auth.py (token schema)
+Validated: 100% accuracy in Project Radar context loading for this feature
+```
+
 ---
 
 ## 🎯 Smart Context Loading by Intent
@@ -269,6 +281,7 @@ Context Files: config.py (JWT settings), middleware configuration
 | Task Intent | Priority Files | Supporting Context | Documentation |
 |-------------|---------------|-------------------|---------------|
 | **Bug Fix: Login Issues** | `auth_service.py`, `LoginView.tsx`, `AppContext.tsx` | `config.py`, `auth.py` models | `Docs/APIs_COMPLETE.md` |
+| **Feature: Password Reset** | `auth_service.py`, `routers/auth.py`, `PasswordResetView.tsx`, `api.ts` | `models/auth.py`, `AppContext.tsx`, `LoginView.tsx` | `backend/CLAUDE.md` |
 | **Feature: New Question Type** | `question_service.py`, `models/question.py`, `CurationView.tsx` | `database.py`, `types.ts` | `backend/CLAUDE.md` |
 | **Performance: Slow Dashboard** | `DashboardView.tsx`, `analytics_service.py`, `AppContext.tsx` | `api.ts`, database queries | `src/CLAUDE.md` |
 | **Deploy: Production Setup** | `DEPLOYMENT.md`, `config.py`, `requirements.txt` | `.env` template, `package.json` | `README.md` |

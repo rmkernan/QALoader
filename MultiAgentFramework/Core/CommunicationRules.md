@@ -1,6 +1,7 @@
 # Multi-Agent Communication Rules
 
-**Version:** 1.0  
+**Version:** 1.1  
+**Updated:** June 13, 2025. 2:54 p.m. Eastern Time - Added End-of-Mission Protocol based on real-world testing  
 **Critical:** These rules enable asynchronous coordination between Orchestrator and Agents
 
 ---
@@ -64,9 +65,11 @@ DETAILED INSTRUCTIONS: Read /MultiAgentFramework/Core/[SpecificInstructions].md
 
 ### 5. Message Reading Protocol
 
+**Reality Check:** Agents naturally read entire Agent[N].md files when instructed to "read Agent2.md for your assignment." The framework achieves token efficiency through **mission lifecycle management** rather than reading restrictions.
+
 **Agents:**
-1. Read ONLY the "CURRENT ASSIGNMENT" section in their Agent[N].md file
-2. Ignore RECENT RESPONSES and ARCHIVED sections
+1. Read Agent[N].md file (will include full content)
+2. Focus on CURRENT ASSIGNMENT section for active task
 3. Execute the current assignment with full context
 4. Write response in CURRENT ASSIGNMENT section (no length limits)
 
@@ -74,8 +77,9 @@ DETAILED INSTRUCTIONS: Read /MultiAgentFramework/Core/[SpecificInstructions].md
 1. Writes assignments to CURRENT ASSIGNMENT section
 2. Waits for user trigger to check responses  
 3. Reads agent responses from CURRENT ASSIGNMENT section
-4. Moves completed exchanges to maintain token efficiency
-5. Synthesizes findings across all agent work
+4. Moves completed exchanges to RECENT RESPONSES
+5. **Resets agent files after mission completion** (see End-of-Mission Protocol)
+6. Synthesizes findings across all agent work
 
 ### 6. Status Indicators
 
@@ -193,12 +197,26 @@ Next: Ready for quality assessment assignment or strategic synthesis
 - No shared memory between agents
 
 **Design Benefits:**
-- **Token efficiency:** Agents read only current assignment (~200 tokens vs exponential growth)
+- **Token efficiency:** Fresh agent workspaces prevent context bloat (31 lines vs 429+ lines)
 - **Rich communication:** No artificial limits when task complexity requires detail
 - **Parallel work:** Multiple agents work independently without blocking
-- **Clear audit trail:** Full history preserved in organized sections
-- **Interruption recovery:** Context preserved through structured sections
+- **Clear audit trail:** Mission history preserved in dedicated archives
+- **Mission-focused:** Each new mission starts with clean workspace
+
+### 11. End-of-Mission Protocol
+
+**When Mission Completes:**
+1. **Archive Communication:** Move Agent[N].md content to `Missions/[MissionName]/Communication_Archive.md`
+2. **Reset Agent Files:** Replace with fresh templates (instructions + empty sections)
+3. **Preserve Deliverables:** Mission outputs remain in project structure
+4. **Update Memory:** Store key insights in Neo4j for future sessions
+
+**Benefits:**
+- **Next mission startup:** Agents read ~30 lines instead of 400+
+- **Context cleanliness:** No irrelevant historical communication
+- **Mission focus:** Each workspace dedicated to current objectives
+- **Audit preservation:** Full communication history maintained in archives
 
 ---
 
-*These communication rules enable efficient multi-agent coordination while respecting LLM context limitations.*
+*These communication rules enable efficient multi-agent coordination through mission lifecycle management rather than reading restrictions.*
