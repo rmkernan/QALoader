@@ -2,8 +2,7 @@
 /**
  * @file contexts/AppContext.tsx
  * @description Manages global application state including Q&A data, topics, user authentication, activity logging, and file operations. Provides this state and related functions to the application via React Context.
- * @created 2024.06.08 9:00 PM ET
- * @updated 2024.06.09 1:17 PM ET - Applied comprehensive documentation standards.
+ * @created June 13, 2025. 12:03 p.m. Eastern Time
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -29,6 +28,7 @@ import React, { createContext, useState, useEffect, useCallback, ReactNode, useC
 import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem } from '../types';
 import { INITIAL_TOPICS, SESSION_TOKEN_KEY, MOCK_PASSWORD } from '../constants'; 
 import { parseMarkdownToQA } from '../services/geminiService';
+import { loginUser, verifyAuthToken } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -453,31 +453,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   /**
    * @function login
-   * @description Authenticates the user. For this prototype, it checks the provided password against `MOCK_PASSWORD`. On success, sets authentication state, stores a token in sessionStorage, and triggers initial data fetch.
-   * @param {string} password - The password entered by the user.
+   * @description Authenticates the user with backend API. Supports both real authentication and mock mode fallback.
+   * @param {string} usernameOrPassword - Username for real auth, or password for mock mode
+   * @param {string} [password] - Password for real auth (optional for backward compatibility)
    * @returns {Promise<boolean>} True if login is successful, false otherwise.
    */
-  const login = useCallback(async (password: string): Promise<boolean> => {
+  const login = useCallback(async (usernameOrPassword: string, password?: string): Promise<boolean> => {
     setIsContextLoading(true); 
     try {
-      if (password === MOCK_PASSWORD) {
-        sessionStorage.setItem(SESSION_TOKEN_KEY, 'mock-jwt-token-for-prototype');
-        setIsAuthenticated(true); 
-        toast.success('Login successful!');
-        logActivity("Logged in"); 
-        // fetchInitialData is triggered by useEffect on isAuthenticated change
+      // Try real backend authentication first
+      if (password) {
+        // Real authentication with username and password
+        const result = await loginUser(usernameOrPassword, password);
+        sessionStorage.setItem(SESSION_TOKEN_KEY, result.access_token);
+        setIsAuthenticated(true);
+        toast.success(`Login successful! Welcome, ${result.username}`);
+        logActivity("Logged in", `User: ${result.username}`);
         return true;
       } else {
-        toast.error('Login failed: Invalid password.');
-        setIsContextLoading(false); 
-        return false;
+        // Fallback to mock authentication for backward compatibility
+        if (usernameOrPassword === MOCK_PASSWORD) {
+          sessionStorage.setItem(SESSION_TOKEN_KEY, 'mock-jwt-token-for-prototype');
+          setIsAuthenticated(true); 
+          toast.success('Login successful!');
+          logActivity("Logged in", "Mock authentication"); 
+          return true;
+        } else {
+          toast.error('Login failed: Invalid credentials.');
+          setIsContextLoading(false); 
+          return false;
+        }
       }
     } catch (error) {
+      console.error('Login error:', error);
+      
+      // Fallback to mock authentication on API failure
+      if (!password && usernameOrPassword === MOCK_PASSWORD) {
+        sessionStorage.setItem(SESSION_TOKEN_KEY, 'mock-jwt-token-for-prototype');
+        setIsAuthenticated(true);
+        toast.success('Login successful (offline mode)!');
+        logActivity("Logged in", "Mock authentication (API unavailable)");
+        return true;
+      }
+      
       toast.error(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsContextLoading(false); 
       return false;
     } 
-  }, [logActivity]); // Removed fetchInitialData dependency as it's indirectly called
+  }, [logActivity]);
 
   /**
    * @function logout

@@ -1,8 +1,7 @@
 """
 @file backend/app/routers/auth.py
 @description Authentication endpoints for Q&A Loader. Handles login and JWT token management for secure API access.
-@created 2025.06.09 3:26 PM ET
-@updated 2025.06.09 5:35 PM ET - Resolved merge conflicts and restored Phase 3 implementation
+@created June 13, 2025. 12:03 p.m. Eastern Time
 
 @architectural-context
 Layer: API Router (FastAPI endpoints)
@@ -10,14 +9,15 @@ Dependencies: FastAPI (routing), app.models.auth (request/response models), app.
 Pattern: RESTful API with JWT authentication and standardized error responses
 
 @workflow-context
-User Journey: User authentication and secure API access
-Sequence Position: First endpoint called after application load for admin login
-Inputs: Login credentials from frontend
-Outputs: JWT tokens for authenticated API requests
+User Journey: User authentication, secure API access, and password reset flow
+Sequence Position: Auth endpoints called for login, token verification, and password reset operations
+Inputs: Login credentials, reset requests, reset tokens from frontend
+Outputs: JWT tokens for authenticated API requests, password reset confirmations
 
 @authentication-context
-Auth Requirements: This router handles authentication - login endpoint is public, others may be protected
-Security: Password validation, JWT token generation, rate limiting considerations for login attempts
+Auth Requirements: Mixed public/protected endpoints - login and reset are public, verify requires JWT
+Security: Password validation, JWT token generation, reset token validation, rate limiting considerations
+API Security: Reset endpoints designed to prevent email enumeration attacks, always return success responses
 
 @database-context
 Tables: No direct database access - delegates to auth service
@@ -28,11 +28,20 @@ Transactions: N/A - stateless authentication
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.models.auth import LoginRequest, LoginResponse
+from app.models.auth import (
+    LoginRequest, 
+    LoginResponse, 
+    PasswordResetRequest, 
+    PasswordResetToken, 
+    PasswordResetResponse
+)
 from app.services.auth_service import (
     authenticate_user,
     create_access_token,
     get_current_user_from_token,
+    initiate_password_reset,
+    reset_password,
+    verify_reset_token,
 )
 
 router = APIRouter()
@@ -122,3 +131,99 @@ async def verify_token(current_user: str = Depends(get_current_user)):
         # Response: {"username": "admin", "valid": true}
     """
     return {"username": current_user, "valid": True}
+
+
+@router.post("/password-reset-request", response_model=PasswordResetResponse)
+async def request_password_reset(request: PasswordResetRequest):
+    """
+    @function request_password_reset
+    @description Initiates password reset process by sending reset email with secure token
+    @param request: PasswordResetRequest containing email address
+    @returns: PasswordResetResponse indicating success/failure
+    @authentication: Public endpoint - no JWT required
+    @example:
+        # POST /api/password-reset-request
+        # Body: {"email": "admin@qaloader.com"}
+        # Response: {"message": "Password reset email sent", "success": true}
+    
+    @security-note:
+    Always returns success message to prevent email enumeration attacks.
+    Actual email sending and token storage handled in service layer.
+    """
+    try:
+        success = await initiate_password_reset(request.email)
+        
+        # Always return success message for security (prevent email enumeration)
+        return PasswordResetResponse(
+            message="If the email address exists in our system, a password reset link has been sent.",
+            success=True
+        )
+    except Exception as e:
+        # Log error but don't expose to user
+        print(f"Password reset request error: {e}")
+        return PasswordResetResponse(
+            message="If the email address exists in our system, a password reset link has been sent.",
+            success=True
+        )
+
+
+@router.post("/password-reset-verify")
+async def verify_password_reset_token(token: str):
+    """
+    @function verify_password_reset_token
+    @description Verifies if password reset token is valid without consuming it
+    @param token: Password reset token to verify
+    @returns: Token validity status
+    @authentication: Public endpoint - no JWT required
+    @example:
+        # POST /api/password-reset-verify
+        # Body: {"token": "abc123def456"}
+        # Response: {"valid": true, "email": "admin@qaloader.com"}
+    """
+    email = await verify_reset_token(token)
+    
+    if email:
+        return {"valid": True, "email": email}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+
+@router.post("/password-reset-complete", response_model=PasswordResetResponse)
+async def complete_password_reset(reset_data: PasswordResetToken):
+    """
+    @function complete_password_reset
+    @description Completes password reset process by updating password with valid token
+    @param reset_data: PasswordResetToken containing token and new password
+    @returns: PasswordResetResponse indicating success/failure
+    @authentication: Public endpoint - no JWT required (uses reset token instead)
+    @example:
+        # POST /api/password-reset-complete
+        # Body: {"token": "abc123def456", "new_password": "new_secure_password"}
+        # Response: {"message": "Password updated successfully", "success": true}
+    
+    @security-note:
+    Token is consumed (deleted) after successful password reset.
+    All existing sessions should be invalidated for security.
+    """
+    try:
+        success = await reset_password(reset_data.token, reset_data.new_password)
+        
+        if success:
+            return PasswordResetResponse(
+                message="Password has been updated successfully. Please log in with your new password.",
+                success=True
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+    except Exception as e:
+        print(f"Password reset completion error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update password. Please try again."
+        )

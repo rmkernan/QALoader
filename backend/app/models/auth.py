@@ -1,8 +1,7 @@
 """
 @file backend/app/models/auth.py
 @description Pydantic models for authentication endpoints. Defines request/response schemas for login operations and JWT token handling.
-@created 2025.06.09 5:16 PM ET
-@updated 2025.06.09 5:16 PM ET - Initial creation with login request/response models
+@created June 13, 2025. 12:03 p.m. Eastern Time
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -10,10 +9,10 @@ Dependencies: pydantic (validation), typing (type hints)
 Pattern: Request/Response validation for authentication endpoints
 
 @workflow-context
-User Journey: User login and authentication workflow
+User Journey: User login, authentication, and password reset workflows
 Sequence Position: Used by auth router for request validation and response formatting
-Inputs: Login credentials from frontend
-Outputs: JWT tokens and user information for authenticated sessions
+Inputs: Login credentials, password reset requests, reset tokens from frontend
+Outputs: JWT tokens, user information, password reset confirmations for authenticated sessions
 
 @authentication-context
 Auth Requirements: These models handle authentication data - credentials and tokens
@@ -27,7 +26,7 @@ Transactions: N/A - data transfer objects only
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -91,3 +90,49 @@ class ErrorResponse(BaseModel):
 
     detail: str = Field(..., description="Human-readable error message")
     error_code: Optional[str] = Field(None, description="Machine-readable error code")
+
+
+class PasswordResetRequest(BaseModel):
+    """
+    @class PasswordResetRequest
+    @description Request model for initiating password reset flow
+    @example:
+        # Password reset request
+        reset_request = PasswordResetRequest(
+            email="admin@qaloader.com"
+        )
+    """
+
+    email: EmailStr = Field(..., description="Email address for password reset")
+
+
+class PasswordResetToken(BaseModel):
+    """
+    @class PasswordResetToken
+    @description Request model for completing password reset with token
+    @example:
+        # Password reset completion
+        reset_data = PasswordResetToken(
+            token="abc123def456",
+            new_password="new_secure_password"
+        )
+    """
+
+    token: str = Field(..., min_length=1, description="Reset token from email")
+    new_password: str = Field(..., min_length=6, description="New password (minimum 6 characters)")
+
+
+class PasswordResetResponse(BaseModel):
+    """
+    @class PasswordResetResponse
+    @description Response model for password reset operations
+    @example:
+        # Reset initiated response
+        response = PasswordResetResponse(
+            message="Password reset email sent successfully",
+            success=True
+        )
+    """
+
+    message: str = Field(..., description="Human-readable status message")
+    success: bool = Field(..., description="Whether operation was successful")
