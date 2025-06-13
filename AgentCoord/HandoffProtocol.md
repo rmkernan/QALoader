@@ -160,9 +160,9 @@ Context Status: Fresh and ready for productive work
 
 **Communication Flow:**
 1. **Orchestrator** writes task instructions to Agent1.md/Agent2.md (max 15 lines)
-2. **User triggers** agents: "A1 ready for O" → Agent1 checks file and executes
+2. **User triggers** agents: "O ready for A1" → Agent1 checks file and executes
 3. **Agent** completes work, writes response back to Agent[N].md (max 15 lines)
-4. **User triggers** orchestrator: "O ready for A1" → Orchestrator checks response
+4. **User triggers** orchestrator: "A1 ready for O" → Orchestrator checks response
 
 **Communication Efficiency:**
 - **Turn-by-turn limit**: 15 lines per communication in Agent[N].md files

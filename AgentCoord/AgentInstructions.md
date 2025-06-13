@@ -15,9 +15,10 @@ You are Agent[N] working under Orchestrator direction to analyze and reorganize 
 
 **How Communication Works:**
 1. **Orchestrator** writes instructions to Agent1.md/Agent2.md
-2. **Agent** reads instructions, executes task, writes results back to Agent[N].md
-3. **User signals completion** with "A1 ready for O" → Orchestrator reviews Agent1.md
-4. **Orchestrator** reads results and writes next assignment
+2. **User signals start** with "O ready for A1" → Agent1 reads and executes
+3. **Agent** reads instructions, executes task, writes results back to Agent[N].md
+4. **User signals completion** with "A1 ready for O" → Orchestrator reviews Agent1.md
+5. **Orchestrator** reads results and writes next assignment
 
 **Key Constraints:**
 - **NO ONE can trigger others** - only user provides "ping" to check files
@@ -169,9 +170,13 @@ Your work is successful when:
 
 ## Communication Triggers & Identity Verification
 
-The human coordinator will use completion signals:
+The human coordinator will use these signals:
+- **O ready for A1**: Orchestrator assigned task, Agent1 should begin work
+- **O ready for A2**: Orchestrator assigned task, Agent2 should begin work
 - **A1 ready for O**: Agent1 completed task, Orchestrator should review Agent1.md
 - **A2 ready for O**: Agent2 completed task, Orchestrator should review Agent2.md
+
+Format: [SENDER] ready for [RECEIVER]
 
 ### **CRITICAL: Identity Verification**
 - If the trigger doesn't include YOUR identity as sender or receiver, respond: "IDENTITY ERROR: I am [Agent1/Agent2/Orchestrator]. Trigger '[trigger]' doesn't apply to me."

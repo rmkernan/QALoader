@@ -25,24 +25,40 @@ This file provides specific guidance for AI assistants (Claude) working on the Q
 3. Add NEW "Updated:" line (do NOT overwrite existing timestamps)
 4. Include one-sentence description of what changed
 
-### 🧠 MEMORY RETRIEVAL PROTOCOL (CRITICAL)
+### 🧠 ENHANCED MEMORY & CONTEXTUAL UNDERSTANDING PROTOCOL (CRITICAL)
 **ALWAYS search project memory at session start:**
 1. **Search for your task area**: `mcp__neo4j-memory-global__search_nodes` with relevant terms
 2. **Check for previous work**: Look for entities related to your current assignment  
 3. **Review project context**: Search for project initiatives and ongoing efforts
-4. **Update memory with findings**: Add new observations as you work
+4. **Load architectural knowledge**: Search for "QALoader Architecture", "Code Patterns", "File Dependency Graph"
+5. **Update memory with findings**: Add new observations as you work
 
-**Common search terms for QA Loader project:**
-- "QALoader project" - Overall project context
-- "Documentation" - Documentation-related work and standards
-- "Agent coordination" - Multi-agent collaboration efforts  
-- Your specific task area (e.g., "API", "frontend", "deployment")
+**🚀 AUGMENT CODE-STYLE CONTEXTUAL UNDERSTANDING:**
+- **Use ProjectRadar/ARCHITECTURE_MAP.md** for dynamic dependency analysis and impact assessment
+- **Apply ProjectRadar/CONTEXT_DISCOVERY.md** algorithms for automatic file relevance identification
+- **Leverage ProjectRadar/SMART_DOCUMENTATION.md** for living documentation and pattern recognition
+- **Follow context loading strategies** based on task intent and file relationships
+
+**Enhanced search terms for QA Loader project:**
+- "QALoader Architecture" - System architecture and component relationships
+- "Backend Code Patterns" - Service layer, dependency injection, validation patterns
+- "Frontend Code Patterns" - Context providers, component composition, type safety
+- "File Dependency Graph" - File relationships and impact analysis
+- Your specific task area (e.g., "API", "frontend", "deployment", "authentication")
+
+**Contextual understanding workflow:**
+1. **Analyze task intent** using context discovery algorithms
+2. **Load relevant files** based on architectural understanding (score 8.0+ priority)  
+3. **Apply known patterns** from memory and architectural knowledge
+4. **Understand impact radius** through dependency graph analysis
+5. **Execute with full system awareness** of component relationships
 
 **When to create new memories:**
-- Key discoveries about project architecture or patterns
-- Important decisions or recommendations
-- Significant findings that other LLMs should know
-- Progress updates on major initiatives
+- Architectural discoveries and pattern recognition insights
+- Code relationships and dependency mappings
+- Successful task-to-file association patterns
+- Performance optimizations and architectural improvements
+- Cross-component integration patterns and solutions
 
 ### 🔄 CONTEXT MANAGEMENT & CONTINUITY
 **When approaching context limit (80% full):**

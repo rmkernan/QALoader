@@ -10,7 +10,7 @@
 ## Quick Start for New LLMs
 
 ### **First Time Here?**
-1. **PROJECT_OVERVIEW.md** ← ⚠️ NEEDS CREATION - Primary entry point
+1. **PROJECT_OVERVIEW.md** ← ✅ PRIMARY ENTRY POINT - Comprehensive project overview
 2. **README.md** - Basic setup and run instructions  
 3. **CLAUDE.md** - Development guidelines and standards
 4. **This file** - Complete navigation guide
@@ -24,10 +24,24 @@ Jump to **[Task-Specific Paths](#task-specific-navigation-paths)** below for dir
 
 ### **🚀 New LLM Onboarding**
 **Essential reading sequence:**
-1. **PROJECT_OVERVIEW.md** ← ✅ CURRENT (What is this project?)
+1. **PROJECT_OVERVIEW.md** ← ✅ PRIMARY ENTRY POINT (What is this project?)
 2. **README.md** ← ✅ Basic setup instructions
-3. **CLAUDE.md** ← ✅ Development guidelines and workflow
+3. **CLAUDE.md** ← ✅ Enhanced development guidelines with contextual understanding
 4. **DOCUMENTATION_CATALOG.md** ← ✅ This navigation file
+
+### **🧠 Contextual Understanding System (NEW)**
+**Augment Code-style automatic project comprehension:**
+1. **ProjectRadar/ARCHITECTURE_MAP.md** ← ✅ Dynamic dependency tracking and component relationships
+2. **ProjectRadar/CONTEXT_DISCOVERY.md** ← ✅ Automatic file relevance and task-intent analysis
+3. **ProjectRadar/SMART_DOCUMENTATION.md** ← ✅ Living documentation and pattern recognition
+4. **ProjectRadar/CONTEXTUAL_INTEGRATION.md** ← ✅ Complete integration framework and workflows
+
+**🎯 Key Benefits:**
+- **Automatic Context Loading** - Files load automatically based on task intent
+- **Intelligent Pattern Recognition** - Recognizes and applies code patterns
+- **Dynamic Impact Analysis** - Understands change implications across components
+- **Living Documentation** - Updates automatically with code changes
+- **Memory-Enhanced Understanding** - Builds knowledge over development sessions
 
 ### **🔧 Technical Deep-Dive**
 **Architecture and implementation details:**
@@ -38,7 +52,7 @@ Jump to **[Task-Specific Paths](#task-specific-navigation-paths)** below for dir
 
 ### **📋 Development Standards**
 **Code quality and documentation requirements:**
-- **Documentation Standards:** `Docs/DocumentationStandards.md` ← ✅ AUTHORITATIVE - Complete standards
+- **Documentation Standards:** `Docs/DocumentationStandards.md` ← ✅ AUTHORITATIVE - Complete standardsBy the way, except to list it, I don't see "project overview" even contained. 
 - **Frontend Guidelines:** `src/CLAUDE.md` ← ✅ React/TypeScript specific guidance
 - **Backend Guidelines:** `backend/CLAUDE.md` ← ✅ FastAPI/Python specific guidance
 
@@ -72,9 +86,9 @@ PROJECT_OVERVIEW.md → Docs/DocumentationStandards.md → CLAUDE.md
 
 ### **🚀 "Deploy the Application"**
 ```
-PROJECT_OVERVIEW.md → README.md → ⚠️ [Deployment docs needed]
+PROJECT_OVERVIEW.md → README.md → Docs/DEPLOYMENT.md
 ```
-**Purpose:** Understand project → Setup instructions → **[IDENTIFIED GAP: Deployment guide needed]**
+**Purpose:** Understand project → Setup instructions → Complete deployment guide
 
 ### **🎯 "Multi-Agent Coordination"**
 ```
@@ -84,7 +98,7 @@ PROJECT_OVERVIEW.md → AgentCoord/AgentInstructions.md → AgentCoord/HandoffPr
 
 ### **📊 "Check Project Status"**
 ```
-PROJECT_OVERVIEW.md → Docs/ProjectStatus.md → Backend/PHASE5_CONTEXT.md
+PROJECT_OVERVIEW.md → Docs/ProjectStatus.md → backend/PHASE5_CONTEXT.md
 ```
 **Purpose:** Understand project → Current status → Latest development phase
 
@@ -93,30 +107,28 @@ PROJECT_OVERVIEW.md → Docs/ProjectStatus.md → Backend/PHASE5_CONTEXT.md
 ## Complete File Catalog by Directory
 
 ### **📁 Root Level**
-| File | Purpose | Status | Last Updated |
-|------|---------|--------|-------------|
-| **PROJECT_OVERVIEW.md** | Primary LLM entry point | ✅ CURRENT | June 12, 2025 |
-| **DOCUMENTATION_CATALOG.md** | Navigation hub (this file) | ✅ CURRENT | June 12, 2025 |
-| **CLAUDE.md** | Master development guidelines | ✅ CURRENT | June 9, 2025 |
-| **README.md** | Basic setup instructions | ✅ CURRENT | Basic version |
-| **PHASE5_DEVELOPMENT_PROMPT.md** | Development phase context | 📋 REFERENCE | - |
+| File | Purpose | Status | Relevance | Checked |
+|------|---------|--------|-----------|---------|
+| **PROJECT_OVERVIEW.md** | Primary LLM entry point | ✅ CURRENT | Essential | June 12, 2025 |
+| **DOCUMENTATION_CATALOG.md** | Navigation hub (this file) | ✅ CURRENT | Essential | June 12, 2025 |
+| **CLAUDE.md** | Master development guidelines | ✅ CURRENT | Essential | June 12, 2025 |
+| **README.md** | Basic setup instructions | ✅ CURRENT | Essential | June 12, 2025 |
 
 ### **📁 Docs/ - Technical Documentation**
-| File | Purpose | Status | Last Updated |
-|------|---------|--------|-------------|
-| **LLM_README.md** | Comprehensive technical overview | ✅ AUTHORITATIVE | June 9, 2025 |
-| **DocumentationStandards.md** | Complete documentation standards | ✅ AUTHORITATIVE | June 10, 2025 |
-| **BackendDesign.md** | API architecture & specifications | ✅ CURRENT | June 8, 2025 |
-| **APIs_COMPLETE.md** | Complete API reference | ✅ CURRENT | - |
-| **TechnicalImplementationGuide.md** | Implementation steps | ✅ CURRENT | - |
-| **ProjectStatus.md** | Current project state | ✅ CURRENT | - |
-| **BackendImplementationPlan.md** | Backend roadmap | 📋 REFERENCE | - |
-| **API_MIGRATION_GUIDE.md** | API transition documentation | 📋 REFERENCE | - |
-| **SESSIONCAPTURE.md** | Session documentation procedures | 📋 REFERENCE | - |
-| **APIs.md** | Basic API specifications | 📋 REFERENCE | Superseded by APIs_COMPLETE.md |
-| **README.md** | General project documentation | 📋 REFERENCE | Basic version |
-| **doc_standards.md** | 🗂️ DELETED | Removed | Was duplicate of DocumentationStandards.md |
-| **HandoffProtocol.md** | 📋 ARCHIVED | Superseded | Use AgentCoord/HandoffProtocol.md |
+| File | Purpose | Status | Relevance | Checked |
+|------|---------|--------|-----------|---------|
+| **LLM_README.md** | Comprehensive technical overview | ✅ AUTHORITATIVE | Essential | June 12, 2025 |
+| **DocumentationStandards.md** | Complete documentation standards | ✅ AUTHORITATIVE | Essential | June 12, 2025 |
+| **BackendDesign.md** | API architecture & specifications | ✅ CURRENT | Essential | June 12, 2025 |
+| **APIs_COMPLETE.md** | Complete API reference | ✅ CURRENT | Essential | June 12, 2025 |
+| **DEPLOYMENT.md** | Complete deployment guide | ✅ CURRENT | Essential | June 12, 2025 |
+| **TechnicalImplementationGuide.md** | Implementation steps | ✅ CURRENT | Active | June 12, 2025 |
+| **ProjectStatus.md** | Current project state | ✅ CURRENT | Active | June 12, 2025 |
+| **BackendImplementationPlan.md** | Backend roadmap | 📋 REFERENCE | Historical | June 12, 2025 |
+| **API_MIGRATION_GUIDE.md** | API transition documentation | 📋 REFERENCE | Historical | June 12, 2025 |
+| **SESSIONCAPTURE.md** | Session documentation procedures | 📋 REFERENCE | Active | June 12, 2025 |
+| **APIs.md** | Basic API specifications | 🗂️ SUPERSEDED | Archive | June 12, 2025 |
+| **README.md** | General project documentation | 📋 REFERENCE | Low | June 12, 2025 |
 
 ### **📁 AgentCoord/ - Multi-Agent Coordination**
 | File | Purpose | Status | Last Updated |
@@ -153,8 +165,23 @@ PROJECT_OVERVIEW.md → Docs/ProjectStatus.md → Backend/PHASE5_CONTEXT.md
 
 ---
 
-## Status Legend
+## Archive Catalog
 
+### **📁 Docs/Archive/ - Historical Documentation**
+| File | Original Purpose | Archived Date | Reason |
+|------|-----------------|---------------|--------|
+| **HandoffProtocol.md** | Agent handoff procedures | June 12, 2025 | Superseded by AgentCoord version |
+
+### **📁 AgentCoord/Archive/ - Completed Deliverables**
+| File | Purpose | Completion Date | Value |
+|------|---------|-----------------|-------|
+| Multiple analysis reports | Documentation audit deliverables | June 12, 2025 | Historical reference |
+
+---
+
+## Documentation Legends
+
+### Status Legend
 | Symbol | Meaning | Description |
 |--------|---------|-------------|
 | ✅ **CURRENT** | Up-to-date and authoritative | Primary reference for this topic |
@@ -162,10 +189,16 @@ PROJECT_OVERVIEW.md → Docs/ProjectStatus.md → Backend/PHASE5_CONTEXT.md
 | ✅ **ACTIVE** | Currently being used | Live coordination or communication files |
 | 📋 **REFERENCE** | Background information | Useful but not primary documentation |
 | 📋 **DELIVERABLE** | Analysis or report | Output from specific tasks or phases |
-| 📋 **ARCHIVE** | Historical record | Preserved for reference but not current |
-| ⚠️ **NEEDS CREATION** | Missing but planned | Identified gap in documentation |
-| 🗂️ **REDUNDANT** | Duplicate content | Candidate for consolidation or removal |
 | 🗂️ **SUPERSEDED** | Replaced by newer version | Use the replacement instead |
+
+### Relevance Legend
+| Level | Meaning | Action Required |
+|-------|---------|-----------------|
+| **Essential** | Core documentation required for all tasks | Keep current, review quarterly |
+| **Active** | Currently used but not critical | Review bi-annually |
+| **Historical** | Past versions or completed phases | Consider archiving |
+| **Archive** | No longer actively used | Move to Archive folder |
+| **Low** | Limited current value | Candidate for removal |
 
 ---
 
@@ -192,7 +225,7 @@ PROJECT_OVERVIEW.md → Docs/ProjectStatus.md → Backend/PHASE5_CONTEXT.md
 ## Quick Reference for Common Questions
 
 **Q: "What is this project?"**  
-A: ⚠️ **PROJECT_OVERVIEW.md** (needs creation) → **Docs/LLM_README.md**
+A: ✅ **PROJECT_OVERVIEW.md** (comprehensive overview) → **Docs/LLM_README.md**
 
 **Q: "How do I set it up?"**  
 A: **README.md** → **backend/README.md** for backend setup

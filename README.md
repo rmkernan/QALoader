@@ -1,14 +1,20 @@
-# Run and deploy your AI Studio app
+# QALoader - Financial Education Q&A Management System
 
-This contains everything you need to run your app locally.
+**🤖 For LLMs:** See [LLM_START_HERE.md](LLM_START_HERE.md) - Quick orientation guide  
+**📋 For comprehensive overview:** See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)  
+**🗺️ For documentation navigation:** See [DOCUMENTATION_CATALOG.md](DOCUMENTATION_CATALOG.md)  
+**⚙️ For development guidelines:** See [CLAUDE.md](CLAUDE.md)  
 
-## Run Locally
+## Quick Start
 
-**Prerequisites:**  Node.js
+**🚀 Easy Startup:**
+- **Windows:** Double-click `STARTUP_scripts/start.bat`
+- **Mac/Linux:** Run `./STARTUP_scripts/start.sh` in Terminal
 
+**📋 First-Time Setup:**
+- **Windows:** Run `STARTUP_scripts\dev-setup.bat`  
+- **Mac/Linux:** Run `./STARTUP_scripts/dev-setup.sh`
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+**📖 Complete Instructions:** See `STARTUP_scripts/README_STARTUP.md`
+
+**Prerequisites:** Python 3.8+, Node.js, Supabase account
