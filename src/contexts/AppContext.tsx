@@ -30,10 +30,11 @@
  * Activation: Mock password always used in `login`. Fallback data used on API failure. Dry run mode is an explicit parameter to `uploadMarkdownFile`.
  */
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
-import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem } from '../types';
+import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem, ValidationResult, BatchUploadResult } from '../types';
 import { INITIAL_TOPICS, SESSION_TOKEN_KEY, MOCK_PASSWORD } from '../constants'; 
-import { parseMarkdownToQA } from '../services/geminiService';
-import { loginUser, bulkDeleteQuestions as bulkDeleteQuestionsAPI, deleteQuestion as deleteQuestionAPI, createQuestion as createQuestionAPI, updateQuestion as updateQuestionAPI } from '../services/api';
+import { parseMarkdownToQA as _parseMarkdownToQA } from '../services/geminiService';
+import { loginUser, bulkDeleteQuestions as bulkDeleteQuestionsAPI, deleteQuestion as deleteQuestionAPI, createQuestion as createQuestionAPI, updateQuestion as updateQuestionAPI, validateMarkdownFile as validateMarkdownFileAPI, uploadMarkdownFile as uploadMarkdownFileAPI } from '../services/api';
+import { validateMarkdownFormat, getValidationSummary } from '../services/validation';
 import toast from 'react-hot-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -108,7 +109,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       const data = await response.json();
       // Transform backend question_id to frontend id
-      const transformedQuestions = (data.questions || []).map((q: any) => ({
+      const transformedQuestions = (data.questions || []).map((q: Question & { question_id?: string; question?: string; answer?: string }) => ({
         ...q,
         id: q.question_id || q.id,  // Use question_id from backend, fallback to id
         questionText: q.question || q.questionText,  // Backend uses 'question', frontend uses 'questionText'
@@ -303,7 +304,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     topic: string, 
     fileName: string
   ): Promise<void> => {
-    const { totalAttempted, successfulUploads, failedUploads, errors, warnings } = result;
+    const { totalAttempted: _totalAttempted, successfulUploads, failedUploads, errors, warnings } = result;
     
     if (failedUploads.length === 0) {
       // Complete success

@@ -5,6 +5,7 @@
 **Created on:** June 12, 2025. 12:26 p.m. Eastern Time
 **Updated:** June 12, 2025. 12:26 p.m. Eastern Time - Initial implementation of comprehensive project overview
 **Updated:** June 14, 2025. 11:32 a.m. Eastern Time - Added bulk delete functionality and mass content management features
+**Updated:** June 14, 2025. 12:27 p.m. Eastern Time - Updated with ProjectRadar references, Question Upload feature, and removed outdated AgentCoord references
 
 ## 🎯 Project Purpose
 
@@ -42,11 +43,6 @@ QALoader is a comprehensive web application for managing financial education Q&A
 - Pydantic for data validation and serialization
 - JWT-based authentication with development bypass modes
 
-**External Integrations:**
-- Google Gemini API for Markdown parsing and content analysis
-- Toast notifications for user feedback
-- File upload with drag-and-drop support
-
 ### Architecture Patterns
 - **Frontend:** Component-based architecture with context providers
 - **Backend:** Service layer pattern with dependency injection
@@ -60,17 +56,18 @@ QALoader/
 ├── src/                    # React frontend application
 │   ├── components/         # React components (Dashboard, Loader, Curation)
 │   ├── contexts/          # Global state management
-│   ├── services/          # API integration and external services
+│   ├── services/          # API integration and validation services
 │   └── types.ts           # TypeScript type definitions
 ├── backend/               # FastAPI backend application
 │   ├── app/
 │   │   ├── routers/       # API endpoint definitions
 │   │   ├── services/      # Business logic layer
 │   │   ├── models/        # Pydantic data models
-│   │   └── utils/         # Helper functions
+│   │   └── utils/         # Helper functions (ID generation, validation)
 │   └── requirements.txt   # Python dependencies
-├── Docs/                  # Project documentation
-└── AgentCoord/           # LLM coordination and handoff documentation
+├── ProjectRadar/          # LLM project orientation system
+├── Docs/                  # Project documentation and workflows
+└── STARTUP_scripts/       # Development environment setup
 ```
 
 ## 🚀 Core Features & Workflows
@@ -91,22 +88,29 @@ QALoader/
 3. Identifies gaps or imbalances in content
 4. Uses insights to guide curation decisions
 
-### 2. Content Loading (Bulk Upload)
-**Purpose:** Enable safe, validated upload of question banks from Markdown files
+### 2. Question Upload & Validation
+**Purpose:** Enable safe, validated upload of question banks from Markdown files with comprehensive validation
 
 **Key Features:**
-- Topic selection with new topic creation
-- Drag-and-drop file upload interface
-- Gemini API-powered Markdown parsing
-- Dry run validation with preview capabilities
-- Bulk replacement with rollback safety
+- **Two-step validation workflow:** Client-side format validation → Server-side content validation
+- **Real-time format checking:** Immediate feedback on markdown structure and formatting
+- **Individual question processing:** Detailed tracking with partial success handling
+- **Comprehensive error reporting:** Line-by-line validation with actionable guidance
+- **Semantic ID generation:** Human-readable question IDs with uniqueness guarantees
+- **File constraints:** 10MB max, .md/.txt extensions, format validation
 
 **User Workflow:**
-1. Select target topic or create new topic
-2. Upload Markdown file with questions
-3. Trigger dry run analysis for validation
-4. Review parsed questions and fix any issues
-5. Confirm and execute bulk load operation
+1. Select markdown file with questions
+2. **Client validation:** Immediate format and structure checking
+3. **Server validation:** Content validation with detailed error reporting
+4. **Upload processing:** Individual question upload with partial success tracking
+5. **Result summary:** Complete success/partial success/failure with detailed feedback
+
+**Technical Implementation:**
+- Client-side validation service (`src/services/validation.ts`)
+- Backend validation service with markdown parsing
+- Enhanced API endpoints for validation and upload
+- TypeScript interfaces for validation results and batch operations
 
 ### 3. Content Curation (Question Management)
 **Purpose:** Provide detailed question-level management capabilities
@@ -141,15 +145,16 @@ QALoader/
 ## 🔧 Development Workflows
 
 ### Getting Started for New LLMs
-1. **Read Core Documentation:**
-   - `CLAUDE.md` - Development guidelines and standards
-   - `Docs/DocumentationStandards.md` - Required documentation patterns
-   - `backend/CLAUDE.md` or `src/CLAUDE.md` - Technology-specific guidelines
+1. **Quick Project Orientation:**
+   - **Start here:** `ProjectRadar/PROJECT_INDEX.md` - Immediate project understanding with file lookup
+   - **Deep technical context:** `ProjectRadar/ARCHITECTURE_MAP.md` - Comprehensive technical reference
+   - **Development standards:** `CLAUDE.md` - Coding guidelines and documentation requirements
 
-2. **Understand Project Structure:**
-   - Review this PROJECT_OVERVIEW.md for context
-   - Check `Docs/APIs.md` for backend API contracts
-   - Examine component architecture in `src/components/`
+2. **Leverage Rich Documentation:**
+   - **Every code file has detailed headers** with architectural context, workflow context, and dependencies
+   - **Use @workflow-context** to understand how files fit into user journeys
+   - **Check @authentication-context** for security implications
+   - **Review file headers first** before loading heavy documentation
 
 3. **Set Up Development Environment:**
    - Backend: `cd backend && source venv/bin/activate && uvicorn app.main:app --reload`
@@ -180,19 +185,6 @@ QALoader/
 
 ## 📋 Quick Reference
 
-### Essential Commands
-```bash
-# Backend Development
-cd backend && source venv/bin/activate
-uvicorn app.main:app --reload --port 8000
-
-# Frontend Development
-# Use static file server or development server of choice
-python -m http.server 8080
-
-# Database Testing
-python -c "from app.database import supabase; print('✓' if supabase else '✗')"
-```
 
 ### Key Files for LLM Tasks
 - **API Changes:** `backend/app/routers/` + `backend/app/services/`
@@ -221,17 +213,6 @@ Based on comprehensive documentation audit:
    - No responsive design implementation guidance
    - Missing mobile-specific component documentation
 
-3. **Data Integrity Procedures (MEDIUM):**
-   - No database maintenance or cleanup procedures
-   - Missing data validation and integrity checking
-   - No backup and recovery documentation
-
-### Development Task Success Rates
-- **API Development Tasks:** 95% success rate (excellent documentation)
-- **Desktop UI Tasks:** 90% success rate (strong component documentation)
-- **Mobile UI Tasks:** 40% success rate (missing responsive patterns)
-- **Deployment Tasks:** 15% success rate (critical documentation gaps)
-
 ## 🔗 Related Documentation
 
 ### Primary Documentation
@@ -241,16 +222,17 @@ Based on comprehensive documentation audit:
 - `src/CLAUDE.md` - Frontend-specific development guidelines
 
 ### Technical Documentation
-- `Docs/APIs.md` - Complete backend API specification
+- `Docs/APIs_COMPLETE.md` - Complete backend API specification
 - `Docs/BackendDesign.md` - Database and service architecture
 - `Docs/ProjectStatus.md` - Current development phase status
+- `Docs/Workflows/` - Feature implementation workflows and guides
 
-### Coordination Documentation
-- `AgentCoord/AgentInstructions.md` - Multi-agent coordination protocols
-- `AgentCoord/HandoffProtocol.md` - LLM session handoff procedures
+### LLM Orientation System
+- `ProjectRadar/PROJECT_INDEX.md` - Quick project orientation for new LLM instances
+- `ProjectRadar/ARCHITECTURE_MAP.md` - Comprehensive technical reference and patterns
 
 ---
 
-**For New LLMs:** Start with this PROJECT_OVERVIEW.md, then read the relevant CLAUDE.md file for your task area (root, backend/, or src/). Follow documentation standards religiously and check memory for previous related work.
+**For New LLMs:** Start with `ProjectRadar/PROJECT_INDEX.md` for immediate orientation, then reference this PROJECT_OVERVIEW.md for business context. Leverage rich file header documentation (@architectural-context, @workflow-context) for instant understanding.
 
-**For Complex Tasks:** Use the agent coordination system documented in `AgentCoord/` for multi-step projects requiring strategic planning.
+**For Development Tasks:** Use ProjectRadar's documentation-driven discovery approach rather than complex algorithmic file searching.

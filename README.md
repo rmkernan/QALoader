@@ -1,6 +1,6 @@
 # QALoader - Financial Education Q&A Management System
 
-**🤖 For LLMs:** See [LLM_START_HERE.md](LLM_START_HERE.md) - Quick orientation guide  
+**🤖 For LLMs:** See [ProjectRadar/PROJECT_INDEX.md](ProjectRadar/PROJECT_INDEX.md) - Quick project orientation  
 **📋 For comprehensive overview:** See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)  
 **🗺️ For documentation navigation:** See [DOCUMENTATION_CATALOG.md](DOCUMENTATION_CATALOG.md)  
 **⚙️ For development guidelines:** See [CLAUDE.md](CLAUDE.md)  

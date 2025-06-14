@@ -3,6 +3,9 @@
  * @description Defines the Loader view, enabling users to upload Markdown files, perform a dry run analysis using Gemini, and load Q&A content.
  * @created June 9, 2025. 1:02 p.m. Eastern Time
  * @updated June 9, 2025. 1:02 p.m. Eastern Time - Applied LLM-focused documentation standards.
+ * @updated June 14, 2025. 12:18 p.m. Eastern Time - Enhanced for Phase 3 UI integration with validation-first workflow and file upload status indicators
+ * @updated June 14, 2025. 12:30 p.m. Eastern Time - Added Clear File button for resetting validation process when errors occur
+ * @updated June 14, 2025. 1:12 p.m. Eastern Time - Fixed Step 2 empty content issue by adding user guidance instructions and progress indicators
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -20,7 +23,9 @@
  */
 import React, { useState, ChangeEvent, useEffect, useRef, DragEvent } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ParsedQuestionFromAI, ValidationReport } from '../types';
+import { ParsedQuestionFromAI, ValidationReport, ValidationResult, BatchUploadResult } from '../types';
+import { validateMarkdownFormat, getValidationSummary } from '../services/validation';
+import { validateMarkdownFile as validateMarkdownFileAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { UploadIcon } from './icons/IconComponents'; // Changed from CloudUploadIcon
 
@@ -30,16 +35,23 @@ import { UploadIcon } from './icons/IconComponents'; // Changed from CloudUpload
  * @returns {JSX.Element}
  */
 const LoaderView: React.FC = () => {
-  const { topics: contextTopics, uploadMarkdownFile, addQuestions } = useAppContext();
+  const { topics: contextTopics, uploadMarkdownFile } = useAppContext();
   
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [newTopicName, setNewTopicName] = useState<string>('');
   const [isNewTopic, setIsNewTopic] = useState<boolean>(false);
   const [file, setFile] = useState<File | null>(null);
   
+  // Enhanced validation state management
+  const [validationStatus, setValidationStatus] = useState<'pending' | 'validating' | 'valid' | 'invalid'>('pending');
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [_uploadResult, setUploadResult] = useState<BatchUploadResult | null>(null);
+  const [_showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
+  
+  // Legacy state for backward compatibility
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isLoadingToDB, setIsLoadingToDB] = useState<boolean>(false);
-  
   const [parsedData, setParsedData] = useState<ParsedQuestionFromAI[] | null>(null);
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
 
@@ -56,28 +68,72 @@ const LoaderView: React.FC = () => {
     }
   }, [contextTopics, selectedTopic]);
 
-  const processSelectedFile = (selectedFile: File | null) => {
+  const processSelectedFile = async (selectedFile: File | null) => {
     if (selectedFile) {
-      if (selectedFile.type === 'text/markdown' || selectedFile.name.endsWith('.md') || selectedFile.name.endsWith('.markdown')) {
+      if (selectedFile.type === 'text/markdown' || selectedFile.name.endsWith('.md') || selectedFile.name.endsWith('.markdown') || selectedFile.name.endsWith('.txt')) {
         setFile(selectedFile);
+        
+        // Reset all validation and upload state
         setParsedData(null); 
         setValidationReport(null);
+        setValidationResult(null);
+        setUploadResult(null);
+        setShowErrorDetails(false);
         setIsConfirmationModalOpen(false);
         setConfirmationInput('');
+        
+        // Trigger immediate client-side validation
+        setValidationStatus('validating');
+        setUploadStatus('idle');
+        
+        try {
+          const clientValidation = await validateMarkdownFormat(selectedFile);
+          setValidationResult(clientValidation);
+          
+          if (clientValidation.isValid) {
+            setValidationStatus('valid');
+            toast.success(getValidationSummary(clientValidation));
+          } else {
+            setValidationStatus('invalid');
+            toast.error(getValidationSummary(clientValidation));
+          }
+        } catch (error) {
+          setValidationStatus('invalid');
+          toast.error(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       } else {
-        toast.error("Invalid file type. Please upload a Markdown file (.md, .markdown).");
+        toast.error("Invalid file type. Please upload a Markdown file (.md, .txt, .markdown).");
         setFile(null);
+        setValidationStatus('pending');
         if (fileInputRef.current) {
           fileInputRef.current.value = ""; // Reset file input
         }
       }
     } else {
       setFile(null);
+      setValidationStatus('pending');
+      setUploadStatus('idle');
     }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     processSelectedFile(event.target.files?.[0] || null);
+  };
+
+  const clearFile = () => {
+    setFile(null);
+    setValidationStatus('pending');
+    setValidationResult(null);
+    setUploadStatus('idle');
+    setUploadResult(null);
+    setShowErrorDetails(false);
+    setParsedData(null);
+    setValidationReport(null);
+    setIsConfirmationModalOpen(false);
+    setConfirmationInput('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
   
   const handleDragEnter = (event: DragEvent<HTMLDivElement>) => {
@@ -121,16 +177,18 @@ const LoaderView: React.FC = () => {
     setValidationReport(null);
   };
 
-  const handleAnalyzeFile = async () => {
+  const handleValidateContent = async () => {
     const currentTopic = isNewTopic ? newTopicName.trim() : selectedTopic;
     if (!currentTopic) {
         toast.error("Please select or enter a topic name.");
-        setValidationReport({ success: false, message: "Please select or enter a topic name." });
         return;
     }
     if (!file) { 
         toast.error("Please select a Markdown file.");
-        setValidationReport({ success: false, message: "Please select a Markdown file." });
+        return;
+    }
+    if (validationStatus !== 'valid') {
+        toast.error("Please fix format errors before validating content.");
         return;
     }
 
@@ -139,25 +197,40 @@ const LoaderView: React.FC = () => {
     setParsedData(null);
 
     try {
-      // Request dry run analysis from AppContext
-      const result = await uploadMarkdownFile(currentTopic, file, true);
-      if (result && 'parsedQuestions' in result && 'report' in result) {
-        setParsedData(result.parsedQuestions);
-        setValidationReport(result.report);
+      // Server-side content validation
+      const serverValidation = await validateMarkdownFileAPI(currentTopic, file);
+      
+      const report: ValidationReport = {
+        success: serverValidation.isValid,
+        message: serverValidation.isValid 
+          ? `Successfully validated ${serverValidation.parsedCount} questions for topic '${currentTopic}'`
+          : `Content validation failed: ${serverValidation.errors.length} error${serverValidation.errors.length !== 1 ? 's' : ''} found`,
+        parsedCount: serverValidation.parsedCount,
+        topic: currentTopic,
+        errors: serverValidation.errors.length > 0 ? serverValidation.errors : undefined
+      };
+      
+      setValidationReport(report);
+      
+      if (serverValidation.isValid) {
+        toast.success(`✅ Content validation successful! Found ${serverValidation.parsedCount} valid questions.`);
+        // Set mock parsed data for preview (actual data will come from upload)
+        setParsedData([]);
       } else {
-        // This case should ideally not happen if uploadMarkdownFile is typed correctly for dryRun=true
-        throw new Error("Dry run analysis did not return expected data structure.");
+        toast.error(`❌ Content validation failed: ${serverValidation.errors.length} errors found`);
       }
+      
     } catch (error) {
-      console.error("Error analyzing file (dry run):", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during analysis.";
+      console.error("Server validation failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Server validation failed";
       setValidationReport({ 
         success: false, 
         message: errorMessage,
-        errors: error instanceof Error ? [error.message] : undefined,
-        topic: currentTopic
+        errors: [errorMessage],
+        topic: currentTopic,
+        parsedCount: 0
       });
-      toast.error(`Analysis Error: ${errorMessage}`);
+      toast.error(`Content validation error: ${errorMessage}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -174,42 +247,58 @@ const LoaderView: React.FC = () => {
   };
 
   const handleConfirmLoad = async () => {
-    if (!parsedData || !topicForConfirmation) {
-      toast.error("Parsed data or topic for confirmation is missing. Cannot proceed with load.");
+    if (!validationReport?.success || !topicForConfirmation) {
+      toast.error("Content validation must be successful before upload. Cannot proceed.");
+      setIsConfirmationModalOpen(false);
+      return;
+    }
+    if (!file) {
+      toast.error("File is missing. Cannot proceed with upload.");
       setIsConfirmationModalOpen(false);
       return;
     }
 
     setIsLoadingToDB(true);
+    setUploadStatus('uploading');
     setIsConfirmationModalOpen(false); 
 
     try {
-      // Load parsed data to the main store via AppContext
-      await addQuestions(topicForConfirmation, parsedData);
-      // Reset state after successful load
+      // Use new upload workflow from AppContext
+      await uploadMarkdownFile(topicForConfirmation, file, false);
+      
+      // Reset all state after successful upload
+      setUploadStatus('success');
       setParsedData(null);
       setValidationReport(null);
+      setValidationResult(null);
+      setUploadResult(null);
       setFile(null); 
       if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
       setTopicForConfirmation('');
       setConfirmationInput('');
+      setValidationStatus('pending');
+      
       // If a new topic was created and loaded, make it the selected topic
       if (isNewTopic && newTopicName.trim() === topicForConfirmation) {
           setSelectedTopic(topicForConfirmation);
           setIsNewTopic(false);
           setNewTopicName("");
       }
+      
     } catch (error) {
-        // Error handling is typically done within addQuestions and shown via toast
-        console.error("Error loading to DB (via addQuestions):", error);
+        setUploadStatus('error');
+        console.error("Error uploading file:", error);
+        // Error handling is done within uploadMarkdownFile and shown via toast
     } finally {
       setIsLoadingToDB(false);
     }
   };
 
   const currentActiveTopic = isNewTopic ? newTopicName.trim() : selectedTopic;
-  const canAnalyze = !!file && !!currentActiveTopic && !isAnalyzing && !isLoadingToDB;
-  const canLoadToDB = validationReport?.success && parsedData && parsedData.length > 0 && !isLoadingToDB && !isAnalyzing;
+  const canValidateContent = !!file && !!currentActiveTopic && validationStatus === 'valid' && !isAnalyzing && !isLoadingToDB;
+  const canLoadToDB = validationReport?.success && !isLoadingToDB && !isAnalyzing && uploadStatus !== 'uploading';
+  
+  // Note: canAnalyze removed as it's replaced by canValidateContent
 
   return (
     <div className="view-enter-active p-8">
@@ -288,30 +377,196 @@ const LoaderView: React.FC = () => {
               />
             </div>
           </div>
+          
+          {/* File validation status indicator */}
+          {file && (
+            <div className="mt-4 p-3 rounded-md border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-700">File Validation Status:</span>
+                <div className="flex items-center space-x-2">
+                  {validationStatus === 'validating' && (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                      <span className="text-sm text-indigo-600">Validating...</span>
+                    </>
+                  )}
+                  {validationStatus === 'valid' && (
+                    <>
+                      <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                      <span className="text-sm text-green-700">Format Valid ({validationResult?.parsedCount} questions)</span>
+                    </>
+                  )}
+                  {validationStatus === 'invalid' && (
+                    <>
+                      <div className="h-4 w-4 rounded-full bg-red-500"></div>
+                      <span className="text-sm text-red-700">{validationResult?.errors.length} format errors</span>
+                    </>
+                  )}
+                  {validationStatus === 'pending' && (
+                    <span className="text-sm text-slate-500">Select a file to validate</span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Show validation errors - Expanded display */}
+              {validationStatus === 'invalid' && validationResult?.errors && (
+                <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-md">
+                  <h4 className="text-sm font-semibold text-red-800 mb-2">Format Errors Found:</h4>
+                  <div className="max-h-48 overflow-y-auto">
+                    <ul className="text-sm text-red-700 space-y-2">
+                      {validationResult.errors.map((error, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full mt-1.5 mr-3"></span>
+                          <span className="flex-1">{error}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {validationResult.errors.length > 5 && (
+                    <p className="text-red-600 font-medium text-xs mt-2">
+                      Showing all {validationResult.errors.length} errors - scroll to see more
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
           <button 
-            onClick={handleAnalyzeFile}
+            onClick={handleValidateContent}
             className="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors duration-150 ease-in-out"
-            disabled={!canAnalyze}
+            disabled={!canValidateContent}
           >
-            {isAnalyzing ? 'Analyzing...' : 'Analyze File (Dry Run)'}
+            {isAnalyzing ? 'Validating Content...' : 'Validate Content (Server Check)'}
           </button>
+          
+          {/* Clear File Button - Show when validation errors exist */}
+          {validationStatus === 'invalid' && (
+            <button 
+              onClick={clearFile}
+              className="mt-3 w-full bg-red-600 text-white font-bold py-3 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-150 ease-in-out"
+              disabled={uploadStatus === 'uploading'}
+            >
+              ✕ Clear File & Start Over
+            </button>
+          )}
         </div>
         
-        {/* Step 2: Preview and Validation (shown after analysis) */}
-        {(validationReport || parsedData) && !isAnalyzing && (
+        {/* Step 2: Content Validation & Upload (shown after format validation) */}
+        {validationStatus === 'valid' && (
           <div className="border-t border-slate-200 pt-8">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 2: Preview & Validate</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 2: Content Validation & Upload</h3>
+            
+            {/* Initial instructions - shown before content validation */}
+            {!validationReport && !isAnalyzing && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">2</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-blue-900 font-semibold mb-2">Ready for Content Validation</h4>
+                    <p className="text-blue-800 text-sm mb-3">
+                      File format validation passed! Now validate the question content with our server to ensure all questions are properly structured and valid.
+                    </p>
+                    <p className="text-blue-700 text-sm font-medium">
+                      👆 Click the <strong>"Validate Content (Server Check)"</strong> button above to continue.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Content validation in progress */}
+            {isAnalyzing && (
+              <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                  <div>
+                    <span className="text-indigo-800 font-medium">Validating content with server...</span>
+                    <p className="text-indigo-600 text-sm mt-1">Checking question structure, types, and content quality</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Content validation results */}
             {validationReport && (
               <div className={`border-l-4 p-4 rounded-md mb-4 ${validationReport.success ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`} role="alert">
                 <p className={`font-semibold ${validationReport.success ? 'text-green-800' : 'text-red-800'}`}>
-                  Validation Report: {validationReport.success ? 'Success!' : 'Failed!'}
+                  Content Validation: {validationReport.success ? 'Success!' : 'Failed!'}
                 </p>
                 <p className={`${validationReport.success ? 'text-green-700' : 'text-red-700'}`}>{validationReport.message}</p>
                 {validationReport.errors && validationReport.errors.length > 0 && (
-                    <ul className="list-disc list-inside text-red-600 text-sm mt-2">
-                        {validationReport.errors.map((err, i) => <li key={i}>{err}</li>)}
-                    </ul>
+                    <div className="mt-2">
+                      <p className="text-red-700 font-medium text-sm mb-1">Content Errors:</p>
+                      <ul className="list-disc list-inside text-red-600 text-sm">
+                          {validationReport.errors.map((err, i) => <li key={i}>{err}</li>)}
+                      </ul>
+                    </div>
                 )}
+              </div>
+            )}
+            
+            {/* Upload progress indicator */}
+            {uploadStatus === 'uploading' && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <span className="text-blue-800 font-medium">Uploading questions to database...</span>
+                </div>
+                <div className="mt-2 w-full bg-blue-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full w-1/2 animate-pulse"></div>
+                </div>
+              </div>
+            )}
+            
+            {/* Upload results */}
+            {uploadStatus === 'success' && (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <div className="h-5 w-5 rounded-full bg-green-500 flex items-center justify-center">
+                    <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-green-800 font-medium">Upload completed successfully!</span>
+                </div>
+              </div>
+            )}
+            
+            {uploadStatus === 'error' && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <div className="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
+                    <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-red-800 font-medium">Upload failed - see console for details</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Ready to upload section */}
+            {validationReport?.success && (
+              <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
+                <h4 className="font-semibold text-indigo-900 mb-2">Ready to Upload</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-indigo-700 font-medium">Topic:</span>
+                    <span className="ml-2 text-indigo-900">{validationReport.topic}</span>
+                  </div>
+                  <div>
+                    <span className="text-indigo-700 font-medium">Questions Found:</span>
+                    <span className="ml-2 text-indigo-900">{validationReport.parsedCount}</span>
+                  </div>
+                </div>
+                <p className="text-indigo-700 text-sm mt-2">
+                  Content validation passed. Click "Upload to Database" to proceed with the upload.
+                </p>
               </div>
             )}
 
@@ -372,16 +627,16 @@ const LoaderView: React.FC = () => {
       {isConfirmationModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmation-modal-title">
           <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg modal-content">
-            <h2 id="confirmation-modal-title" className="text-xl font-bold text-slate-900 mb-4">Confirm Load Operation</h2>
+            <h2 id="confirmation-modal-title" className="text-xl font-bold text-slate-900 mb-4">Confirm Upload Operation</h2>
             <p className="text-slate-700 mb-1">
-              You are about to replace all questions for the topic:
+              You are about to upload new questions for the topic:
             </p>
-            <p className="text-red-600 font-semibold text-lg mb-4 break-all">
+            <p className="text-green-600 font-semibold text-lg mb-4 break-all">
               "{topicForConfirmation}"
             </p>
             <p className="text-slate-700 mb-2">
-              This will replace existing questions with the <strong>{parsedData?.length || 0}</strong> new questions from the uploaded file.
-              This action cannot be undone.
+              This will upload <strong>{validationReport?.parsedCount || 0}</strong> new questions to the database.
+              Each question will receive a unique ID.
             </p>
             <label htmlFor="topic-confirmation-input" className="block text-sm font-medium text-slate-700 mb-1">
               To confirm, please type the topic name ("<span className="font-semibold">{topicForConfirmation}</span>") below:
@@ -407,10 +662,10 @@ const LoaderView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleConfirmLoad}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50 transition-colors duration-150 ease-in-out"
-                disabled={confirmationInput !== topicForConfirmation || isLoadingToDB}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50 transition-colors duration-150 ease-in-out"
+                disabled={confirmationInput !== topicForConfirmation || isLoadingToDB || uploadStatus === 'uploading'}
               >
-                {isLoadingToDB ? 'Loading...' : 'Confirm Load'}
+                {isLoadingToDB ? 'Uploading...' : 'Confirm Upload'}
               </button>
             </div>
           </div>

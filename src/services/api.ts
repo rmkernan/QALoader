@@ -25,7 +25,7 @@
  * Security: Handles JWT token attachment, response validation, error standardization
  */
 
-import { Question, ValidationResult, BatchUploadResult } from '../types';
+import { Question } from '../types';
 import { SESSION_TOKEN_KEY } from '../constants';
 
 // API Base Configuration

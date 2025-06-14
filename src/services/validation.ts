@@ -42,7 +42,7 @@ const MARKDOWN_PATTERNS = {
     difficulty: /^### Difficulty: (Basic|Advanced)$/m,
     type: /^#### Type: (.+)$/m,
     question: /^\*\*Question:\*\* (.+)$/m,
-    answer: /^\*\*Brief Answer:\*\* (.+)$/m
+    answer: /^\*\*Brief Answer:\*\*/m  // Just check for the header, not the content on same line
 };
 
 /**
@@ -240,7 +240,7 @@ const checkMarkdownHierarchy = (content: string, lines: string[]): string[] => {
  * @param lines - Array of content lines
  * @returns object - Validation result with errors, warnings, and question count
  */
-const validateQuestionBlocks = (content: string, lines: string[]): {
+const validateQuestionBlocks = (content: string, _lines: string[]): {
     errors: string[];
     warnings: string[];
     questionCount: number;
@@ -289,9 +289,18 @@ const validateQuestionBlocks = (content: string, lines: string[]): {
             warnings.push(`Question block ${blockNumber}: Question text is very long (${questionMatch[1].length} chars)`);
         }
 
-        const answerMatch = block.content.match(MARKDOWN_PATTERNS.answer);
-        if (answerMatch && answerMatch[1].length > 1000) {
-            warnings.push(`Question block ${blockNumber}: Answer text is very long (${answerMatch[1].length} chars)`);
+        // For answer length, extract the actual answer content (everything after **Brief Answer:**)
+        const answerHeaderMatch = block.content.match(/^\*\*Brief Answer:\*\*/m);
+        if (answerHeaderMatch) {
+            const answerStartIndex = block.content.indexOf('**Brief Answer:**') + '**Brief Answer:**'.length;
+            const answerContent = block.content.substring(answerStartIndex).trim();
+            if (answerContent.length > 1000) {
+                warnings.push(`Question block ${blockNumber}: Answer text is very long (${answerContent.length} chars)`);
+            }
+            // Also check if answer is empty
+            if (answerContent.length === 0) {
+                errors.push(`Question block ${blockNumber}: Answer content is empty after "**Brief Answer:**"`);
+            }
         }
 
         questionCount++;

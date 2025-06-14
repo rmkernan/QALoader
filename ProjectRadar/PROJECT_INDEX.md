@@ -102,10 +102,25 @@
 ## 🚀 Getting Started Workflow
 
 1. **Read this index** (you're here!)
-2. **Identify your task area** using Quick File Lookup above
-3. **Read specific section** in ARCHITECTURE_MAP.md for detailed context
-4. **Start with simple tools** (Read, Glob, Grep) before loading heavy context
-5. **Ask for clarification** if you need help understanding the task scope
+2. **Ask clarifying questions** to efficiently target the right context:
+   - "What specific behavior are you seeing?"
+   - "What were you trying to do when this happened?"
+   - "Is this a UI issue, data loading problem, or error message?"
+3. **Use answers to identify task area** via Quick File Lookup above
+4. **Read relevant file headers** for instant architectural context
+5. **Load targeted files** based on the specific problem scope
+
+### Smart Questioning Examples:
+```
+User: "Problem with Manage Content page"
+→ Ask: What specific issue? UI not working? Data not loading? Error message?
+
+User: "Authentication isn't working"  
+→ Ask: Can't log in? Logged in but API calls fail? Session timing out?
+
+User: "Want to add new feature"
+→ Ask: Frontend UI? Backend API? Database changes? All of the above?
+```
 
 ---
 
