@@ -149,7 +149,7 @@ async def upload_markdown_file(
 - Detailed error categorization
 - Proper HTTP status codes
 
-### **Phase 2: Frontend Enhancement** (4-5 hours)
+### **Phase 2: Frontend Enhancement**
 
 #### **2.1 Enhanced AppContext**
 **File:** `src/contexts/AppContext.tsx`

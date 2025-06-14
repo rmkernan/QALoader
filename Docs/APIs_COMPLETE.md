@@ -2,6 +2,7 @@
 
 **Purpose:** Comprehensive specification of all backend API endpoints for Phases 1-5  
 **Created:** June 10, 2025. 9:47 a.m. Eastern Time  
+**Updated:** June 14, 2025. 11:32 a.m. Eastern Time - Added bulk delete operations and enhanced safety features
 **Backend Phases:** 1-5 Complete (Foundation → Analytics & Monitoring)
 
 ---
@@ -331,6 +332,64 @@ GET /api/questions?topic=DCF&difficulty=Basic&limit=10
 }
 ```
 
+### DELETE `/api/questions/bulk`
+**Purpose:** Delete multiple questions in a single operation with detailed result tracking
+**Authentication:** JWT required
+**Safety Limit:** Maximum 100 questions per request
+
+**Request Body:**
+```json
+{
+  "question_ids": [
+    "DCF-WACC-D-001",
+    "DCF-WACC-D-002", 
+    "VAL-COMP-P-003"
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "deleted_count": 2,
+  "failed_count": 1,
+  "deleted_ids": [
+    "DCF-WACC-D-001",
+    "DCF-WACC-D-002"
+  ],
+  "failed_ids": [
+    "VAL-COMP-P-003"
+  ],
+  "message": "Partially successful: deleted 2 of 3 questions",
+  "errors": {
+    "VAL-COMP-P-003": "Question with ID 'VAL-COMP-P-003' not found"
+  }
+}
+```
+
+**Error Response (400):**
+```json
+{ "detail": "Bulk delete limited to 100 questions per request" }
+```
+
+**Error Response (404):**
+```json
+{
+  "success": false,
+  "deleted_count": 0,
+  "failed_count": 3,
+  "deleted_ids": [],
+  "failed_ids": ["DCF-WACC-D-001", "DCF-WACC-D-002", "VAL-COMP-P-003"],
+  "message": "Failed to delete any questions (0 of 3)",
+  "errors": {
+    "DCF-WACC-D-001": "Question with ID 'DCF-WACC-D-001' not found",
+    "DCF-WACC-D-002": "Question with ID 'DCF-WACC-D-002' not found",
+    "VAL-COMP-P-003": "Question with ID 'VAL-COMP-P-003' not found"
+  }
+}
+```
+
 ---
 
 ## 5. Analytics Endpoints (Phase 5)
@@ -638,6 +697,23 @@ interface LoginResponse {
 }
 ```
 
+### Bulk Delete Request/Response
+```typescript
+interface BulkDeleteRequest {
+  question_ids: string[];      // Array of question IDs to delete (max 100)
+}
+
+interface BulkDeleteResponse {
+  success: boolean;            // Overall success status
+  deleted_count: number;       // Number of questions successfully deleted
+  failed_count: number;        // Number of questions that failed to delete
+  deleted_ids: string[];       // Array of successfully deleted question IDs
+  failed_ids: string[];        // Array of question IDs that failed to delete
+  message: string;             // Human-readable summary of the operation
+  errors?: Record<string, string>; // Question ID to error message mapping
+}
+```
+
 ---
 
 ## 8. Error Handling
@@ -687,9 +763,15 @@ The system automatically logs various activities:
 
 - **User Sessions:** Login events with timestamps
 - **Question Operations:** Create, update, delete with question IDs
+- **Bulk Operations:** Bulk delete operations with counts and affected question IDs
 - **Search Queries:** Filters used, result counts, response times
 - **System Events:** Server startup, performance alerts
 - **Database Operations:** Query types and performance metrics
+
+**Bulk Delete Activity Logging:**
+- Logs successful bulk deletions with count and first 3 question IDs
+- Tracks partial success scenarios with both success and failure counts
+- Records operation details for audit trail and system monitoring
 
 These logs power the analytics endpoints for dashboard insights and system monitoring.
 
@@ -713,6 +795,12 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES=480
 ### Database Tables
 - `all_questions`: Question storage with indexes on topic, subtopic, difficulty, type
 - `activity_log`: Activity logging with timestamp indexes
+
+### Important Implementation Notes
+- **Route Order Critical:** Bulk endpoints (`/questions/bulk`) must be defined BEFORE parameterized routes (`/questions/{question_id}`) in FastAPI to prevent routing conflicts
+- **Safety Limits:** Bulk delete operations are limited to 100 questions per request to prevent accidental mass deletions
+- **Error Handling:** Bulk operations use partial success patterns - individual failures don't stop the entire operation
+- **Activity Logging:** All bulk operations are logged with detailed information for audit trails
 
 ---
 

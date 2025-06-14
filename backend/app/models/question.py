@@ -4,6 +4,7 @@
 @created 2025.06.09 4:17 PM ET
 @updated 2025.06.09 4:17 PM ET - Initial creation with comprehensive question models and validation
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added BulkDeleteRequest and BulkDeleteResponse models for bulk deletion functionality
+@updated June 14, 2025. 11:27 a.m. Eastern Time - Enhanced with validation models for file upload workflow, updated difficulty constraint to Basic/Advanced only
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -44,7 +45,7 @@ class QuestionBase(BaseModel):
 
     topic: str = Field(..., min_length=1, max_length=100, description="Topic category (e.g., 'DCF', 'Valuation')")
     subtopic: str = Field(..., min_length=1, max_length=100, description="Subtopic within the main topic")
-    difficulty: str = Field(..., description="Difficulty level: 'Basic', 'Intermediate', or 'Advanced'")
+    difficulty: str = Field(..., description="Difficulty level: 'Basic' or 'Advanced'")
     type: str = Field(..., description="Question type: 'Definition', 'Problem', 'GenConcept', etc.")
     question: str = Field(..., min_length=1, description="The actual question text")
     answer: str = Field(..., min_length=1, description="The complete answer text")
@@ -59,7 +60,7 @@ class QuestionBase(BaseModel):
         @returns: The validated difficulty value
         @raises ValueError: If difficulty is not in allowed values
         """
-        allowed = ["Basic", "Intermediate", "Advanced"]
+        allowed = ["Basic", "Advanced"]
         if v not in allowed:
             raise ValueError(f"Difficulty must be one of: {allowed}")
         return v
@@ -162,7 +163,7 @@ class ParsedQuestionFromAI(BaseModel):
     """
 
     subtopic: str = Field(..., min_length=1, max_length=100, description="Subtopic within the main topic")
-    difficulty: str = Field(..., description="Difficulty level: 'Basic', 'Intermediate', or 'Advanced'")
+    difficulty: str = Field(..., description="Difficulty level: 'Basic' or 'Advanced'")
     type: str = Field(..., description="Question type: 'Definition', 'Problem', 'GenConcept', etc.")
     question: str = Field(..., min_length=1, description="The actual question text")
     answer: str = Field(..., min_length=1, description="The complete answer text")
@@ -176,7 +177,7 @@ class ParsedQuestionFromAI(BaseModel):
         @returns: The validated difficulty value
         @raises ValueError: If difficulty is not in allowed values
         """
-        allowed = ["Basic", "Intermediate", "Advanced"]
+        allowed = ["Basic", "Advanced"]
         if v not in allowed:
             raise ValueError(f"Difficulty must be one of: {allowed}")
         return v
@@ -218,3 +219,91 @@ class ActivityLogItem(BaseModel):
     class Config:
         # Allow datetime objects to be serialized to ISO format
         json_encoders = {datetime: lambda dt: dt.isoformat()}
+
+
+# Enhanced models for file upload workflow
+
+class ValidationResult(BaseModel):
+    """
+    @class ValidationResult
+    @description Result of markdown file validation with detailed feedback for user guidance
+    @example:
+        result = ValidationResult(
+            is_valid=True,
+            errors=[],
+            warnings=["Long content in question 1"],
+            parsed_count=25
+        )
+    """
+    is_valid: bool = Field(..., description="Whether the validation passed")
+    errors: List[str] = Field(default_factory=list, description="List of validation errors")
+    warnings: List[str] = Field(default_factory=list, description="List of validation warnings")
+    parsed_count: int = Field(..., description="Number of questions successfully parsed")
+    line_numbers: Optional[Dict[str, int]] = Field(None, description="Line numbers for error reporting")
+
+
+class BatchUploadRequest(BaseModel):
+    """
+    @class BatchUploadRequest
+    @description Request model for batch question upload operations
+    @example:
+        request = BatchUploadRequest(
+            topic="DCF",
+            questions=[parsed_question_1, parsed_question_2]
+        )
+    """
+    topic: str = Field(..., min_length=1, max_length=100, description="Topic for all questions")
+    questions: List[ParsedQuestionFromAI] = Field(..., min_items=1, description="List of questions to upload")
+
+
+class BatchUploadResult(BaseModel):
+    """
+    @class BatchUploadResult
+    @description Result of batch question upload operation with detailed tracking for each question
+    @example:
+        result = BatchUploadResult(
+            total_attempted=25,
+            successful_uploads=["DCF-WACC-B-G-001", "DCF-WACC-B-G-002"],
+            failed_uploads=["DCF-WACC-B-P-001"],
+            errors={"DCF-WACC-B-P-001": "Duplicate ID"}
+        )
+    """
+    total_attempted: int = Field(..., description="Total number of questions attempted")
+    successful_uploads: List[str] = Field(default_factory=list, description="Question IDs that were successfully uploaded")
+    failed_uploads: List[str] = Field(default_factory=list, description="Question IDs that failed to upload")
+    errors: Dict[str, str] = Field(default_factory=dict, description="Question ID to error message mapping")
+    warnings: List[str] = Field(default_factory=list, description="General warnings about the upload operation")
+    processing_time_ms: Optional[int] = Field(None, description="Time taken to process the upload in milliseconds")
+
+
+class BulkDeleteRequest(BaseModel):
+    """
+    @class BulkDeleteRequest
+    @description Request model for bulk question deletion operations
+    @example:
+        request = BulkDeleteRequest(
+            question_ids=["DCF-WACC-B-G-001", "DCF-WACC-B-G-002"]
+        )
+    """
+    question_ids: List[str] = Field(..., min_items=1, description="List of question IDs to delete")
+
+
+class BulkDeleteResponse(BaseModel):
+    """
+    @class BulkDeleteResponse
+    @description Response model for bulk question deletion operations
+    @example:
+        response = BulkDeleteResponse(
+            deleted_count=15,
+            failed_count=2,
+            deleted_ids=["DCF-WACC-B-G-001"],
+            failed_ids=["DCF-WACC-B-G-002"],
+            message="15 questions deleted successfully, 2 failed"
+        )
+    """
+    deleted_count: int = Field(..., description="Number of questions successfully deleted")
+    failed_count: int = Field(..., description="Number of questions that failed to delete")
+    deleted_ids: List[str] = Field(default_factory=list, description="Question IDs that were successfully deleted")
+    failed_ids: List[str] = Field(default_factory=list, description="Question IDs that failed to delete")
+    errors: Optional[List[str]] = Field(None, description="Specific error messages for failed deletions")
+    message: str = Field(..., description="Human-readable summary of the operation")

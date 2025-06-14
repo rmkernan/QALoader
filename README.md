@@ -18,3 +18,17 @@
 **📖 Complete Instructions:** See `STARTUP_scripts/README_STARTUP.md`
 
 **Prerequisites:** Python 3.8+, Node.js, Supabase account
+
+## 🆕 Latest Features
+
+### Bulk Content Management (June 2025)
+- **Mass Question Selection:** Checkbox controls with header select-all functionality
+- **Bulk Delete Operations:** Delete multiple questions with safety confirmations
+- **Enhanced Safety:** Large deletions (>10 items) require typing "DELETE" to confirm
+- **Preview Capability:** See exactly which questions will be deleted before confirming
+- **Change Detection:** Prevents unnecessary saves and accidental duplicate questions
+
+### UI Improvements
+- **Fixed Selection Bug:** Individual checkboxes now work correctly without selecting all items
+- **Better Error Handling:** Improved API error messages and user feedback
+- **Authentication Fixes:** Resolved token mismatches causing 403 errors
