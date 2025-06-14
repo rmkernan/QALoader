@@ -6,28 +6,28 @@
 
 ---
 
-## 🧠 Task Complexity Analysis Engine
+## 🧠 Simple Task Assessment
 
-### Complexity Scoring Algorithm
+### Basic Decision Making
 
-```python
-class TaskComplexityAnalyzer:
-    """
-    Analyzes task complexity to recommend single vs multi-agent approach
-    """
-    
-    def calculate_complexity_score(self, task: str, context: dict) -> dict:
-        """
-        Returns complexity score and recommendation with confidence
-        """
-        factors = {
-            'component_scope': self.analyze_component_scope(task, context),
-            'file_distribution': self.analyze_file_distribution(context),
-            'integration_points': self.analyze_integration_complexity(context),
-            'parallel_opportunities': self.identify_parallel_work(context),
-            'estimated_changes': self.estimate_change_volume(task, context),
-            'cross_system_impact': self.assess_system_impact(context)
-        }
+**Instead of complex scoring, use simple questions:**
+
+1. **Does the user mention specific files or file types?** → Use direct tools (Glob, Read)
+2. **Is this a single error or specific problem?** → Try simple approach first
+3. **Did simple tools fail to solve it?** → Ask user for more context
+4. **Does user confirm it's multi-component?** → Then consider Project Radar
+
+### Practical Guidelines
+
+**Use Direct Tools For:**
+- File searches ("find startup script", "check config")
+- Single file issues ("error in X file")
+- Specific problems with error messages
+
+**Consider Project Radar For:**
+- Multi-component features (confirmed by user)
+- Cross-system integration tasks
+- Complex refactoring across multiple files
         
         # Weighted scoring
         weights = {

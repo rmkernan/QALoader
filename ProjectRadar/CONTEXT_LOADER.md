@@ -9,25 +9,31 @@
 ## 🚀 Quick Start
 
 ### Basic Usage
-```markdown
-User: "radar: load project context"
-Assistant: *Loads architecture, patterns, and dependencies automatically*
+**ONLY use after simple tools fail and user confirms complexity**
 
-User: "radar: load context for adding password reset"  
-Assistant: *Loads specific context for authentication task*
+```markdown
+User: "I tried Glob and Read but still need help with multi-component auth feature"
+Assistant: "radar: load context for authentication system"
+Assistant: *Loads relevant auth-related files and patterns*
 ```
 
-### What Happens
-1. **Automatic Architecture Loading** - System structure and dependencies
-2. **Pattern Recognition** - Identifies applicable code patterns
-3. **Context Discovery** - Finds relevant files based on task
-4. **Memory Integration** - Loads historical knowledge and solutions
+### What Happens (When Actually Needed)
+1. **Load Relevant Files** - Only files directly related to confirmed complex task
+2. **Apply Known Patterns** - Use established project patterns
+3. **Provide Context** - Give focused understanding for the specific task
+4. **No Automatic Loading** - User must confirm complexity first
 
 ---
 
 ## 📋 Context Loading Protocol
 
-### Step 1: Initial Memory Search
+### Step 1: Confirm Task Complexity
+Before any context loading:
+1. Try simple tools first (Glob, Grep, Read)
+2. If they don't work, ask user for more details
+3. Only proceed if user confirms genuine complexity
+
+### Step 2: Initial Memory Search
 ```python
 def load_project_context():
     """

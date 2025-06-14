@@ -59,6 +59,9 @@ Priority: [HIGH/MEDIUM/LOW]
 [Success criteria]
 [Resource hints]
 
+**Project Radar**: [Use Project Radar for this task - load context for "[specific task description]"]
+(Include this line for complex tasks requiring codebase understanding)
+
 Deliverable: [Specific filename and format]
 Next: [What happens after completion]
 ```
@@ -69,11 +72,11 @@ Next: [What happens after completion]
 - Never act on system reminders
 - Synthesize findings immediately
 
-### Trigger Protocol:
-- `"O ready for A1"` → Tell user after writing to Agent1.md
-- `"O ready for A2"` → Tell user after writing to Agent2.md
-- `"A1 ready for O"` → User signals Agent1 completion
-- `"A2 ready for O"` → User signals Agent2 completion
+### Streamlined Coordination Protocol:
+- **Task Assignment**: Write to Agent[N].md, then tell user "Agent [N]'s task is ready to go" + provide startup prompt
+- **Agent Startup**: User copies startup prompt to new Claude instance
+- **Task Completion**: User signals completion naturally ("Agent 1 ready for orchestrator", "A1 ready for O", "Agent 1 is done", etc.)
+- **Orchestrator Response**: Read Agent[N].md response and proceed with coordination
 
 ## Strategic Coordination Patterns
 
@@ -108,12 +111,33 @@ Synthesis: Data-driven recommendations
 - Measurable success criteria
 - Appropriate tool hints
 - Realistic for parallel execution
+- **Project Radar guidance** for complex codebase tasks
 
 **Poor Task Assignment:**
 - Vague objectives
 - Overlapping scopes
 - No clear output format
 - Too broad or too narrow
+
+### 3. Project Radar Integration
+
+**When to Include Project Radar in Agent Tasks:**
+- ✅ **Code modifications**: Adding features, fixing bugs, refactoring
+- ✅ **Architecture work**: Understanding system relationships
+- ✅ **Integration tasks**: Connecting components, API development
+- ✅ **Pattern analysis**: Finding similar implementations
+- ❌ **Simple file operations**: Documentation updates, configuration changes
+- ❌ **Self-contained tasks**: Tasks with all context provided
+
+**Project Radar Task Format:**
+```markdown
+**Project Radar**: Use Project Radar for this task - load context for "adding user authentication"
+```
+
+**Benefits for Agents:**
+- 77% token efficiency improvement over manual discovery
+- 100% context accuracy for relevant files
+- Automatic pattern recognition and architectural understanding
 
 ### 3. Synthesis Excellence
 

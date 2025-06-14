@@ -7,13 +7,13 @@
 
 ---
 
-## 🧠 Contextual Understanding System
+## 🧠 Architecture Reference System
 
-This document provides contextual awareness through:
-1. **Architecture Documentation** - Manually maintained component relationships
-2. **Context Discovery Patterns** - File relevance scoring algorithms  
-3. **Pattern Documentation** - Documented code patterns and workflows
-4. **Impact Guidelines** - Change impact analysis guidance
+This document provides project structure reference for complex tasks:
+1. **Architecture Documentation** - Component relationships and dependencies
+2. **Pattern Documentation** - Established code patterns and workflows  
+3. **Impact Guidelines** - Understanding change implications
+4. **Simple Reference** - Use only when simple tools aren't sufficient
 
 **NOTE:** This is manually maintained documentation. Update after significant architectural changes using the Project Radar Feedback Protocol.
 

@@ -101,7 +101,7 @@ const DifficultyLegend: React.FC = () => (
 
 
 interface DashboardViewProps {
-  setActiveView: (view: View) => void;
+  setActiveView: (_view: View) => void;
 }
 
 /**

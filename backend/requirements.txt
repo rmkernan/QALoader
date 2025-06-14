@@ -8,3 +8,5 @@ pydantic-settings==2.1.0
 python-dotenv==1.0.0
 pytest==7.4.3
 httpx==0.24.1
+email-validator
+passlib[bcrypt]

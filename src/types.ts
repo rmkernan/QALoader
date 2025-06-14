@@ -20,11 +20,13 @@
  * Auth Modes: Defines login function signature supporting both mock and real authentication
  * Security: Type safety for authentication state and user data structures
  */
+/* eslint-disable no-unused-vars */
 export enum View {
   DASHBOARD = 'dashboard',
   LOADER = 'loader',
   CURATION = 'curation',
 }
+/* eslint-enable no-unused-vars */
 
 export interface Question {
   id: string; // Should now be controlled by backend
@@ -80,33 +82,33 @@ export interface AppContextType {
   isContextLoading: boolean;
   
   // CRUD operations now async and interact with backend
-  addQuestions: (topic: string, newQuestionsData: ParsedQuestionFromAI[]) => Promise<void>; // For batch/topic replacement from already parsed data
-  deleteQuestion: (id: string) => Promise<void>;
-  updateQuestion: (updatedQuestion: Question) => Promise<void>;
-  addNewQuestion: (newQuestionData: Omit<Question, 'id'>) => Promise<void>;
+  addQuestions: (_topic: string, _newQuestionsData: ParsedQuestionFromAI[]) => Promise<void>; // For batch/topic replacement from already parsed data
+  deleteQuestion: (_id: string) => Promise<void>;
+  updateQuestion: (_updatedQuestion: Question) => Promise<void>;
+  addNewQuestion: (_newQuestionData: Omit<Question, 'id'>) => Promise<void>;
   
   // Modified for dry run and actual upload
   uploadMarkdownFile: (
-    topic: string, 
-    file: File, 
-    dryRun: boolean
+    _topic: string, 
+    _file: File, 
+    _dryRun: boolean
   ) => Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void>;
 
-  exportQuestionsToMarkdown: (selectedTopic?: string, selectedSubtopic?: string, selectedDifficulty?: string, selectedType?: string, searchText?: string) => void;
+  exportQuestionsToMarkdown: (_selectedTopic?: string, _selectedSubtopic?: string, _selectedDifficulty?: string, _selectedType?: string, _searchText?: string) => void;
 
   // For pre-filtering CurationView
   initialCurationFilters: Partial<Filters> | null;
-  setInitialCurationFilters: (filters: Partial<Filters>) => void;
+  setInitialCurationFilters: (_filters: Partial<Filters>) => void;
   clearInitialCurationFilters: () => void;
 
   // Authentication
   isAuthenticated: boolean;
-  login: (usernameOrPassword: string, password?: string) => Promise<boolean>;
+  login: (_usernameOrPassword: string, _password?: string) => Promise<boolean>;
   logout: () => void;
 
   // Activity Log
   activityLog: ActivityLogItem[];
-  logActivity: (action: string, details?: string) => void;
+  logActivity: (_action: string, _details?: string) => void;
 }
 
 export interface Filters {

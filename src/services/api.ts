@@ -21,6 +21,8 @@
  * Security: Handles JWT token attachment, response validation, error standardization
  */
 
+import { Question } from '../types';
+
 // API Base Configuration
 // NOTE: Changes to this URL require frontend server restart (npm run dev restart)
 // Vite does not hot-reload changes to const declarations in some cases
@@ -244,7 +246,7 @@ export const fetchQuestions = async (filters?: Record<string, string>) => {
  * @param {object} questionData - Question data without ID
  * @returns {Promise<Question>} Created question with ID
  */
-export const createQuestion = async (questionData: any) => {
+export const createQuestion = async (questionData: Omit<Question, 'id'>) => {
   const response = await fetch(`${API_BASE_URL}/questions`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -265,7 +267,7 @@ export const createQuestion = async (questionData: any) => {
  * @param {object} questionData - Updated question data
  * @returns {Promise<Question>} Updated question
  */
-export const updateQuestion = async (questionId: string, questionData: any) => {
+export const updateQuestion = async (questionId: string, questionData: Partial<Question>) => {
   const response = await fetch(`${API_BASE_URL}/questions/${questionId}`, {
     method: 'PUT',
     headers: getAuthHeaders(),

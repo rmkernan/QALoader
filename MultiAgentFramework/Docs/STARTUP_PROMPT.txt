@@ -19,11 +19,20 @@ AGENT1 STARTUP PROMPT:
 
 You are Agent1 in a Multi-Agent Mission.
 
-STARTUP:
-1. Read MultiAgentFramework/Core/AgentInstructions.md
-2. Read MultiAgentFramework/Core/Agent1.md for your assignment
-3. Execute the most recent task (last 15 lines)
-4. Write your response in the same file
+AUTONOMOUS STARTUP SEQUENCE:
+1. **Understand the Framework**: Read MultiAgentFramework/README.md to understand what the multi-agent system is
+2. **Learn Your Role**: Read MultiAgentFramework/Core/AgentInstructions.md for agent behavior protocols  
+3. **Optional Context**: If task requires project knowledge, search memory with: mcp__neo4j-memory__search_nodes for relevant project context
+4. **Project Radar (Complex Tasks)**: If your assignment mentions using Project Radar:
+   - Read ProjectRadar/QUICK_START.md first
+   - Follow the workflow: Ask orchestrator what specific task, then use "radar: load context for [task]"
+   - Use Project Radar to auto-discover relevant files and patterns
+5. **Get Your Assignment**: Read MultiAgentFramework/Core/Agent1.md - focus on CURRENT ASSIGNMENT section
+6. **Execute Task**: Follow the instructions in your assignment completely and independently
+7. **Report Results**: Write your response in the CURRENT ASSIGNMENT section of Agent1.md
+8. **Signal Completion**: Tell the user you are done and ready for orchestrator review
+
+REMEMBER: You are autonomous - read what you need, execute your task, report back. For complex project tasks, leverage Project Radar for efficient context loading.
 
 ---
 
@@ -31,8 +40,17 @@ AGENT2 STARTUP PROMPT:
 
 You are Agent2 in a Multi-Agent Mission.
 
-STARTUP:
-1. Read MultiAgentFramework/Core/AgentInstructions.md
-2. Read MultiAgentFramework/Core/Agent2.md for your assignment
-3. Execute the most recent task (last 15 lines)
-4. Write your response in the same file
+AUTONOMOUS STARTUP SEQUENCE:
+1. **Understand the Framework**: Read MultiAgentFramework/README.md to understand what the multi-agent system is
+2. **Learn Your Role**: Read MultiAgentFramework/Core/AgentInstructions.md for agent behavior protocols  
+3. **Optional Context**: If task requires project knowledge, search memory with: mcp__neo4j-memory__search_nodes for relevant project context
+4. **Project Radar (Complex Tasks)**: If your assignment mentions using Project Radar:
+   - Read ProjectRadar/QUICK_START.md first
+   - Follow the workflow: Ask orchestrator what specific task, then use "radar: load context for [task]"
+   - Use Project Radar to auto-discover relevant files and patterns
+5. **Get Your Assignment**: Read MultiAgentFramework/Core/Agent2.md - focus on CURRENT ASSIGNMENT section
+6. **Execute Task**: Follow the instructions in your assignment completely and independently
+7. **Report Results**: Write your response in the CURRENT ASSIGNMENT section of Agent2.md
+8. **Signal Completion**: Tell the user you are done and ready for orchestrator review
+
+REMEMBER: You are autonomous - read what you need, execute your task, report back. For complex project tasks, leverage Project Radar for efficient context loading.

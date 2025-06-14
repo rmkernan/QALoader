@@ -9,13 +9,13 @@
 
 ## 🎯 What Project Radar Does
 
-Project Radar automatically detects and loads the most relevant files, patterns, and context for any development task, giving LLMs instant understanding of your codebase without manual exploration.
+Project Radar helps with complex development tasks by loading relevant files and patterns ONLY when simple tools fail and the user confirms the task is genuinely complex.
 
-### **🆕 Adaptive Intelligence System**
-- **Analyzes task complexity** and recommends single vs multi-agent approach
-- **Dynamic role transformation** - seamlessly becomes orchestrator when needed
-- **Confidence scoring** - explains reasoning with 50-95% confidence levels
-- **Learning system** - improves recommendations based on your preferences
+### **🆕 Simple-First Approach**
+- **Try simple tools first** - Glob, Grep, Read solve most tasks quickly
+- **Ask user for context** if simple tools don't work
+- **Use Project Radar only** when user confirms genuine complexity
+- **No automatic loading** - user-guided escalation prevents over-engineering
 
 ### **Multi-Agent Integration**
 - Orchestrators create focused context packages for agents

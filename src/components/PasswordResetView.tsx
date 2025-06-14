@@ -114,7 +114,7 @@ export const PasswordResetView: React.FC<PasswordResetViewProps> = ({
       toast.success('If the email address exists in our system, a password reset link has been sent.');
       
       // For demo purposes, show instructions
-      toast.custom((_t) => (
+      toast.custom(() => (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md">
           <h4 className="font-medium text-blue-900 mb-2">Demo Mode Instructions</h4>
           <p className="text-sm text-blue-700">

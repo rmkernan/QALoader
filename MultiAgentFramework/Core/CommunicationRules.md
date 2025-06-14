@@ -49,19 +49,25 @@ For complex instructions exceeding 15 lines:
 DETAILED INSTRUCTIONS: Read /MultiAgentFramework/Core/[SpecificInstructions].md
 ```
 
-### 4. Trigger System
+### 4. Flexible Trigger System
 
-**User-Mediated Triggers:**
-- `"O ready for A1"` = Orchestrator has written instructions for Agent1
-- `"O ready for A2"` = Orchestrator has written instructions for Agent2
-- `"A1 ready for O"` = Agent1 has completed work and written response
-- `"A2 ready for O"` = Agent2 has completed work and written response
+**Orchestrator to Agent (Task Assignment):**
+- Orchestrator announces: "Agent [N]'s task is ready to go" + startup prompt
+- User copies startup prompt to new Claude instance
+
+**Agent to Orchestrator (Task Completion):**
+- Flexible completion signals from user:
+  - "Agent 1 ready for Orchestrator" 
+  - "A1 ready for O"
+  - "Agent 1 is done and ready for your review"
+  - Or any natural variation
 
 **Critical Rules:**
 - Agents CANNOT trigger each other
-- ONLY the human operator provides triggers
+- ONLY the human operator provides triggers  
 - NO autonomous checking of files
 - Process is fully asynchronous
+- Natural language triggers preferred over formal codes
 
 ### 5. Message Reading Protocol
 

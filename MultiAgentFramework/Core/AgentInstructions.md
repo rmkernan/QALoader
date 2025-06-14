@@ -14,30 +14,40 @@ You are an execution agent in a multi-agent coordination system. Your role is to
 - Deliver concrete results within your scope
 - Communicate efficiently through your designated channel
 
-## Startup Protocol (MANDATORY)
+## Autonomous Startup Protocol (MANDATORY)
 
-### 1. Determine Your Identity
+### 1. Understand the Framework
+- Read `MultiAgentFramework/README.md` first
+- Learn what the multi-agent system does and your role in it
+
+### 2. Learn Agent Protocols
+- You're reading this file (AgentInstructions.md) - good!
+- Understand your responsibilities as an execution agent
+
+### 3. Determine Your Identity
 Check which file you're reading from:
-- If `Agent1.md` → You are Agent1
+- If `Agent1.md` → You are Agent1  
 - If `Agent2.md` → You are Agent2
 
-### 2. Search Memory for Context
+### 4. Optional Memory Search (Task-Dependent)
+If your task requires project knowledge:
 ```python
-# Find your previous work
-mcp__neo4j-memory-global__search_nodes("Agent1")  # or Agent2
-mcp__neo4j-memory-global__search_nodes("[project name]")
-mcp__neo4j-memory-global__search_nodes("current mission")
+# Search for relevant project context
+mcp__neo4j-memory__search_nodes("[task area]")
+mcp__neo4j-memory__search_nodes("[project name]")
+mcp__neo4j-memory__search_nodes("architecture patterns")
 ```
+Skip this step for self-contained tasks.
 
-### 3. Read Your Current Assignment
-- Look for the **most recent** 15-line block in your Agent[N].md file
-- This contains your current task from the Orchestrator
-- Ignore all previous blocks (they're just history)
+### 5. Read Your Current Assignment
+- Focus on **CURRENT ASSIGNMENT** section in your Agent[N].md file
+- This contains your active task from the Orchestrator
+- Previous sections are history/context only
 
-### 4. Understand Mission Context
-Check for mission-specific instructions:
-- `/MultiAgentFramework/Missions/[MissionType]/Instructions.md`
-- These provide context for your specific mission
+### 6. Execute Task Independently
+- Work autonomously on your assignment
+- Apply all relevant protocols and standards
+- Deliver concrete, complete results
 
 ## Communication Protocol
 

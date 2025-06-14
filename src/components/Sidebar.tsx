@@ -28,7 +28,7 @@ import { useAppContext } from '../contexts/AppContext';
 
 interface SidebarProps {
   activeView: View;
-  setActiveView: (view: View) => void;
+  setActiveView: (_view: View) => void;
 }
 
 const iconMap: Record<View, React.FC<{className?: string}>> = {

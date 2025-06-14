@@ -9,7 +9,28 @@
 
 ## 🎯 Context Discovery Framework
 
-This system automatically identifies relevant files based on task intent, similar to how Augment Code "knows everything" about your project.
+**CRITICAL: Always try simple tools first before using this framework.**
+
+This system identifies relevant files for genuinely complex tasks only. Most tasks can be solved with simple Glob/Grep/Read operations.
+
+### 🚦 Simplicity Assessment (Use This First)
+
+**Before any complex analysis:**
+1. **Parse for simple indicators**: File extensions, specific files, single errors
+2. **Try direct tools**: Glob "*.bat", Grep "startup", Read specific files
+3. **Reality check**: If tools don't work, ask user for more context
+4. **Only escalate**: If user confirms genuine complexity
+
+**Simple Task Patterns:**
+- "Find startup script" → `Glob "*.bat"` or `Glob "*start*"`
+- "Check config file" → `Glob "*config*"` or `Read config.py`
+- "Error in file X" → `Read X` then analyze
+- "Fix script issue" → `Read script.ext` then diagnose
+
+**Stop and Ask Examples:**
+- "I found start.bat but want to understand your specific error. What happens when you run it?"
+- "I see several config files. Which one are you having trouble with?"
+- "I tried searching for startup files. Can you tell me what specific problem you're experiencing?"
 
 ### Task Intent Classification
 
@@ -376,24 +397,3 @@ Add to CLAUDE.md memory retrieval protocol:
 5. **Execute with awareness** of impact radius and change implications
 6. **Update patterns** based on task success and file usage
 ```
-
----
-
-## 📈 Performance Metrics
-
-### Context Discovery Effectiveness
-- **Relevance Accuracy**: 100% (validated with password reset implementation)
-- **Completeness Score**: 100% (all needed files successfully identified)  
-- **Efficiency Gain**: 77% reduction in manual file discovery time (measured)
-- **Task Success Rate**: 100% (password reset task completed with auto-discovered context)
-- **Development Velocity**: 400% improvement over traditional approach (measured)
-
-### Learning Improvement
-- **Pattern Recognition**: Improvement in task-to-file mapping accuracy
-- **Dependency Discovery**: Better understanding of file relationships
-- **Context Optimization**: Reduced unnecessary file loading
-- **Memory Integration**: Successful storage and retrieval of context patterns
-
----
-
-*This Context Discovery System provides the "magical" automatic comprehension that rivals Augment Code's claimed capabilities, enabling LLMs to understand project context automatically.*
