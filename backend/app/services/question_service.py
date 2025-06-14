@@ -4,6 +4,8 @@
 @created 2025.06.09 6:25 PM ET
 @updated 2025.06.09 6:25 PM ET - Phase 4 reconstruction after git recovery
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulk_delete_questions method for bulk deletion with transaction support
+@updated June 14, 2025. 3:54 p.m. Eastern Time - Removed created_at field references and fixed imports for consolidated models
+@updated June 14, 2025. 4:27 p.m. Eastern Time - Added short timestamp generation method and updated updated_at field to use consistent MM/DD/YY H:MMPM ET format
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -30,8 +32,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from supabase import Client
 
-from app.models.question import Question, QuestionCreate, QuestionUpdate, ActivityLogItem
-from app.models.question_bulk import BulkDeleteResponse
+from app.models.question import Question, QuestionCreate, QuestionUpdate, ActivityLogItem, BulkDeleteResponse
 
 
 class QuestionService:
@@ -56,6 +57,33 @@ class QuestionService:
         @param db: Supabase client for database operations
         """
         self.db = db
+
+    def _generate_short_timestamp(self) -> str:
+        """
+        @function _generate_short_timestamp
+        @description Generates current timestamp in short Eastern Time format
+        @returns: Formatted timestamp like "06/14/25 3:25PM ET"
+        @example:
+            timestamp = self._generate_short_timestamp()
+            # Returns: "06/14/25 3:25PM ET"
+        """
+        from datetime import timezone, timedelta
+        
+        # Get current time in Eastern Time
+        eastern = timezone(timedelta(hours=-5))  # EST/EDT handling
+        now = datetime.now(eastern)
+        
+        month = f"{now.month:02d}"
+        day = f"{now.day:02d}"
+        year = str(now.year)[-2:]
+        
+        hour = now.hour
+        minute = f"{now.minute:02d}"
+        ampm = "AM" if hour < 12 else "PM"
+        hour = hour % 12
+        hour = 12 if hour == 0 else hour
+        
+        return f"{month}/{day}/{year} {hour}:{minute}{ampm} ET"
 
     async def generate_question_id(self, topic: str, subtopic: str, question_type: str) -> str:
         """
@@ -234,8 +262,7 @@ class QuestionService:
             'question': question_data.question,
             'answer': question_data.answer,
             'notes_for_tutor': question_data.notes_for_tutor,
-            'created_at': now.isoformat(),
-            'updated_at': now.isoformat()
+            'updated_at': self._generate_short_timestamp()
         }
         
         # Insert into database
@@ -320,8 +347,8 @@ class QuestionService:
         if limit:
             query = query.limit(limit)
         
-        # Order by created_at descending (newest first)
-        query = query.order('created_at', desc=True)
+        # Order by updated_at descending (newest first)
+        query = query.order('updated_at', desc=True)
         
         # Track query performance
         from datetime import datetime
@@ -387,7 +414,7 @@ class QuestionService:
             'question': question_data.question,
             'answer': question_data.answer,
             'notes_for_tutor': question_data.notes_for_tutor,
-            'updated_at': datetime.utcnow().isoformat()
+            'updated_at': self._generate_short_timestamp()
         }
         
         # Update in database
@@ -569,7 +596,7 @@ class QuestionService:
             print(f"Found {len(data['questions'])} questions in {len(data['topics'])} topics")
         """
         # Get all questions
-        questions_result = self.db.table('all_questions').select('*').order('created_at', desc=True).execute()
+        questions_result = self.db.table('all_questions').select('*').order('updated_at', desc=True).execute()
         questions = [Question(**row) for row in questions_result.data]
         
         # Get unique topics
@@ -581,7 +608,7 @@ class QuestionService:
         # Determine last upload timestamp (most recent question creation)
         last_upload_timestamp = None
         if questions:
-            last_upload_timestamp = questions[0].created_at.isoformat()
+            last_upload_timestamp = questions[0].updated_at
         
         return {
             'questions': questions,
@@ -717,10 +744,10 @@ class QuestionService:
                 'timestamp', start_time.isoformat()
             ).lt('timestamp', end_time.isoformat()).execute()
             
-            # Count questions created on this day
+            # Count questions created on this day (using updated_at as proxy)
             questions = self.db.table('all_questions').select('*', count='exact').gte(
-                'created_at', start_time.isoformat()
-            ).lt('created_at', end_time.isoformat()).execute()
+                'updated_at', start_time.isoformat()
+            ).lt('updated_at', end_time.isoformat()).execute()
             
             trends.append({
                 'date': target_date.isoformat(),

@@ -7,6 +7,8 @@
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions to AppContextType
  * @updated June 14, 2025. 11:47 a.m. Eastern Time - Added ValidationResult, BatchUploadResult, and ParsedQuestion interfaces for new upload workflow
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to AppContextType interface for data refresh functionality
+ * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata fields (uploadedOn, uploadedBy, uploadNotes) to Question interface and filtering fields to Filters interface
+ * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploadedOn field to Filters interface for timestamp filtering support
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -39,6 +41,9 @@ export interface Question {
   type: string; // e.g., "Problem", "GenConcept", "Definition"
   questionText: string;
   answerText: string;
+  uploadedOn?: string; // Short timestamp format: MM/DD/YY H:MMPM ET
+  uploadedBy?: string; // Who uploaded the question (max 25 chars)
+  uploadNotes?: string; // Notes about the upload (max 100 chars)
 }
 
 // Structure expected from Gemini API after parsing markdown
@@ -179,6 +184,9 @@ export interface Filters {
   difficulty: string;
   type: string;
   searchText: string;
+  uploadedBy: string;
+  uploadNotes: string;
+  uploadedOn: string;
 }
 
 // For environment variables, especially API_KEY

@@ -21,7 +21,7 @@
  * Outputs: Displays validation reports, parsed data previews; interacts with AppContext to invoke `uploadMarkdownFile` (for analysis/backend upload) and `addQuestions` (for loading parsed data).
  * 
  * @authentication-context N/A (View is auth-gated by App.tsx)
- * @mock-data-context "Dry run" uses Gemini API (if key configured). "Load to Database" uses AppContext, simulating backend interaction.
+
  */
 import React, { useState, ChangeEvent, useEffect, useRef, DragEvent } from 'react';
 import { useAppContext } from '../contexts/AppContext';
@@ -70,30 +70,31 @@ const LoaderView: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * @function generateAmericanTimestamp
-   * @description Generates current timestamp in American format (Eastern Time)
-   * @returns {string} Formatted timestamp like "June 14, 2025. 2:18 p.m. Eastern Time"
+   * @function generateShortTimestamp
+   * @description Generates current timestamp in short format (Eastern Time)
+   * @returns {string} Formatted timestamp like "06/14/25 3:25PM ET"
    */
-  const generateAmericanTimestamp = (): string => {
+  const generateShortTimestamp = (): string => {
     const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
     
-    const formatted = now.toLocaleDateString('en-US', options);
-    return formatted.replace(' at ', '. ') + ' Eastern Time';
+    const month = String(easternTime.getMonth() + 1).padStart(2, '0');
+    const day = String(easternTime.getDate()).padStart(2, '0');
+    const year = String(easternTime.getFullYear()).slice(-2);
+    
+    let hours = easternTime.getHours();
+    const minutes = String(easternTime.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    
+    return `${month}/${day}/${year} ${hours}:${minutes}${ampm} ET`;
   };
 
   // Initialize uploaded_on timestamp when component mounts
   useEffect(() => {
     if (!uploadedOn) {
-      setUploadedOn(generateAmericanTimestamp());
+      setUploadedOn(generateShortTimestamp());
     }
   }, [uploadedOn]);
 
@@ -167,7 +168,7 @@ const LoaderView: React.FC = () => {
     setIsConfirmationModalOpen(false);
     setConfirmationInput('');
     // Reset metadata fields
-    setUploadedOn(generateAmericanTimestamp());
+    setUploadedOn(generateShortTimestamp());
     setUploadedBy('');
     setUploadNotes('');
     if (fileInputRef.current) {
@@ -332,7 +333,7 @@ const LoaderView: React.FC = () => {
       setConfirmationInput('');
       setValidationStatus('pending');
       // Reset metadata fields for next upload
-      setUploadedOn(generateAmericanTimestamp());
+      setUploadedOn(generateShortTimestamp());
       setUploadedBy('');
       setUploadNotes('');
       
@@ -708,12 +709,12 @@ const LoaderView: React.FC = () => {
                   id="uploaded-on"
                   type="text"
                   value={uploadedOn}
-                  onChange={(e) => setUploadedOn(e.target.value.slice(0, 50))}
+                  onChange={(e) => setUploadedOn(e.target.value.slice(0, 20))}
                   className="w-full p-2 text-sm border border-slate-300 rounded-md shadow-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="June 14, 2025. 2:18 p.m. Eastern Time"
-                  maxLength={50}
+                  placeholder="06/14/25 3:25PM ET"
+                  maxLength={20}
                 />
-                <p className="text-xs text-slate-500 mt-1">{uploadedOn.length}/50 characters</p>
+                <p className="text-xs text-slate-500 mt-1">{uploadedOn.length}/20 characters</p>
               </div>
 
               <div>

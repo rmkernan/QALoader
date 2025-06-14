@@ -9,6 +9,7 @@
  * @updated June 14, 2025. 10:25 a.m. Eastern Time - Fixed API calls to use centralized API service functions instead of relative URLs to resolve 404 errors
  * @updated June 14, 2025. 10:39 a.m. Eastern Time - Added data transformation layer for updateQuestion and addNewQuestion to handle backend/frontend field name mismatches
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to context exports for Dashboard data refresh, fixed uploadMarkdownFile validation field transformation
+ * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function signature to support optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * 
  * @architectural-context
  * Layer: Context (Global State Management)

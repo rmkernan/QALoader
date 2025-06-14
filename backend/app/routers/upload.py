@@ -4,6 +4,7 @@
 @created June 14, 2025. 11:27 a.m. Eastern Time
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Enhanced with comprehensive validation and upload workflow
 @updated June 14, 2025. 2:18 p.m. Eastern Time - Added support for upload metadata fields (uploaded_on, uploaded_by, upload_notes)
+@updated June 14, 2025. 4:46 p.m. Eastern Time - CRITICAL FIX: Added missing updated_at field to database insertion, resolving zero upload issue
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -27,6 +28,7 @@ Transactions: No explicit transactions - allows partial success for better user 
 """
 
 import time
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, Depends
 from typing import List, Dict, Any
 
@@ -240,6 +242,19 @@ async def upload_markdown_file(
                 )
                 
                 # Create question object for database
+                # Generate short timestamp for updated_at
+                eastern = timezone(timedelta(hours=-5))  # EST/EDT handling
+                now = datetime.now(eastern)
+                month = f"{now.month:02d}"
+                day = f"{now.day:02d}"
+                year = str(now.year)[-2:]
+                hour = now.hour
+                minute = f"{now.minute:02d}"
+                ampm = "AM" if hour < 12 else "PM"
+                hour = hour % 12
+                hour = 12 if hour == 0 else hour
+                updated_at_timestamp = f"{month}/{day}/{year} {hour}:{minute}{ampm} ET"
+                
                 db_question = {
                     "question_id": unique_id,
                     "topic": topic,
@@ -251,7 +266,8 @@ async def upload_markdown_file(
                     "notes_for_tutor": question.notes_for_tutor,
                     "uploaded_on": uploaded_on,
                     "uploaded_by": uploaded_by,
-                    "upload_notes": upload_notes
+                    "upload_notes": upload_notes,
+                    "updated_at": updated_at_timestamp
                 }
                 
                 # Insert into database
@@ -332,6 +348,19 @@ async def batch_replace_questions(
                 )
                 
                 # Create question object
+                # Generate short timestamp for updated_at
+                eastern = timezone(timedelta(hours=-5))  # EST/EDT handling
+                now = datetime.now(eastern)
+                month = f"{now.month:02d}"
+                day = f"{now.day:02d}"
+                year = str(now.year)[-2:]
+                hour = now.hour
+                minute = f"{now.minute:02d}"
+                ampm = "AM" if hour < 12 else "PM"
+                hour = hour % 12
+                hour = 12 if hour == 0 else hour
+                updated_at_timestamp = f"{month}/{day}/{year} {hour}:{minute}{ampm} ET"
+                
                 db_question = {
                     "question_id": unique_id,
                     "topic": topic,
@@ -339,7 +368,8 @@ async def batch_replace_questions(
                     "difficulty": question.difficulty,
                     "type": question.type,
                     "question": question.question,
-                    "answer": question.answer
+                    "answer": question.answer,
+                    "updated_at": updated_at_timestamp
                 }
                 
                 # Insert into database

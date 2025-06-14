@@ -8,6 +8,7 @@
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions function for bulk deletion operations
  * @updated June 14, 2025. 10:31 a.m. Eastern Time - Fixed authentication token key mismatch causing 403 errors on API calls
  * @updated June 14, 2025. 11:50 a.m. Eastern Time - Added validateMarkdownFile function for new validation workflow
+ * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function to accept optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -391,6 +392,7 @@ export const uploadMarkdownFile = async (
   formData.append('topic', topic);
   formData.append('file', file);
   
+  // Append optional metadata fields (frontend camelCase to backend snake_case mapping)
   if (uploadedOn) formData.append('uploaded_on', uploadedOn);
   if (uploadedBy) formData.append('uploaded_by', uploadedBy);
   if (uploadNotes) formData.append('upload_notes', uploadNotes);

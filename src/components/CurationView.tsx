@@ -4,6 +4,8 @@
  * @created June 8 2025 ??
  * @updated June 9, 2025. 1:02 p.m. Eastern Time - Applied LLM-focused documentation standards.
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Fixed selection bug and implemented bulk delete functionality with confirmation modal
+ * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata filtering fields (uploaded_by, upload_notes) with second filter row UI and enhanced filtering logic
+ * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploaded_on timestamp filtering field with correct date format placeholder (06/14/25 3:25PM ET)
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -70,6 +72,9 @@ const CurationView: React.FC = () => {
     difficulty: "All Difficulties",
     type: "All Types",
     searchText: "",
+    uploadedBy: "",
+    uploadNotes: "",
+    uploadedOn: "",
   });
 
   // Effect to apply initial filters passed from other views (e.g., Dashboard)
@@ -104,7 +109,15 @@ const CurationView: React.FC = () => {
                           q.questionText.toLowerCase().includes(filters.searchText.toLowerCase()) ||
                           (q.answerText && q.answerText.toLowerCase().includes(filters.searchText.toLowerCase())) ||
                           q.id.toLowerCase().includes(filters.searchText.toLowerCase());
-      return topicMatch && subtopicMatch && difficultyMatch && typeMatch && searchMatch;
+      
+      // Metadata filtering - matches questions by upload metadata (case-insensitive partial match)
+      const uploadedByMatch = filters.uploadedBy === "" || 
+                              (q.uploadedBy && q.uploadedBy.toLowerCase().includes(filters.uploadedBy.toLowerCase()));
+      const uploadNotesMatch = filters.uploadNotes === "" || 
+                               (q.uploadNotes && q.uploadNotes.toLowerCase().includes(filters.uploadNotes.toLowerCase()));
+      const uploadedOnMatch = filters.uploadedOn === "" || 
+                              (q.uploadedOn && q.uploadedOn.toLowerCase().includes(filters.uploadedOn.toLowerCase()));
+      return topicMatch && subtopicMatch && difficultyMatch && typeMatch && searchMatch && uploadedByMatch && uploadNotesMatch && uploadedOnMatch;
     });
   }, [questions, filters]);
 
@@ -286,7 +299,8 @@ const CurationView: React.FC = () => {
       
       {/* Filter Controls */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+        {/* First row - Basic filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end mb-4">
           <select name="topic" value={filters.topic} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500">
             <option value="All Topics">All Topics</option>
             {contextTopics.sort().map(topic => <option key={topic} value={topic}>{topic}</option>)}
@@ -310,6 +324,63 @@ const CurationView: React.FC = () => {
             onChange={handleFilterChange}
             className="w-full p-2 border border-slate-300 rounded-md text-sm col-span-1 md:col-span-3 lg:col-span-1 bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
           />
+        </div>
+        
+        {/* Second row - Metadata filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-4 border-t border-slate-200">
+          <div>
+            <label htmlFor="uploadedBy" className="block text-xs font-medium text-slate-600 mb-1">Uploaded By:</label>
+            <input 
+              type="text" 
+              id="uploadedBy"
+              name="uploadedBy"
+              placeholder="Filter by uploader..." 
+              value={filters.uploadedBy}
+              onChange={handleFilterChange}
+              className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="uploadNotes" className="block text-xs font-medium text-slate-600 mb-1">Upload Notes:</label>
+            <input 
+              type="text" 
+              id="uploadNotes"
+              name="uploadNotes"
+              placeholder="Filter by upload notes..." 
+              value={filters.uploadNotes}
+              onChange={handleFilterChange}
+              className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="uploadedOn" className="block text-xs font-medium text-slate-600 mb-1">Uploaded On:</label>
+            <input 
+              type="text" 
+              id="uploadedOn"
+              name="uploadedOn"
+              placeholder="06/14/25 3:25PM ET" 
+              value={filters.uploadedOn}
+              onChange={handleFilterChange}
+              className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div className="flex items-center">
+            <button
+              onClick={() => setFilters({
+                topic: "All Topics",
+                subtopic: "All Subtopics", 
+                difficulty: "All Difficulties",
+                type: "All Types",
+                searchText: "",
+                uploadedBy: "",
+                uploadNotes: "",
+                uploadedOn: ""
+              })}
+              className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              Clear All Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -392,6 +463,9 @@ const CurationView: React.FC = () => {
                   <th className="px-6 py-3">Difficulty</th>
                   <th className="px-6 py-3">Type</th>
                   <th className="px-6 py-3">Question</th>
+                  <th className="px-4 py-3">Uploaded On</th>
+                  <th className="px-4 py-3">Uploaded By</th>
+                  <th className="px-4 py-3">Upload Notes</th>
                   <th className="px-6 py-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -423,6 +497,15 @@ const CurationView: React.FC = () => {
                     >
                       {q.questionText}
                     </td>
+                    <td className="px-4 py-4 text-xs text-slate-500 whitespace-nowrap">
+                      {q.uploadedOn || '-'}
+                    </td>
+                    <td className="px-4 py-4 text-xs text-slate-600 truncate max-w-24" title={q.uploadedBy || ''}>
+                      {q.uploadedBy || '-'}
+                    </td>
+                    <td className="px-4 py-4 text-xs text-slate-600 truncate max-w-32" title={q.uploadNotes || ''}>
+                      {q.uploadNotes || '-'}
+                    </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
                       <button 
                         onClick={() => handleEditQuestion(q)} 
@@ -449,7 +532,7 @@ const CurationView: React.FC = () => {
                   </tr>
                 )) : (
                   <tr>
-                      <td colSpan={8} className="text-center py-10 text-slate-500">
+                      <td colSpan={11} className="text-center py-10 text-slate-500">
                           No questions match the current filters.
                       </td>
                   </tr>

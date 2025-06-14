@@ -6,6 +6,9 @@
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added BulkDeleteRequest and BulkDeleteResponse models for bulk deletion functionality
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Enhanced with validation models for file upload workflow, updated difficulty constraint to Basic/Advanced only
 @updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on timestamp, uploaded_by 25 chars, upload_notes 100 chars) for enhanced question tracking
+@updated June 14, 2025. 3:36 p.m. Eastern Time - Removed created_at field and updated timestamp format to MM/DD/YY H:MMPM ET for uploaded_on and updated_at
+@updated June 14, 2025. 4:05 p.m. Eastern Time - Fixed uploaded_on field max_length constraint to properly support short timestamp format (MM/DD/YY H:MMPM ET)
+@updated June 14, 2025. 4:27 p.m. Eastern Time - Changed updated_at field from datetime to string with short timestamp format for consistency with uploaded_on
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -51,7 +54,7 @@ class QuestionBase(BaseModel):
     question: str = Field(..., min_length=1, description="The actual question text")
     answer: str = Field(..., min_length=1, description="The complete answer text")
     notes_for_tutor: Optional[str] = Field(None, description="Additional notes or guidance for tutors")
-    uploaded_on: Optional[str] = Field(None, max_length=50, description="American timestamp when question was uploaded (Eastern Time)")
+    uploaded_on: Optional[str] = Field(None, max_length=20, description="Short timestamp when question was uploaded (MM/DD/YY H:MMPM ET format)")
     uploaded_by: Optional[str] = Field(None, max_length=25, description="Free text field for who uploaded the question")
     upload_notes: Optional[str] = Field(None, max_length=100, description="Free text notes about the upload process")
 
@@ -137,17 +140,15 @@ class Question(QuestionBase):
             type="Definition",
             question="What is WACC?",
             answer="Weighted Average Cost of Capital...",
-            created_at=datetime.now(),
-            updated_at=datetime.now()
+            updated_at="06/14/25 3:25PM ET"
         )
     """
 
     question_id: str = Field(..., description="Unique identifier for the question")
-    created_at: datetime = Field(..., description="Timestamp when question was created")
-    updated_at: datetime = Field(..., description="Timestamp when question was last updated")
+    updated_at: str = Field(..., max_length=20, description="Short timestamp when question was last updated (MM/DD/YY H:MMPM ET format)")
 
     class Config:
-        # Allow datetime objects to be serialized to ISO format
+        # Allow datetime objects to be serialized to ISO format (for any remaining datetime fields)
         json_encoders = {datetime: lambda dt: dt.isoformat()}
 
 
@@ -261,7 +262,7 @@ class BatchUploadRequest(BaseModel):
     """
     topic: str = Field(..., min_length=1, max_length=100, description="Topic for all questions")
     questions: List[ParsedQuestionFromAI] = Field(..., min_items=1, description="List of questions to upload")
-    uploaded_on: Optional[str] = Field(None, max_length=50, description="American timestamp when questions were uploaded (Eastern Time)")
+    uploaded_on: Optional[str] = Field(None, max_length=20, description="Short timestamp when questions were uploaded (MM/DD/YY H:MMPM ET format)")
     uploaded_by: Optional[str] = Field(None, max_length=25, description="Free text field for who uploaded the questions")
     upload_notes: Optional[str] = Field(None, max_length=100, description="Free text notes about this upload")
 

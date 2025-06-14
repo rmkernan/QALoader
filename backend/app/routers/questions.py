@@ -5,6 +5,7 @@
 @updated 2025.06.09 6:30 PM ET - Phase 4 reconstruction with complete CRUD implementation
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulk delete endpoint for deleting multiple questions
 @updated June 14, 2025. 11:04 a.m. Eastern Time - Fixed FastAPI route order conflict by moving bulk delete route before parameterized route (corrected timestamp per CLAUDE.md process violation)
+@updated June 14, 2025. 3:54 p.m. Eastern Time - Fixed import error by consolidating bulk delete models into main question.py file
 
 @architectural-context
 Layer: API Router (FastAPI endpoints)
@@ -34,8 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.database import get_db
-from app.models.question import Question, QuestionCreate, QuestionUpdate
-from app.models.question_bulk import BulkDeleteRequest, BulkDeleteResponse
+from app.models.question import Question, QuestionCreate, QuestionUpdate, BulkDeleteRequest, BulkDeleteResponse
 from app.routers.auth import get_current_user
 from app.services.question_service import QuestionService
 

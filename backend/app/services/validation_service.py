@@ -3,6 +3,8 @@
 @description Markdown file validation service for Q&A question uploads. Validates file structure, content, and transforms data for database insertion.
 @created June 14, 2025. 11:27 a.m. Eastern Time
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Initial creation with comprehensive validation logic
+@updated June 14, 2025. 3:40 p.m. Eastern Time - Fixed subtopic parsing by preserving hierarchical context during question block extraction
+@updated June 14, 2025. 4:20 p.m. Eastern Time - Fixed critical parsing logic that was only capturing 1 question instead of all 89 questions due to flawed flow control
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -289,37 +291,81 @@ class ValidationService:
     def _extract_question_blocks(self, content: str) -> List[str]:
         """
         @function _extract_question_blocks
-        @description Extracts individual question blocks from markdown content
+        @description Extracts individual question blocks from markdown content while preserving subtopic context
         @param content: Raw markdown content
-        @returns: List of question block strings
+        @returns: List of question block strings with subtopic context included
         """
-        # Split by difficulty headers to get sections
-        difficulty_pattern = re.compile(r'^### Difficulty: (Basic|Advanced)$', re.MULTILINE)
-        sections = difficulty_pattern.split(content)
-        
         blocks = []
-        current_difficulty = None
+        lines = content.split('\n')
         
-        for i, section in enumerate(sections):
-            if section.strip() in self.VALID_DIFFICULTIES:
-                current_difficulty = section.strip()
-            elif current_difficulty and section.strip():
-                # This section contains questions for the current difficulty
-                type_blocks = re.split(r'^#### Type: (.+)$', section, flags=re.MULTILINE)
+        current_subtopic = "Unknown"
+        current_difficulty = None
+        current_type = None
+        current_question_block = []
+        in_question_block = False
+        
+        def save_current_block():
+            """Helper function to save the current question block if valid"""
+            if in_question_block and len(current_question_block) > 3:
+                block_content = '\n'.join(current_question_block)
+                if '**Question:**' in block_content and '**Brief Answer:**' in block_content:
+                    blocks.append(block_content)
+        
+        for line in lines:
+            line_stripped = line.strip()
+            
+            # Track subtopic changes
+            subtopic_match = re.match(r'^## (?:Subtopic.*?:\s*)?(.+)$', line)
+            if subtopic_match:
+                # Save current block before changing subtopic
+                save_current_block()
+                current_subtopic = subtopic_match.group(1).strip()
+                in_question_block = False
+                current_question_block = []
+                continue
+            
+            # Track difficulty changes
+            difficulty_match = re.match(r'^### Difficulty:\s*(Basic|Advanced)$', line)
+            if difficulty_match:
+                # Save current block before changing difficulty
+                save_current_block()
+                current_difficulty = difficulty_match.group(1)
+                in_question_block = False
+                current_question_block = []
+                continue
+            
+            # Track type changes
+            type_match = re.match(r'^#### Type:\s*(.+)$', line)
+            if type_match:
+                # Save current block before changing type
+                save_current_block()
+                current_type = type_match.group(1).strip()
+                in_question_block = False
+                current_question_block = []
+                continue
+            
+            # Detect question start
+            if line_stripped.startswith('**Question:**'):
+                # Save any existing block before starting new one
+                save_current_block()
                 
-                current_type = None
-                for j, block in enumerate(type_blocks):
-                    block = block.strip()
-                    if not block:
-                        continue
-                    
-                    # Check if this is a type declaration
-                    if j % 2 == 1:  # Odd indices are type names
-                        current_type = block
-                    elif current_type and '**Question:**' in block and '**Brief Answer:**' in block:
-                        # This is a question block
-                        full_block = f"### Difficulty: {current_difficulty}\n#### Type: {current_type}\n{block}"
-                        blocks.append(full_block)
+                # Start new question block if we have context
+                if current_difficulty and current_type:
+                    in_question_block = True
+                    current_question_block = [
+                        f"## Subtopic: {current_subtopic}",
+                        f"### Difficulty: {current_difficulty}",
+                        f"#### Type: {current_type}",
+                        line
+                    ]
+                continue
+            
+            # Collect question block content
+            if in_question_block:
+                current_question_block.append(line)
+        
+        # Handle the last question block
+        save_current_block()
         
         return blocks
 
@@ -347,16 +393,11 @@ class ValidationService:
         # Clean up answer text (remove extra whitespace, but preserve formatting)
         answer_text = re.sub(r'\n\s*\n\s*\n', '\n\n', answer_text.strip())
         
-        # Try to find subtopic from context (would need parent context)
-        # For now, extract from any ## header in the block
+        # Extract subtopic from the block (now properly included by _extract_question_blocks)
         subtopic = "Unknown"
-        lines = block.split('\n')
-        for line in lines:
-            if line.startswith('## '):
-                subtopic_match = re.match(r'^## (?:Subtopic.*?:\s*)?(.+)$', line)
-                if subtopic_match:
-                    subtopic = subtopic_match.group(1).strip()
-                    break
+        subtopic_match = self.PATTERNS['subtopic'].search(block)
+        if subtopic_match:
+            subtopic = subtopic_match.group(1).strip()
         
         return ParsedQuestion(
             subtopic=subtopic,
