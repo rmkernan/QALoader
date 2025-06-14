@@ -2,6 +2,7 @@
  * @file src/components/PasswordResetView.tsx
  * @description Password reset form component with two-step flow: request reset email and complete reset with token
  * @created June 13, 2025. 12:03 p.m. Eastern Time
+ * @updated June 13, 2025. 6:58 p.m. Eastern Time - Fixed unused parameter in toast.custom callback
  * 
  * @architectural-context
  * Layer: UI Component (Form/Authentication)
@@ -113,7 +114,7 @@ export const PasswordResetView: React.FC<PasswordResetViewProps> = ({
       toast.success('If the email address exists in our system, a password reset link has been sent.');
       
       // For demo purposes, show instructions
-      toast.custom((t) => (
+      toast.custom((_t) => (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md">
           <h4 className="font-medium text-blue-900 mb-2">Demo Mode Instructions</h4>
           <p className="text-sm text-blue-700">

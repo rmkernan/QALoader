@@ -3,15 +3,22 @@
  * @description Defines shared TypeScript types and enums used throughout the application, such as Question, View, AppContextType, and various data structures for API interactions and state management.
  * @created 2025.06.08 9:00 PM ET
  * @updated 2025.06.09 1:45 PM ET - Refactored project structure into src/ and public/ directories and updated JSDoc.
+ * @updated June 13, 2025. 6:58 p.m. Eastern Time - Fixed login function signature to support dual authentication modes
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
  * Dependencies: None (Defines base types).
  * Pattern: Centralized type definitions for type safety and clarity.
  * 
- * @workflow-context N/A (Defines data structures used in various workflows).
- * @authentication-context N/A (Defines types related to auth state like AppContextType.isAuthenticated, but not logic itself).
- * @mock-data-context N/A.
+ * @workflow-context
+ * User Journey: Cross-cutting type definitions for all user workflows
+ * Sequence Position: Foundation layer used throughout application
+ * Inputs: TypeScript compiler and component implementations
+ * Outputs: Type safety and IntelliSense for development
+ * 
+ * @authentication-context
+ * Auth Modes: Defines login function signature supporting both mock and real authentication
+ * Security: Type safety for authentication state and user data structures
  */
 export enum View {
   DASHBOARD = 'dashboard',
@@ -94,7 +101,7 @@ export interface AppContextType {
 
   // Authentication
   isAuthenticated: boolean;
-  login: (password: string) => Promise<boolean>;
+  login: (usernameOrPassword: string, password?: string) => Promise<boolean>;
   logout: () => void;
 
   // Activity Log

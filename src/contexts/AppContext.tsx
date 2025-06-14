@@ -4,6 +4,7 @@
  * @description Manages global application state including Q&A data, topics, user authentication, activity logging, and file operations. Provides this state and related functions to the application via React Context.
  * @created June 9, 2025 at unknown time
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Fixed fetchInitialData to include JWT token in Authorization header for authenticated bootstrap-data endpoint calls
+ * @updated June 13, 2025. 6:58 p.m. Eastern Time - Removed unused verifyAuthToken import and fixed HeadersInit type reference
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -17,8 +18,8 @@
  * Outputs: Provides state (questions, topics, isAuthenticated) and functions to modify state to descendant components. Triggers backend API calls (simulated) and UI notifications.
  * 
  * @authentication-context
- * Auth Modes: Manages `isAuthenticated` state. Includes `login` and `logout` functions. Uses `SESSION_TOKEN_KEY` and `MOCK_PASSWORD` for prototype authentication.
- * Security: Handles session token storage in sessionStorage. Login uses a mock password. Backend interactions are simulated as fetch calls to placeholder API endpoints.
+ * Auth Modes: Supports dual authentication - real backend login and mock password fallback
+ * Security: Handles session token storage in sessionStorage, JWT token-based API authentication
  * 
  * @mock-data-context
  * Purpose: `MOCK_PASSWORD` facilitates prototype login. `INITIAL_TOPICS` provides fallback data if backend is unavailable. `uploadMarkdownFile` "dry run" uses Gemini API (real if key provided) without backend persistence.
@@ -29,7 +30,7 @@ import React, { createContext, useState, useEffect, useCallback, ReactNode, useC
 import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem } from '../types';
 import { INITIAL_TOPICS, SESSION_TOKEN_KEY, MOCK_PASSWORD } from '../constants'; 
 import { parseMarkdownToQA } from '../services/geminiService';
-import { loginUser, verifyAuthToken } from '../services/api';
+import { loginUser } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -94,7 +95,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     try {
       const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }

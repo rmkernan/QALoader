@@ -1,14 +1,20 @@
 Creation Date: 6/9/25 ~ 1PM ET
 # Claude Development Guidelines for Q&A Loader
 
+🚨 **MANDATORY: READ THIS ENTIRE FILE BEFORE ANY WORK** 🚨
+**STOP - You MUST read this complete file before making ANY code changes**
+
 This file provides specific guidance for AI assistants (Claude) working on the Q&A Loader project.
 
-## Documentation Standards (CRITICAL - READ FIRST)
+## 🚨 DOCUMENTATION STANDARDS (CRITICAL - APPLY TO ALL CODE CHANGES)
+
+### ⛔ BEFORE ANY CODE CHANGES - MANDATORY STEPS ⛔
+1. **READ `Docs/DocumentationStandards.md` FIRST** - Cannot be skipped
+2. **Run `date` command** to get current timestamp - Never guess times  
+3. **Apply documentation standards automatically** after any code changes
+4. **Use trigger phrase**: "Apply documentation standards" for comprehensive review
 
 ### Required for ALL Code Files
-- **ALWAYS read `Docs/DocumentationStandards.md`** before creating/modifying any code
-- **Apply documentation standards automatically** after any code changes
-- **Use trigger phrase**: "Apply documentation standards" for comprehensive review
 
 ### Key Requirements
 - **File Headers**: JSDoc with architectural context, workflow context, American timestamps

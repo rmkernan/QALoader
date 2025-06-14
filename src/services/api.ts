@@ -3,6 +3,7 @@
  * @description API service layer for QA Loader frontend - handles all backend communication with type safety and error handling
  * @created June 9, 2025 at unknown time
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Updated API_BASE_URL to point to backend server and added development notes about restart requirements
+ * @updated June 13, 2025. 6:58 p.m. Eastern Time - Removed unused ApiResponse interface
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -28,16 +29,6 @@ const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-/**
- * @interface ApiResponse
- * @description Standardized API response format
- */
-interface ApiResponse<T = any> {
-  data?: T;
-  message?: string;
-  success?: boolean;
-  error?: string;
-}
 
 /**
  * @interface PasswordResetResponse
