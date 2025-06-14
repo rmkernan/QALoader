@@ -108,6 +108,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(`Failed to fetch initial data: ${response.statusText} (Status: ${response.status})`);
       }
       const data = await response.json();
+      
+      // DEBUG: Log raw backend data structure
+      console.log('🔍 Raw backend questions (first 2):', data.questions?.slice(0, 2));
+      
       // Transform backend question_id to frontend id
       const transformedQuestions = (data.questions || []).map((q: Question & { question_id?: string; question?: string; answer?: string }) => ({
         ...q,
@@ -304,7 +308,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     topic: string, 
     fileName: string
   ): Promise<void> => {
-    const { totalAttempted: _totalAttempted, successfulUploads, failedUploads, errors, warnings } = result;
+    // Defensive programming: ensure all arrays exist
+    const successfulUploads = result.successfulUploads || [];
+    const failedUploads = result.failedUploads || [];
+    const errors = result.errors || {};
+    const warnings = result.warnings || [];
+    
+    console.log('🔍 Processed arrays:', { successfulUploads, failedUploads, errors, warnings });
     
     if (failedUploads.length === 0) {
       // Complete success
@@ -566,6 +576,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
           const uploadResult: BatchUploadResult = await uploadMarkdownFileAPI(topic, file);
           
+          // DEBUG: Log the actual upload response
+          console.log('🔍 Backend upload response:', uploadResult);
+          console.log('🔍 Response structure:', {
+            successfulUploads: uploadResult.successfulUploads,
+            failedUploads: uploadResult.failedUploads,
+            errors: uploadResult.errors,
+            warnings: uploadResult.warnings
+          });
+          
           // Handle upload results with detailed feedback
           await handleBatchUploadResult(uploadResult, topic, file.name);
           
@@ -770,7 +789,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         login,
         logout,
         activityLog,
-        logActivity
+        logActivity,
+        fetchInitialData
     }}>
       {children}
     </AppContext.Provider>

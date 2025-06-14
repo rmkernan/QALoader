@@ -3,6 +3,7 @@
  * @description Defines the Dashboard view, providing an overview of Q&A content metrics, breakdowns, and recent activity.
  * @created June 9, 2025. 1:00 p.m. Eastern Time
  * @updated June 9, 2025. 1:12 p.m. Eastern Time - Applied LLM-focused documentation standards.
+ * @updated June 14, 2025. 1:53 p.m. Eastern Time - Added data refresh on mount to fix stale data display issue
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -18,7 +19,7 @@
  * @authentication-context N/A (View is auth-gated by App.tsx)
  * @mock-data-context Consumes data from AppContext, which includes its own loading states and fallback data mechanisms.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { View, ActivityLogItem, Filters } from '../types';
 
@@ -117,8 +118,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setActiveView }) => {
     lastUploadTimestamp, 
     isContextLoading,
     setInitialCurationFilters,
-    activityLog
+    activityLog,
+    fetchInitialData 
   } = useAppContext();
+  
+  // Refresh data when Dashboard mounts to ensure current data
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   // Calculate derived metrics for display
   const totalQuestions = questions.length;

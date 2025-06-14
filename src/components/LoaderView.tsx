@@ -200,24 +200,34 @@ const LoaderView: React.FC = () => {
       // Server-side content validation
       const serverValidation = await validateMarkdownFileAPI(currentTopic, file);
       
+      // Transform backend response (snake_case) to frontend format (camelCase)
+      const transformedValidation = {
+        isValid: serverValidation.is_valid,
+        errors: serverValidation.errors || [],
+        warnings: serverValidation.warnings || [],
+        parsedCount: serverValidation.parsed_count || 0
+      };
+      
+      console.log('✅ Transformed validation:', transformedValidation);
+      
       const report: ValidationReport = {
-        success: serverValidation.isValid,
-        message: serverValidation.isValid 
-          ? `Successfully validated ${serverValidation.parsedCount} questions for topic '${currentTopic}'`
-          : `Content validation failed: ${serverValidation.errors.length} error${serverValidation.errors.length !== 1 ? 's' : ''} found`,
-        parsedCount: serverValidation.parsedCount,
+        success: transformedValidation.isValid,
+        message: transformedValidation.isValid 
+          ? `Successfully validated ${transformedValidation.parsedCount} questions for topic '${currentTopic}'`
+          : `Content validation failed: ${transformedValidation.errors.length} error${transformedValidation.errors.length !== 1 ? 's' : ''} found`,
+        parsedCount: transformedValidation.parsedCount,
         topic: currentTopic,
-        errors: serverValidation.errors.length > 0 ? serverValidation.errors : undefined
+        errors: transformedValidation.errors.length > 0 ? transformedValidation.errors : undefined
       };
       
       setValidationReport(report);
       
-      if (serverValidation.isValid) {
-        toast.success(`✅ Content validation successful! Found ${serverValidation.parsedCount} valid questions.`);
+      if (transformedValidation.isValid) {
+        toast.success(`✅ Content validation successful! Found ${transformedValidation.parsedCount} valid questions.`);
         // Set mock parsed data for preview (actual data will come from upload)
         setParsedData([]);
       } else {
-        toast.error(`❌ Content validation failed: ${serverValidation.errors.length} errors found`);
+        toast.error(`❌ Content validation failed: ${transformedValidation.errors.length} errors found`);
       }
       
     } catch (error) {

@@ -167,6 +167,9 @@ export interface AppContextType {
   // Activity Log
   activityLog: ActivityLogItem[];
   logActivity: (_action: string, _details?: string) => void;
+  
+  // Data refresh
+  fetchInitialData: () => Promise<void>;
 }
 
 export interface Filters {
