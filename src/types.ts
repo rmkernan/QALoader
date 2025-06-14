@@ -5,6 +5,7 @@
  * @updated 2025.06.09 1:45 PM ET - Refactored project structure into src/ and public/ directories and updated JSDoc.
  * @updated June 13, 2025. 6:58 p.m. Eastern Time - Fixed login function signature to support dual authentication modes
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions to AppContextType
+ * @updated June 14, 2025. 11:47 a.m. Eastern Time - Added ValidationResult, BatchUploadResult, and ParsedQuestion interfaces for new upload workflow
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -62,6 +63,61 @@ export interface ValidationReport {
   parsedCount?: number;
   topic?: string;
   errors?: string[]; // Store detailed errors if any
+}
+
+/**
+ * @interface ValidationResult
+ * @description Result of server-side markdown validation matching backend response
+ * @field {boolean} isValid - Whether the validation passed completely
+ * @field {string[]} errors - Array of validation error messages
+ * @field {string[]} warnings - Array of validation warning messages  
+ * @field {number} parsedCount - Number of questions successfully parsed
+ * @field {Record<string, number>} lineNumbers - Optional line numbers for error reporting
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  parsedCount: number;
+  lineNumbers?: Record<string, number>;
+}
+
+/**
+ * @interface BatchUploadResult
+ * @description Result of batch question upload operation from server
+ * @field {number} totalAttempted - Total number of questions attempted for upload
+ * @field {string[]} successfulUploads - Array of question IDs that uploaded successfully
+ * @field {string[]} failedUploads - Array of question IDs that failed to upload
+ * @field {Record<string, string>} errors - Map of question ID to error message for failures
+ * @field {string[]} warnings - Array of warning messages from validation
+ * @field {number} processingTimeMs - Server processing time in milliseconds
+ */
+export interface BatchUploadResult {
+  totalAttempted: number;
+  successfulUploads: string[];
+  failedUploads: string[];
+  errors: Record<string, string>;
+  warnings: string[];
+  processingTimeMs: number;
+}
+
+/**
+ * @interface ParsedQuestion
+ * @description Individual question data after markdown parsing, before database insertion
+ * @field {string} subtopic - Question subtopic within the main topic
+ * @field {string} difficulty - Question difficulty level ("Basic" | "Advanced")
+ * @field {string} type - Question type ("Definition" | "Problem" | "GenConcept" | "Calculation" | "Analysis")
+ * @field {string} question - The question text content
+ * @field {string} answer - The answer text content
+ * @field {string} notesForTutor - Optional notes for tutors (optional field)
+ */
+export interface ParsedQuestion {
+  subtopic: string;
+  difficulty: string;
+  type: string;
+  question: string;
+  answer: string;
+  notesForTutor?: string;
 }
 
 export interface ActivityLogItem {

@@ -291,6 +291,95 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [logActivity]);
 
   /**
+   * @function handleBatchUploadResult
+   * @description Processes batch upload results and provides appropriate user feedback
+   * @param {BatchUploadResult} result - Upload result from server
+   * @param {string} topic - Topic name for context
+   * @param {string} fileName - File name for logging
+   * @returns {Promise<void>}
+   */
+  const handleBatchUploadResult = useCallback(async (
+    result: BatchUploadResult, 
+    topic: string, 
+    fileName: string
+  ): Promise<void> => {
+    const { totalAttempted, successfulUploads, failedUploads, errors, warnings } = result;
+    
+    if (failedUploads.length === 0) {
+      // Complete success
+      toast.success(`✅ All ${successfulUploads.length} questions uploaded successfully!`);
+      logActivity("File upload completed", `${fileName} - ${successfulUploads.length} questions added to ${topic}`);
+      
+    } else if (successfulUploads.length > 0) {
+      // Partial success - show summary with option to view details
+      const successMessage = `✅ ${successfulUploads.length} questions uploaded successfully.`;
+      const failureMessage = `❌ ${failedUploads.length} questions failed.`;
+      
+      toast.success(
+        `${successMessage}\n${failureMessage}\nClick to view error details.`,
+        {
+          duration: 8000,
+          onClick: () => showErrorDetailsModal(errors, failedUploads)
+        }
+      );
+      
+      logActivity(
+        "File upload partial success", 
+        `${fileName} - ${successfulUploads.length} succeeded, ${failedUploads.length} failed`
+      );
+      
+    } else {
+      // Complete failure
+      toast.error(`❌ Upload failed: No questions were added to database.`);
+      showErrorDetailsModal(errors, failedUploads);
+      logActivity("File upload failed", `${fileName} - No questions added`);
+    }
+    
+    // Show warnings if present
+    if (warnings && warnings.length > 0) {
+      console.warn('Upload warnings:', warnings);
+      toast(
+        `⚠️ Upload completed with ${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`,
+        { icon: '⚠️' }
+      );
+    }
+  }, [logActivity]);
+
+  /**
+   * @function showErrorDetailsModal
+   * @description Shows detailed error information for failed uploads
+   * @param {Record<string, string>} errors - Map of question ID to error message
+   * @param {string[]} failedIds - Array of failed question IDs
+   */
+  const showErrorDetailsModal = useCallback((
+    errors: Record<string, string>, 
+    failedIds: string[]
+  ) => {
+    // For now, log detailed errors to console
+    // In future, this could open a modal with detailed error display
+    console.group('❌ Upload Error Details');
+    failedIds.forEach(id => {
+      console.error(`Question ${id}: ${errors[id] || 'Unknown error'}`);
+    });
+    console.groupEnd();
+    
+    // Show summary toast with actionable guidance
+    const errorTypes = Object.values(errors);
+    const hasFormatErrors = errorTypes.some(error => 
+      error.includes('Invalid difficulty') || 
+      error.includes('Invalid question type') ||
+      error.includes('Missing required fields')
+    );
+    
+    if (hasFormatErrors) {
+      toast.error(
+        '💡 Fix format errors: Check difficulty values (Basic/Advanced) and question types (Definition/Problem/GenConcept/Calculation/Analysis)',
+        { duration: 10000 }
+      );
+    }
+  }, []);
+
+  /**
    * @function updateQuestion
    * @description Updates an existing question by calling the backend endpoint `/api/questions/{updatedQuestion.id}`. Updates local state with the backend's response on success.
    * @param {Question} updatedQuestion - The question object with updated data.
@@ -379,72 +468,122 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   /**
    * @function uploadMarkdownFile
-   * @description Handles Markdown file processing. If `dryRun` is true, it parses the file content using `geminiService` and returns parsed questions and a validation report without backend interaction. If `dryRun` is false, it uploads the file to `/api/upload-markdown` for backend processing and data persistence, then refetches initial data.
-   * @param {string} topic - The topic associated with the file.
-   * @param {File} file - The Markdown file to process.
-   * @param {boolean} dryRun - If true, performs a dry run analysis; otherwise, uploads to backend.
-   * @returns {Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void>} For dry run, returns parsed data and report. For actual upload, returns void (or throws error).
+   * @description Enhanced markdown file processing with validation-first approach. Supports both validation-only mode and full upload workflow with detailed error handling.
+   * @param {string} topic - The topic associated with the file
+   * @param {File} file - The Markdown file to process
+   * @param {boolean} dryRun - If true, performs validation only; if false, validates then uploads
+   * @returns {Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void>} For validation, returns parsed data and report. For upload, returns void or throws error.
+   * 
+   * @workflow Two-step validation process:
+   * 1. Client-side format validation (immediate feedback)
+   * 2. Server-side content validation (comprehensive checking)
+   * 3. Upload with individual question tracking (if not dry run)
+   * 
+   * @example
+   * // Validation only
+   * const result = await uploadMarkdownFile('DCF', file, true);
+   * if (result.report.success) {
+   *   console.log(`Found ${result.report.parsedCount} questions`);
+   * }
+   * 
+   * // Full upload
+   * await uploadMarkdownFile('DCF', file, false);
    */
   const uploadMarkdownFile = useCallback(async (
     topic: string, 
     file: File, 
     dryRun: boolean
   ): Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void> => {
-    if (dryRun) {
-      setIsContextLoading(true);
-      try {
-        const fileContent = await file.text();
-        const parsedQuestions = await parseMarkdownToQA(fileContent, topic);
-        const report: ValidationReport = {
-          success: true,
-          message: `Successfully parsed ${parsedQuestions.length} questions for topic '${topic}'.`,
-          parsedCount: parsedQuestions.length,
-          topic: topic,
-        };
-        toast.success("Dry run analysis complete!");
-        logActivity("Analyzed file (dry run)", file.name);
-        return { parsedQuestions, report };
-      } catch (error) {
-        console.error("Error during dry run analysis:", error);
+    setIsContextLoading(true);
+    
+    try {
+      // Step 1: Client-side format validation
+      const clientValidation = await validateMarkdownFormat(file);
+      
+      if (!clientValidation.isValid) {
         const report: ValidationReport = {
           success: false,
-          message: error instanceof Error ? error.message : "An unknown error occurred during dry run analysis.",
-          errors: error instanceof Error ? [error.message] : undefined,
+          message: `File format validation failed: ${clientValidation.errors.length} error${clientValidation.errors.length !== 1 ? 's' : ''} found`,
+          errors: clientValidation.errors,
           topic: topic,
+          parsedCount: 0
         };
-        toast.error(`Dry run analysis failed: ${report.message}`);
-        logActivity("Dry run analysis failed", file.name);
-        return { parsedQuestions: [], report }; 
-      } finally {
-        setIsContextLoading(false);
-      }
-    } else {
-      setIsContextLoading(true);
-      const formData = new FormData();
-      formData.append('topic', topic);
-      formData.append('file', file);
-      try {
-        const response = await fetch('http://localhost:8000/api/upload-markdown', {
-          method: 'POST',
-          body: formData,
-        });
-        if (!response.ok) {
-          const errorData = await response.text();
-          throw new Error(`Failed to upload markdown file: ${response.statusText} - ${errorData} (Status: ${response.status})`);
+        
+        toast.error(getValidationSummary(clientValidation));
+        logActivity("File validation failed", `${file.name} - format errors`);
+        
+        if (dryRun) {
+          return { parsedQuestions: [], report };
+        } else {
+          throw new Error(report.message);
         }
-        await fetchInitialData();
-        logActivity("Uploaded file to backend", `${file.name} for topic ${topic}`);
-        setLastUploadTimestamp(Date.now());
-        toast.success(`Markdown file uploaded and processed by backend for topic: ${topic}. Data refreshed.`);
-      } catch (error) {
-        console.error("Error uploading markdown file:", error);
-        toast.error(`API call to /api/upload-markdown failed. (${error instanceof Error ? error.message : 'Unknown error'})`);
-        throw error; 
-      } finally {
-        setIsContextLoading(false);
       }
+      
+      // Step 2: Server-side validation and processing
+      if (dryRun) {
+        // Validation-only mode: use server validation endpoint
+        try {
+          const serverValidation: ValidationResult = await validateMarkdownFileAPI(topic, file);
+          
+          const report: ValidationReport = {
+            success: serverValidation.isValid,
+            message: serverValidation.isValid 
+              ? `Successfully validated ${serverValidation.parsedCount} questions for topic '${topic}'`
+              : `Validation failed: ${serverValidation.errors.length} error${serverValidation.errors.length !== 1 ? 's' : ''} found`,
+            parsedCount: serverValidation.parsedCount,
+            topic: topic,
+            errors: serverValidation.errors.length > 0 ? serverValidation.errors : undefined
+          };
+          
+          if (serverValidation.isValid) {
+            toast.success(`✅ Validation successful! Found ${serverValidation.parsedCount} questions.`);
+            logActivity("File validation successful", `${file.name} - ${serverValidation.parsedCount} questions`);
+          } else {
+            toast.error(`❌ Validation failed: ${serverValidation.errors.length} errors found`);
+            logActivity("File validation failed", `${file.name} - content errors`);
+          }
+          
+          // For dry run, return mock parsed questions (server validation doesn't return actual questions)
+          return { parsedQuestions: [], report };
+          
+        } catch (error) {
+          console.error("Server validation failed:", error);
+          const report: ValidationReport = {
+            success: false,
+            message: error instanceof Error ? error.message : "Server validation failed",
+            errors: error instanceof Error ? [error.message] : undefined,
+            topic: topic,
+            parsedCount: 0
+          };
+          toast.error(`Server validation failed: ${report.message}`);
+          logActivity("Server validation error", file.name);
+          return { parsedQuestions: [], report };
+        }
+        
+      } else {
+        // Full upload mode: upload and process
+        try {
+          const uploadResult: BatchUploadResult = await uploadMarkdownFileAPI(topic, file);
+          
+          // Handle upload results with detailed feedback
+          await handleBatchUploadResult(uploadResult, topic, file.name);
+          
+          // Refresh data after successful upload
+          await fetchInitialData();
+          setLastUploadTimestamp(Date.now());
+          
+        } catch (error) {
+          console.error("Upload failed:", error);
+          toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          logActivity("File upload failed", `${file.name} - ${error instanceof Error ? error.message : 'Unknown error'}`);
+          throw error;
+        }
+      }
+      
+    } finally {
+      setIsContextLoading(false);
     }
-  }, [logActivity, fetchInitialData, parseMarkdownToQA]); // parseMarkdownToQA is stable if geminiService is stable
+  }, [logActivity, fetchInitialData]);
 
   /**
    * @function exportQuestionsToMarkdown

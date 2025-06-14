@@ -6,12 +6,6 @@
 
 ---
 
-## Prerequisites
-
-- **Claude Code** (Anthropic's CLI) installed and working
-- **Target project** where you want to run documentation audit (or other mission)
-- **Basic familiarity** with command line
-
 ## Step 1: Deploy the Framework
 
 ### Option A: Copy Entire Framework (Recommended)

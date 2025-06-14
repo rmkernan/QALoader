@@ -1,6 +1,8 @@
 # Question Upload Workflow
 
 **Created:** June 14, 2025. 10:23 a.m. Eastern Time  
+**Updated:** June 14, 2025. 11:37 a.m. Eastern Time - Backend implementation completed, added actual API endpoints
+**Updated:** June 14, 2025. 11:54 a.m. Eastern Time - Frontend Phase 2 implementation completed with client-side validation service and enhanced AppContext
 **Purpose:** Documents the complete workflow for uploading and validating question files from markdown format to database storage  
 **Scope:** Functional user experience and technical implementation details  
 
@@ -175,7 +177,7 @@ async def ensure_unique_id(base_id: str, supabase_client) -> str:
 
 ### Frontend Components
 
-#### LoaderView.tsx
+#### LoaderView.tsx (Pending UI Integration)
 **Responsibilities:**
 - File selection UI (browse button + drag/drop zone)
 - Display validation status and error messages
@@ -193,31 +195,35 @@ async def ensure_unique_id(base_id: str, supabase_client) -> str:
 - Updates UI based on validation results
 - Triggers activity logging
 
-#### AppContext.tsx - uploadMarkdownFile Function
-**Enhanced Workflow:**
+#### AppContext.tsx - uploadMarkdownFile Function ✅ IMPLEMENTED
+**Enhanced Two-Step Validation Workflow:**
 ```typescript
-uploadMarkdownFile(topic: string, file: File, dryRun: boolean) {
-  // Step 1: Format Validation (client-side)
-  if (!validateMarkdownFormat(file)) {
-    return validation errors;
-  }
-  
-  // Step 2: Content Validation (backend API call)
-  if (dryRun) {
-    const result = await validateContent(file, topic);
-    return validation report;
-  }
-  
-  // Step 3: Database Upload (after validation passes)
-  const formData = new FormData();
-  formData.append('topic', topic);
-  formData.append('file', file);
-  const response = await fetch('/api/upload-markdown', {
-    method: 'POST',
-    body: formData,
-  });
+// Step 1: Client-side format validation (immediate feedback)
+const clientValidation = await validateMarkdownFormat(file);
+if (!clientValidation.isValid) {
+  // Show format errors with line numbers and specific guidance
+  return { parsedQuestions: [], report: formatErrorReport };
+}
+
+// Step 2: Server-side content validation or full upload
+if (dryRun) {
+  // Validation-only mode: use /api/validate-markdown endpoint
+  const serverValidation = await validateMarkdownFileAPI(topic, file);
+  return { parsedQuestions: [], report: validationReport };
+} else {
+  // Full upload mode: use /api/upload-markdown endpoint
+  const uploadResult = await uploadMarkdownFileAPI(topic, file);
+  await handleBatchUploadResult(uploadResult, topic, file.name);
+  await fetchInitialData(); // Refresh app data
 }
 ```
+
+**Key Enhancement Features:**
+- **Client-side validation service** (`src/services/validation.ts`) provides immediate feedback
+- **Two-step validation** prevents invalid files from reaching the server
+- **Individual question tracking** allows partial success with detailed error reporting
+- **Enhanced error handling** with user-friendly messages and actionable guidance
+- **TypeScript interfaces** for ValidationResult, BatchUploadResult, ParsedQuestion
 
 ### Backend Components
 
@@ -281,10 +287,16 @@ def transform_to_database_format(questions: List[Dict], topic: str) -> List[Ques
 
 ## 🔍 Validation Process Details
 
-### Format Validation (Client-Side)
+### Format Validation (Client-Side) ✅ IMPLEMENTED
 **Technology:** JavaScript/TypeScript with regex patterns  
 **Performance:** Immediate (< 100ms)  
 **Location:** `src/services/validation.ts`
+
+**Key Functions:**
+- `validateMarkdownFormat(file: File)` - Main validation entry point
+- `checkMarkdownHierarchy()` - Validates heading structure
+- `validateQuestionBlocks()` - Validates individual question content
+- `extractQuestionBlocks()` - Parses questions from markdown
 
 **Validation Rules:**
 ```typescript
@@ -297,6 +309,12 @@ const MARKDOWN_PATTERNS = {
   answer: /^\*\*Brief Answer:\*\* (.+)$/m
 };
 ```
+
+**File Constraints:**
+- Maximum size: 10MB
+- Allowed extensions: .md, .txt
+- Maximum lines: 10,000
+- Content validation includes UTF-8 encoding check
 
 ### Content Validation (Server-Side)
 **Technology:** Python with Pydantic models  
@@ -535,14 +553,32 @@ const showErrorDetailsModal = (errors: Record<string, string>) => {
 
 ---
 
-## 🔄 Future Enhancements
+## 🔄 Implementation Status & Future Enhancements
 
-### Planned Improvements
+### ✅ Phase 1: Backend Foundation (COMPLETE)
+- Validation service with markdown parsing ✅
+- ID generation utility with uniqueness checking ✅
+- Enhanced data models for validation and batch upload ✅
+- Upload API endpoints (/api/validate-markdown, /api/upload-markdown) ✅
+
+### ✅ Phase 2: Frontend Enhancement (COMPLETE)
+- Client-side validation service (src/services/validation.ts) ✅
+- TypeScript interfaces (ValidationResult, BatchUploadResult, ParsedQuestion) ✅
+- Enhanced AppContext with two-step validation workflow ✅
+- API service integration (validateMarkdownFile, uploadMarkdownFile) ✅
+
+### 🔄 Phase 3: UI Integration (PENDING)
+- LoaderView component updates with file selection UI
+- Error handling modal for detailed error display
+- Progress tracking and user feedback enhancements
+- End-to-end workflow testing
+
+### Future Improvements
 1. **Batch Upload**: Support for multiple files in single operation
 2. **Preview Mode**: Show parsed questions before final upload
 3. **Template Download**: Provide properly formatted template files
 4. **Auto-Correction**: Suggest fixes for common formatting errors
-5. **Progress Tracking**: Detailed progress for large file uploads
+5. **Enhanced Error Modal**: Detailed error display with recovery guidance
 
 ### Integration Opportunities
 1. **AI Enhancement**: Use LLM for content quality validation

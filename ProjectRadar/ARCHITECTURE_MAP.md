@@ -1,28 +1,15 @@
-# QALoader Architecture Map & Contextual Understanding System
+# QALoader Architecture Map
 
-**Purpose:** Architecture mapping and context analysis for enhanced LLM understanding of the codebase.  
+**Purpose:** Comprehensive technical reference for the QALoader project structure, patterns, and development workflows  
 **Created:** June 13, 2025. 10:03 a.m. Eastern Time  
-**Updated:** June 13, 2025. 1:50 p.m. Eastern Time - Added validated password reset authentication flow
-**Updated:** June 14, 2025. 11:27 a.m. Eastern Time - Added bulk delete operations to backend and frontend architecture
-**Type:** Manually maintained documentation - updated after significant architectural changes  
-
----
-
-## 🧠 Architecture Reference System
-
-This document provides project structure reference for complex tasks:
-1. **Architecture Documentation** - Component relationships and dependencies
-2. **Pattern Documentation** - Established code patterns and workflows  
-3. **Impact Guidelines** - Understanding change implications
-4. **Simple Reference** - Use only when simple tools aren't sufficient
-
-**NOTE:** This is manually maintained documentation. Update after significant architectural changes using the Project Radar Feedback Protocol.
+**Updated:** June 14, 2025. 11:53 a.m. Eastern Time - Simplified and streamlined for practical use
+**Updated:** June 14, 2025. 12:04 p.m. Eastern Time - Added Question Upload validation workflow patterns and frontend service integration
 
 ---
 
 ## 🏗️ System Architecture Overview
 
-### High-Level Architecture Pattern
+### High-Level Architecture
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   React Frontend │    │  FastAPI Backend │    │ Supabase Database│
@@ -32,14 +19,13 @@ This document provides project structure reference for complex tasks:
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-**Communication Protocol:** REST API with JWT authentication
+**Communication:** REST API with JWT authentication  
 **Data Flow:** Frontend → API Routes → Services → Database → Response Chain
 
 ---
 
-## 📁 Component Dependency Map
+## 📁 Backend Architecture (FastAPI)
 
-### Backend Architecture (FastAPI)
 ```
 backend/app/
 ├── main.py                 # 🚪 ENTRY POINT - CORS, routing, startup
@@ -57,7 +43,7 @@ backend/app/
 ├── models/                 # 📝 DATA MODELS - Request/Response schemas
 │   ├── auth.py            # JWT, login/logout models
 │   ├── question.py        # Question CRUD models
-│   ├── question_bulk.py   # Bulk operations models (BulkDeleteRequest/Response)
+│   ├── question_bulk.py   # Bulk operations models
 │   └── __init__.py        # Model exports
 │   Impact Radius: API validation, type safety
 │
@@ -72,15 +58,20 @@ backend/app/
 │   ├── auth_service.py   # JWT validation, admin login
 │   ├── question_service.py # Question management, filtering
 │   ├── analytics_service.py # Data analysis, metrics
+│   ├── validation_service.py # ✅ Markdown validation and parsing
 │   └── __init__.py       # Service exports
 │   Impact Radius: Data processing, business rules
 │
 └── utils/                # 🛠️ UTILITIES - Helper functions
+    ├── id_generator.py   # ✅ Semantic question ID generation
     └── __init__.py       # Utility exports
     Impact Radius: Code reuse, common operations
 ```
 
-### Frontend Architecture (React + TypeScript)
+---
+
+## 📁 Frontend Architecture (React + TypeScript)
+
 ```
 src/
 ├── App.tsx                 # 🏠 ROOT COMPONENT - App shell, routing
@@ -103,7 +94,8 @@ src/
 │
 ├── services/              # 🔌 API INTEGRATION - Backend communication
 │   ├── api.ts            # HTTP client, API calls
-│   └── auth.ts           # Authentication service
+│   ├── auth.ts           # Authentication service
+│   └── validation.ts     # ✅ Client-side markdown validation
 │   Impact Radius: Data fetching, error handling
 │
 ├── types.ts               # 📋 TYPE DEFINITIONS - TypeScript interfaces
@@ -118,7 +110,7 @@ src/
 
 ---
 
-## 🔗 Critical Dependencies & Relationships
+## 🔗 Key Dependencies
 
 ### Backend Dependencies
 ```python
@@ -165,11 +157,71 @@ httpx==0.24.1             # HTTP client for testing
 
 ---
 
-## 🧭 Intelligent Context Discovery
+## 🔄 Development Workflow Patterns
 
-### Automatic File Relevance by Task Type
+### Adding New API Endpoint
+```
+Flow: Route → Service → Model → Database → Test
+Files: routers/{feature}.py → services/{feature}_service.py → models/{feature}.py
+Impact: Frontend API calls, data validation, business logic
+Context Files: main.py (router registration), database.py (queries)
+```
 
-#### API Development Tasks
+### Adding New UI Component  
+```
+Flow: Component → Types → Context → Service → Integration
+Files: components/{Feature}.tsx → types.ts → AppContext.tsx → services/api.ts
+Impact: User interface, state management, backend communication
+Context Files: App.tsx (routing), Sidebar.tsx (navigation)
+```
+
+### Modifying Data Model
+```
+Flow: Model → Service → Route → Frontend Types → UI
+Files: models/{feature}.py → services/{feature}_service.py → types.ts → components/
+Impact: Database schema, API contracts, frontend rendering
+Context Files: database.py (queries), migration scripts
+```
+
+### Authentication Changes
+```
+Flow: Auth Service → Route Guards → Frontend Context → UI Updates
+Files: auth_service.py → routers/auth.py → AppContext.tsx → LoginView.tsx
+Impact: Security, user access, session management
+Context Files: config.py (JWT settings), middleware configuration
+```
+
+### Password Reset Flow
+```
+Flow: Email Request → Token Generation → Email Delivery → Token Validation → Password Update → Login
+Files: auth_service.py → routers/auth.py → api.ts → PasswordResetView.tsx → AppContext.tsx
+Impact: User account recovery, enhanced security, email integration
+Context Files: config.py (email settings), models/auth.py (token schema)
+```
+
+### Bulk Delete Operations
+```
+Flow: UI Selection → Confirmation Modal → Bulk API Call → Batch Deletion → State Update → Activity Log
+Files: CurationView.tsx → api.ts → routers/questions.py → question_service.py → models/question_bulk.py
+Impact: Mass data management, UI state management, database operations, audit logging
+Context Files: AppContext.tsx (state management), types.ts (interface definitions)
+Features: Safety confirmation for >10 items, preview of items to delete, partial success handling
+```
+
+### ✅ Question Upload Validation Workflow
+```
+Flow: File Selection → Client Validation → Server Validation → ID Generation → Individual Upload → Result Processing
+Files: LoaderView.tsx → validation.ts → AppContext.tsx → api.ts → upload.py → validation_service.py → id_generator.py
+Impact: File upload workflow, validation-first approach, individual question tracking, error handling
+Context Files: types.ts (ValidationResult, BatchUploadResult), constants.ts (file constraints)
+Features: Two-step validation, partial success handling, semantic ID generation, detailed error feedback
+```
+
+---
+
+## 📋 Task-Specific File Reference
+
+### API Development Tasks
 **Primary Files:**
 - `backend/app/routers/{feature}.py` - Route handlers
 - `backend/app/services/{feature}_service.py` - Business logic
@@ -180,9 +232,7 @@ httpx==0.24.1             # HTTP client for testing
 - `backend/app/database.py` - Database operations
 - `backend/app/config.py` - Environment settings
 
-**Documentation Path:** `Docs/APIs_COMPLETE.md` → `backend/CLAUDE.md`
-
-#### Frontend Component Development
+### Frontend Component Development
 **Primary Files:**
 - `src/components/{Feature}View.tsx` - Main component
 - `src/contexts/AppContext.tsx` - State management
@@ -193,19 +243,7 @@ httpx==0.24.1             # HTTP client for testing
 - `src/constants.ts` - Configuration
 - `src/App.tsx` - Routing integration
 
-**Documentation Path:** `PROJECT_OVERVIEW.md` → `src/CLAUDE.md`
-
-#### Database Schema Changes
-**Primary Files:**
-- `backend/app/models/` - Data models
-- `backend/app/services/` - Business logic updates
-- `backend/create_tables.py` - Schema migration
-
-**Supporting Files:**
-- `backend/app/database.py` - Connection handling
-- Database documentation in `Docs/`
-
-#### Authentication/Security Tasks
+### Authentication/Security Tasks
 **Primary Files:**
 - `backend/app/routers/auth.py` - Auth endpoints
 - `backend/app/services/auth_service.py` - Auth business logic
@@ -216,7 +254,30 @@ httpx==0.24.1             # HTTP client for testing
 - `src/components/LoginView.tsx` - Login UI
 - `backend/app/config.py` - JWT configuration
 
-#### Deployment Tasks
+### Database Schema Changes
+**Primary Files:**
+- `backend/app/models/` - Data models
+- `backend/app/services/` - Business logic updates
+- `backend/create_tables.py` - Schema migration
+
+**Supporting Files:**
+- `backend/app/database.py` - Connection handling
+- Database documentation in `Docs/`
+
+### ✅ File Upload & Validation Tasks
+**Primary Files:**
+- `backend/app/routers/upload.py` - Upload endpoints (/validate-markdown, /upload-markdown)
+- `backend/app/services/validation_service.py` - Markdown parsing and validation
+- `backend/app/utils/id_generator.py` - Semantic question ID generation
+- `src/services/validation.ts` - Client-side format validation
+
+**Supporting Files:**
+- `backend/app/models/question.py` - ValidationResult, BatchUploadResult models
+- `src/types.ts` - TypeScript interface definitions
+- `src/contexts/AppContext.tsx` - Upload workflow integration
+- `src/services/api.ts` - API endpoint functions
+
+### Deployment Tasks
 **Primary Files:**
 - `Docs/DEPLOYMENT.md` - Deployment guide
 - `package.json` - Scripts and dependencies
@@ -229,111 +290,24 @@ httpx==0.24.1             # HTTP client for testing
 
 ---
 
-## 🔄 Development Workflow Patterns
+## 📊 Change Impact Analysis
 
-### Common Development Patterns
-
-#### 1. Adding New API Endpoint
-```
-Flow: Route → Service → Model → Database → Test
-Files: routers/{feature}.py → services/{feature}_service.py → models/{feature}.py
-Impact: Frontend API calls, data validation, business logic
-Context Files: main.py (router registration), database.py (queries)
-```
-
-#### 2. Adding New UI Component  
-```
-Flow: Component → Types → Context → Service → Integration
-Files: components/{Feature}.tsx → types.ts → AppContext.tsx → services/api.ts
-Impact: User interface, state management, backend communication
-Context Files: App.tsx (routing), Sidebar.tsx (navigation)
-```
-
-#### 3. Modifying Data Model
-```
-Flow: Model → Service → Route → Frontend Types → UI
-Files: models/{feature}.py → services/{feature}_service.py → types.ts → components/
-Impact: Database schema, API contracts, frontend rendering
-Context Files: database.py (queries), migration scripts
-```
-
-#### 4. Authentication Changes
-```
-Flow: Auth Service → Route Guards → Frontend Context → UI Updates
-Files: auth_service.py → routers/auth.py → AppContext.tsx → LoginView.tsx
-Impact: Security, user access, session management
-Context Files: config.py (JWT settings), middleware configuration
-```
-
-#### 5. Password Reset Flow (VALIDATED)
-```
-Flow: Email Request → Token Generation → Email Delivery → Token Validation → Password Update → Login
-Files: auth_service.py → routers/auth.py → api.ts → PasswordResetView.tsx → AppContext.tsx
-Impact: User account recovery, enhanced security, email integration
-Context Files: config.py (email settings), models/auth.py (token schema)
-Validated: 100% accuracy in Project Radar context loading for this feature
-```
-
-#### 6. Bulk Delete Operations
-```
-Flow: UI Selection → Confirmation Modal → Bulk API Call → Batch Deletion → State Update → Activity Log
-Files: CurationView.tsx → api.ts → routers/questions.py → question_service.py → models/question_bulk.py
-Impact: Mass data management, UI state management, database operations, audit logging
-Context Files: AppContext.tsx (state management), types.ts (interface definitions)
-Features: Safety confirmation for >10 items, preview of items to delete, partial success handling
-```
-
----
-
-## 🎯 Smart Context Loading by Intent
-
-### Task-Specific Context Recommendations
-
-| Task Intent | Priority Files | Supporting Context | Documentation |
-|-------------|---------------|-------------------|---------------|
-| **Bug Fix: Login Issues** | `auth_service.py`, `LoginView.tsx`, `AppContext.tsx` | `config.py`, `auth.py` models | `Docs/APIs_COMPLETE.md` |
-| **Feature: Password Reset** | `auth_service.py`, `routers/auth.py`, `PasswordResetView.tsx`, `api.ts` | `models/auth.py`, `AppContext.tsx`, `LoginView.tsx` | `backend/CLAUDE.md` |
-| **Feature: Bulk Delete** | `CurationView.tsx`, `question_service.py`, `models/question_bulk.py` | `api.ts`, `AppContext.tsx`, `routers/questions.py` | `backend/CLAUDE.md` |
-| **Feature: New Question Type** | `question_service.py`, `models/question.py`, `CurationView.tsx` | `database.py`, `types.ts` | `backend/CLAUDE.md` |
-| **Performance: Slow Dashboard** | `DashboardView.tsx`, `analytics_service.py`, `AppContext.tsx` | `api.ts`, database queries | `src/CLAUDE.md` |
-| **Deploy: Production Setup** | `DEPLOYMENT.md`, `config.py`, `requirements.txt` | `.env` template, `package.json` | `README.md` |
-
-### Contextual File Discovery Algorithm
-```python
-def discover_relevant_files(task_intent: str, task_area: str) -> List[str]:
-    """
-    Intelligent file discovery based on task intent and area
-    Returns prioritized list of files for LLM context
-    """
-    primary_files = get_primary_files(task_area)
-    supporting_files = get_supporting_files(task_intent)
-    documentation = get_relevant_docs(task_intent, task_area)
-    
-    return prioritize_by_impact(primary_files + supporting_files + documentation)
-```
-
----
-
-## 📊 Impact Analysis Matrix
-
-### Change Impact Radius
-
-#### High Impact Changes (Affects Multiple Systems)
+### High Impact Changes (Affects Multiple Systems)
 - **Database Schema**: Models → Services → Routes → Frontend Types → UI
 - **Authentication Logic**: Auth Service → All Protected Routes → Frontend Context → All Views
 - **API Structure**: Route Changes → Service Layer → Frontend Services → Components
 
-#### Medium Impact Changes (Affects One System)
+### Medium Impact Changes (Affects One System)
 - **UI Components**: Single View → Related Components → Context Integration
 - **Business Logic**: Service Layer → Related Routes → Frontend Integration
 - **Configuration**: Settings → Affected Services → Environment Setup
 
-#### Low Impact Changes (Localized)
+### Low Impact Changes (Localized)
 - **Styling**: Single Component → CSS/Tailwind Updates
 - **Utility Functions**: Helper Methods → Direct Consumers
 - **Documentation**: Specific Docs → Related Guidance
 
-### Dependency Chain Analysis
+### Dependency Chain Examples
 ```
 Configuration Change → Environment Settings → Service Initialization → Route Availability → Frontend Functionality
 
@@ -344,105 +318,116 @@ Authentication Change → Token Validation → Route Protection → Context Stat
 
 ---
 
-## 🔍 Pattern Recognition System
+## 🔍 Established Code Patterns
 
-### Identified Code Patterns
-
-#### Backend Patterns
+### Backend Patterns
 1. **Service Layer Pattern**: Business logic separated from routes
 2. **Dependency Injection**: Database client injected via FastAPI dependencies  
 3. **Pydantic Validation**: Request/response models for type safety
 4. **JWT Authentication**: Token-based auth with admin fallback
 5. **CORS Configuration**: Frontend integration with specific origins
+6. **✅ Validation-First Pattern**: File validation before database operations
+7. **✅ Individual Processing Pattern**: Process items individually for partial success
 
-#### Frontend Patterns
+### Frontend Patterns
 1. **Context Provider Pattern**: Global state management via React Context
 2. **Component Composition**: Reusable UI components with TypeScript props
 3. **Service Layer**: API calls abstracted into service functions
 4. **Error Boundary Pattern**: Graceful error handling with user feedback
 5. **Responsive Design**: Mobile-first approach with Tailwind CSS
+6. **✅ Two-Step Validation Pattern**: Client format validation → Server content validation
+7. **✅ Detailed Error Feedback Pattern**: User-friendly error categorization and guidance
 
-#### Integration Patterns
+### Integration Patterns
 1. **RESTful API**: Standard HTTP methods with JSON payloads
 2. **JWT Token Flow**: Login → Token → Protected Route → Response
 3. **Error Handling**: Consistent error format across API and UI
 4. **Loading States**: UI feedback during async operations
 5. **Type Safety**: Shared data contracts between frontend and backend
+6. **✅ File Upload Pattern**: FormData → Validation → Processing → Detailed Results
+7. **✅ Semantic ID Pattern**: Human-readable question IDs with uniqueness guarantee
 
 ---
 
-## 🚀 Enhanced Development Capabilities
+## 🎯 Documentation-Driven Context Discovery
 
-### Augment Code-Style Features
+### **Leveraging Rich File Headers**
 
-#### 1. **Real-Time Context Awareness**
-- Automatic file relevance scoring based on task type
-- Dynamic dependency mapping
-- Impact radius calculation for changes
+Every code file contains comprehensive documentation headers that provide instant context understanding:
 
-#### 2. **Intelligent Code Suggestions**
-- Pattern-based recommendations
-- Component relationship awareness
-- Type-safe integration guidance
+#### **File Header Information Available:**
+```
+@file - Exact file path and purpose
+@description - What the file does and why it exists
+@architectural-context - Layer, Dependencies, Pattern
+@workflow-context - User Journey, Sequence Position, Inputs/Outputs
+@authentication-context - Security requirements and implications
+@database-context - Tables accessed, operations performed (if applicable)
+```
 
-#### 3. **Memory-Enhanced Understanding**
-- Project history and decision context
-- Previous solution patterns
-- Performance optimization insights
+#### **Smart Discovery Workflow:**
+1. **Start with file headers** - They contain the architectural context you need
+2. **Use @workflow-context** - Understand how files connect to user journeys  
+3. **Check @authentication-context** - Understand security scope and requirements
+4. **Review dependencies** - See what other files/services are involved
+5. **Reference this map** only for cross-component relationship details
 
-#### 4. **Predictive Context Loading**
-- Task-intent based file prioritization
-- Workflow-aware documentation paths
-- Automatic relevant file discovery
+#### **Example Discovery Scenarios:**
 
----
+**Authentication Issues:**
+```
+Read: backend/app/services/auth_service.py header
+@authentication-context: "This IS the authentication service - handles password verification, token generation, and reset flow"
+@workflow-context: "Called by auth router for login, token validation, and password reset operations"
+Result: You immediately know this is the core auth file and what it handles
+```
 
-## 📈 Usage Analytics & Learning
+**API Integration Problems:**
+```
+Read: src/services/api.ts header  
+@architectural-context: "Service layer abstraction with consistent error handling and response formatting"
+@authentication-context: "Some endpoints require JWT token in Authorization header"
+Result: You understand this handles all backend communication and auth token attachment
+```
 
-### Development Pattern Tracking
-- Most frequently modified file combinations
-- Common task → file association patterns
-- Successful problem resolution workflows
-- Performance bottleneck identification
+**Database Schema Questions:**
+```
+Read: backend/app/models/question.py header
+@database-context: "Tables: Questions table for storing Q&A data with metadata"
+@architectural-context: "Data Models (Pydantic schemas)"
+Result: You know this defines the database structure and validation rules
+```
 
-### LLM Enhancement Metrics
-- Context discovery accuracy
-- Task completion efficiency
-- Code quality consistency
-- Development velocity improvements
+### **Documentation Standards Advantage**
 
----
+The comprehensive documentation standards mean:
+- **No guessing** about file purpose or relationships
+- **Instant context** about security implications and auth requirements
+- **Clear workflow understanding** of how files fit into user journeys
+- **Dependency awareness** of what other files/services are involved
+- **Impact assessment** through documented architectural context
 
-## 🔄 Continuous Architecture Updates
-
-This architecture map is designed to be **self-updating** through:
-
-1. **Automated Dependency Scanning**: Regular analysis of import statements and file relationships
-2. **Pattern Recognition Updates**: Learning from new code patterns and conventions
-3. **Impact Analysis Refinement**: Improving change impact predictions based on actual outcomes
-4. **Context Discovery Enhancement**: Optimizing file relevance algorithms based on usage patterns
-
----
-
-## 🎯 Next-Level Context Features
-
-### Planned Enhancements
-
-#### Phase 2: Advanced Pattern Recognition
-- Code smell detection and refactoring suggestions
-- Architecture anti-pattern identification
-- Performance optimization recommendations
-
-#### Phase 3: Predictive Development
-- Automatic test case generation based on changes
-- Suggested documentation updates for code modifications
-- Proactive dependency update recommendations
-
-#### Phase 4: Project Evolution Intelligence
-- Architecture evolution tracking
-- Technical debt assessment
-- Scaling bottleneck prediction
+This documentation-first approach makes Project Radar dramatically more effective than algorithmic file discovery.
 
 ---
 
-*This Architecture Map provides Augment Code-level contextual understanding, enabling LLMs to work with the same deep comprehension of the codebase that Augment Code claims to achieve.*
+## 📚 Documentation References
+
+### Backend Development
+- **Context Guide**: `backend/BACKEND_CONTEXT.md`
+- **API Documentation**: `Docs/APIs_COMPLETE.md`
+- **Development Guidelines**: `backend/CLAUDE.md`
+
+### Frontend Development
+- **Component Guidelines**: `src/CLAUDE.md`
+- **Project Overview**: `PROJECT_OVERVIEW.md`
+- **Type Definitions**: `src/types.ts`
+
+### Deployment & Configuration
+- **Deployment Guide**: `Docs/DEPLOYMENT.md`
+- **Project Status**: `Docs/ProjectStatus.md`
+- **Setup Instructions**: `README.md`
+
+---
+
+*This architecture map provides comprehensive technical reference for understanding QALoader's structure, patterns, and development workflows. Use PROJECT_INDEX.md for quick orientation, then reference specific sections here for detailed technical context.*

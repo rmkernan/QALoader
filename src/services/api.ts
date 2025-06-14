@@ -7,6 +7,7 @@
  * @updated June 14, 2025. 8:56 a.m. Eastern Time - Removed unused verifyAuthToken function
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions function for bulk deletion operations
  * @updated June 14, 2025. 10:31 a.m. Eastern Time - Fixed authentication token key mismatch causing 403 errors on API calls
+ * @updated June 14, 2025. 11:50 a.m. Eastern Time - Added validateMarkdownFile function for new validation workflow
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -24,7 +25,7 @@
  * Security: Handles JWT token attachment, response validation, error standardization
  */
 
-import { Question } from '../types';
+import { Question, ValidationResult, BatchUploadResult } from '../types';
 import { SESSION_TOKEN_KEY } from '../constants';
 
 // API Base Configuration
@@ -321,11 +322,60 @@ export const bulkDeleteQuestions = async (questionIds: string[]): Promise<BulkDe
 };
 
 /**
+ * @function validateMarkdownFile
+ * @description Validates markdown file structure and content without saving to database
+ * @param {string} topic - Topic for the uploaded content
+ * @param {File} file - Markdown file to validate
+ * @returns {Promise<ValidationResult>} Validation result with detailed feedback
+ * @example:
+ * try {
+ *   const result = await validateMarkdownFile('DCF', file);
+ *   if (result.isValid) {
+ *     console.log(`Found ${result.parsedCount} valid questions`);
+ *   } else {
+ *     console.error('Validation errors:', result.errors);
+ *   }
+ * } catch (error) {
+ *   console.error('Validation failed:', error.message);
+ * }
+ */
+export const validateMarkdownFile = async (topic: string, file: File) => {
+  const formData = new FormData();
+  formData.append('topic', topic);
+  formData.append('file', file);
+  
+  const response = await fetch(`${API_BASE_URL}/validate-markdown`, {
+    method: 'POST',
+    headers: {
+      // Note: Don't set Content-Type for FormData - browser sets it automatically
+      Authorization: getAuthHeaders().Authorization || '',
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+  
+  return response.json();
+};
+
+/**
  * @function uploadMarkdownFile
- * @description Uploads markdown file for processing
+ * @description Uploads and processes markdown file for database storage
  * @param {string} topic - Topic for the uploaded content
  * @param {File} file - Markdown file to upload
- * @returns {Promise<any>} Upload result
+ * @returns {Promise<BatchUploadResult>} Upload result with detailed success/failure breakdown
+ * @example:
+ * try {
+ *   const result = await uploadMarkdownFile('DCF', file);
+ *   console.log(`Uploaded ${result.successfulUploads.length} questions`);
+ *   if (result.failedUploads.length > 0) {
+ *     console.warn('Failed uploads:', result.errors);
+ *   }
+ * } catch (error) {
+ *   console.error('Upload failed:', error.message);
+ * }
  */
 export const uploadMarkdownFile = async (topic: string, file: File) => {
   const formData = new FormData();
