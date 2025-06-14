@@ -3,6 +3,7 @@
 **Purpose:** Architecture mapping and context analysis for enhanced LLM understanding of the codebase.  
 **Created:** June 13, 2025. 10:03 a.m. Eastern Time  
 **Updated:** June 13, 2025. 1:50 p.m. Eastern Time - Added validated password reset authentication flow
+**Updated:** June 14, 2025. 9:27 a.m. Eastern Time - Added bulk delete operations to backend and frontend architecture
 **Type:** Manually maintained documentation - updated after significant architectural changes  
 
 ---
@@ -56,6 +57,7 @@ backend/app/
 ├── models/                 # 📝 DATA MODELS - Request/Response schemas
 │   ├── auth.py            # JWT, login/logout models
 │   ├── question.py        # Question CRUD models
+│   ├── question_bulk.py   # Bulk operations models (BulkDeleteRequest/Response)
 │   └── __init__.py        # Model exports
 │   Impact Radius: API validation, type safety
 │
@@ -272,6 +274,15 @@ Context Files: config.py (email settings), models/auth.py (token schema)
 Validated: 100% accuracy in Project Radar context loading for this feature
 ```
 
+#### 6. Bulk Delete Operations
+```
+Flow: UI Selection → Confirmation Modal → Bulk API Call → Batch Deletion → State Update → Activity Log
+Files: CurationView.tsx → api.ts → routers/questions.py → question_service.py → models/question_bulk.py
+Impact: Mass data management, UI state management, database operations, audit logging
+Context Files: AppContext.tsx (state management), types.ts (interface definitions)
+Features: Safety confirmation for >10 items, preview of items to delete, partial success handling
+```
+
 ---
 
 ## 🎯 Smart Context Loading by Intent
@@ -282,6 +293,7 @@ Validated: 100% accuracy in Project Radar context loading for this feature
 |-------------|---------------|-------------------|---------------|
 | **Bug Fix: Login Issues** | `auth_service.py`, `LoginView.tsx`, `AppContext.tsx` | `config.py`, `auth.py` models | `Docs/APIs_COMPLETE.md` |
 | **Feature: Password Reset** | `auth_service.py`, `routers/auth.py`, `PasswordResetView.tsx`, `api.ts` | `models/auth.py`, `AppContext.tsx`, `LoginView.tsx` | `backend/CLAUDE.md` |
+| **Feature: Bulk Delete** | `CurationView.tsx`, `question_service.py`, `models/question_bulk.py` | `api.ts`, `AppContext.tsx`, `routers/questions.py` | `backend/CLAUDE.md` |
 | **Feature: New Question Type** | `question_service.py`, `models/question.py`, `CurationView.tsx` | `database.py`, `types.ts` | `backend/CLAUDE.md` |
 | **Performance: Slow Dashboard** | `DashboardView.tsx`, `analytics_service.py`, `AppContext.tsx` | `api.ts`, database queries | `src/CLAUDE.md` |
 | **Deploy: Production Setup** | `DEPLOYMENT.md`, `config.py`, `requirements.txt` | `.env` template, `package.json` | `README.md` |

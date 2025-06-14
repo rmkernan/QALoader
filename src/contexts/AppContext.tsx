@@ -5,6 +5,9 @@
  * @created June 9, 2025 at unknown time
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Fixed fetchInitialData to include JWT token in Authorization header for authenticated bootstrap-data endpoint calls
  * @updated June 13, 2025. 6:58 p.m. Eastern Time - Removed unused verifyAuthToken import and fixed HeadersInit type reference
+ * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions function for bulk deletion operations
+ * @updated June 14, 2025. 10:25 a.m. Eastern Time - Fixed API calls to use centralized API service functions instead of relative URLs to resolve 404 errors
+ * @updated June 14, 2025. 10:39 a.m. Eastern Time - Added data transformation layer for updateQuestion and addNewQuestion to handle backend/frontend field name mismatches
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -30,7 +33,7 @@ import React, { createContext, useState, useEffect, useCallback, ReactNode, useC
 import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem } from '../types';
 import { INITIAL_TOPICS, SESSION_TOKEN_KEY, MOCK_PASSWORD } from '../constants'; 
 import { parseMarkdownToQA } from '../services/geminiService';
-import { loginUser } from '../services/api';
+import { loginUser, bulkDeleteQuestions as bulkDeleteQuestionsAPI, deleteQuestion as deleteQuestionAPI, createQuestion as createQuestionAPI, updateQuestion as updateQuestionAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -104,7 +107,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(`Failed to fetch initial data: ${response.statusText} (Status: ${response.status})`);
       }
       const data = await response.json();
-      setQuestions(data.questions || []);
+      // Transform backend question_id to frontend id
+      const transformedQuestions = (data.questions || []).map((q: any) => ({
+        ...q,
+        id: q.question_id || q.id,  // Use question_id from backend, fallback to id
+        questionText: q.question || q.questionText,  // Backend uses 'question', frontend uses 'questionText'
+        answerText: q.answer || q.answerText  // Backend uses 'answer', frontend uses 'answerText'
+      }));
+      setQuestions(transformedQuestions);
       setTopics(data.topics && data.topics.length > 0 ? data.topics : INITIAL_TOPICS); 
       setLastUploadTimestamp(data.lastUploadTimestamp || null);
       setActivityLog(data.activityLog || []);
@@ -189,7 +199,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addQuestions = useCallback(async (topic: string, newQuestionsData: ParsedQuestionFromAI[]) => {
     setIsContextLoading(true);
     try {
-      const response = await fetch(`/api/topics/${topic}/questions/batch-replace`, {
+      const response = await fetch(`http://localhost:8000/api/topics/${topic}/questions/batch-replace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newQuestionsData),
@@ -220,11 +230,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     const questionInfoForLog = questions.find(q => q.id === id)?.id || id;
     try {
-      const response = await fetch(`/api/questions/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Failed to delete question: ${errorData} (Status: ${response.status})`);
-      }
+      await deleteQuestionAPI(id);
       setQuestions(prevQuestions => prevQuestions.filter(question => question.id !== id));
       logActivity("Deleted question", questionInfoForLog);
       toast.success(`Question ${questionInfoForLog} deleted successfully from backend.`);
@@ -237,6 +243,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [questions, logActivity]); 
 
   /**
+   * @function bulkDeleteQuestions
+   * @description Deletes multiple questions in a single operation with detailed result tracking
+   * @param {string[]} ids - Array of question IDs to delete
+   * @returns {Promise<void>}
+   * @example:
+   *   // Delete selected questions
+   *   await bulkDeleteQuestions(['DCF-001', 'VAL-002']);
+   */
+  const bulkDeleteQuestions = useCallback(async (ids: string[]) => {
+    setIsContextLoading(true);
+    try {
+      const result = await bulkDeleteQuestionsAPI(ids);
+      
+      if (result.deleted_count > 0) {
+        // Update local state by removing deleted questions
+        setQuestions(prevQuestions => 
+          prevQuestions.filter(question => !result.deleted_ids.includes(question.id))
+        );
+        
+        // Log activity
+        logActivity("Bulk delete completed", `${result.deleted_count} questions deleted`);
+        
+        // Show appropriate toast based on results
+        if (result.failed_count === 0) {
+          toast.success(result.message);
+        } else {
+          // Partial success
+          toast.success(`${result.message}. Failed IDs: ${result.failed_ids.join(', ')}`);
+        }
+      } else {
+        // Complete failure
+        toast.error(result.message);
+      }
+      
+      // Log any errors for debugging
+      if (result.errors) {
+        console.error('Bulk delete errors:', result.errors);
+      }
+      
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
+      toast.error(`Bulk delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsContextLoading(false);
+    }
+  }, [logActivity]);
+
+  /**
    * @function updateQuestion
    * @description Updates an existing question by calling the backend endpoint `/api/questions/{updatedQuestion.id}`. Updates local state with the backend's response on success.
    * @param {Question} updatedQuestion - The question object with updated data.
@@ -245,21 +299,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updateQuestion = useCallback(async (updatedQuestion: Question) => {
     setIsContextLoading(true);
     try {
-      const response = await fetch(`/api/questions/${updatedQuestion.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedQuestion),
-      });
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Failed to update question: ${errorData} (Status: ${response.status})`);
-      }
-      const savedQuestion = await response.json(); 
+      // Transform frontend format to backend format
+      const backendQuestion = {
+        question_id: updatedQuestion.id,
+        topic: updatedQuestion.topic,
+        subtopic: updatedQuestion.subtopic,
+        difficulty: updatedQuestion.difficulty,
+        type: updatedQuestion.type,
+        question: updatedQuestion.questionText,
+        answer: updatedQuestion.answerText
+      };
+      
+      const savedQuestion = await updateQuestionAPI(updatedQuestion.id, backendQuestion);
+      
+      // Transform backend response to frontend format
+      const transformedQuestion = {
+        ...savedQuestion,
+        id: savedQuestion.question_id || savedQuestion.id,
+        questionText: savedQuestion.question || savedQuestion.questionText,
+        answerText: savedQuestion.answer || savedQuestion.answerText
+      };
+      
       setQuestions(prevQuestions => 
-          prevQuestions.map(q => (q.id === savedQuestion.id ? savedQuestion : q))
+          prevQuestions.map(q => (q.id === transformedQuestion.id ? transformedQuestion : q))
       );
-      logActivity("Edited question", savedQuestion.id);
-      toast.success(`Question ${savedQuestion.id} updated successfully on backend.`);
+      logActivity("Edited question", transformedQuestion.id);
+      toast.success(`Question ${transformedQuestion.id} updated successfully on backend.`);
     } catch (error) {
       console.error("Error updating question:", error);
       toast.error(`API call to update question ${updatedQuestion.id} failed. Data not changed. (${error instanceof Error ? error.message : 'Unknown error'})`);
@@ -277,24 +342,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addNewQuestion = useCallback(async (newQuestionData: Omit<Question, 'id'>) => {
     setIsContextLoading(true);
     try {
-      const response = await fetch('/api/questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newQuestionData), 
-      });
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Failed to add new question: ${errorData} (Status: ${response.status})`);
-      }
-      const actualNewQuestion: Question = await response.json();
+      // Transform frontend format to backend format
+      const backendQuestion = {
+        topic: newQuestionData.topic,
+        subtopic: newQuestionData.subtopic,
+        difficulty: newQuestionData.difficulty,
+        type: newQuestionData.type,
+        question: newQuestionData.questionText,
+        answer: newQuestionData.answerText
+      };
       
-      setQuestions(prevQuestions => [...prevQuestions, actualNewQuestion]);
-      if (actualNewQuestion.topic && !topics.includes(actualNewQuestion.topic)) {
-          const currentTopics = Array.from(new Set([...topics, actualNewQuestion.topic]));
+      const actualNewQuestion = await createQuestionAPI(backendQuestion);
+      
+      // Transform backend response to frontend format
+      const transformedQuestion = {
+        ...actualNewQuestion,
+        id: actualNewQuestion.question_id || actualNewQuestion.id,
+        questionText: actualNewQuestion.question || actualNewQuestion.questionText,
+        answerText: actualNewQuestion.answer || actualNewQuestion.answerText
+      };
+      
+      setQuestions(prevQuestions => [...prevQuestions, transformedQuestion]);
+      if (transformedQuestion.topic && !topics.includes(transformedQuestion.topic)) {
+          const currentTopics = Array.from(new Set([...topics, transformedQuestion.topic]));
           setTopics(currentTopics);
       }
-      logActivity("Added new question", actualNewQuestion.id);
-      toast.success(`New question (ID: ${actualNewQuestion.id}) added successfully to backend for topic: ${actualNewQuestion.topic}.`);
+      logActivity("Added new question", transformedQuestion.id);
+      toast.success(`New question (ID: ${transformedQuestion.id}) added successfully to backend for topic: ${transformedQuestion.topic}.`);
     } catch (error) {
       console.error("Error adding new question:", error);
       toast.error(`API call to add new question for topic ${newQuestionData.topic} failed. Data not changed. (${error instanceof Error ? error.message : 'Unknown error'})`);
@@ -350,7 +424,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       formData.append('topic', topic);
       formData.append('file', file);
       try {
-        const response = await fetch('/api/upload-markdown', {
+        const response = await fetch('http://localhost:8000/api/upload-markdown', {
           method: 'POST',
           body: formData,
         });
@@ -543,6 +617,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         lastUploadTimestamp, 
         addQuestions, 
         deleteQuestion, 
+        bulkDeleteQuestions,
         updateQuestion, 
         addNewQuestion,
         isContextLoading,

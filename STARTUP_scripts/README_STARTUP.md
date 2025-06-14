@@ -1,6 +1,7 @@
 # QALoader Startup Guide - Step by Step
 
 **Updated:** June 12, 2025. 3:00 p.m. Eastern Time  
+**Updated:** June 14, 2025. 9:11 a.m. Eastern Time - Added WSL-specific backend startup commands  
 **For:** Complete beginners to advanced developers
 
 ---
@@ -49,6 +50,14 @@ Only use this if the automatic scripts don't work.
 ```bash
 cd QALoader/backend
 source venv/bin/activate    # Windows: venv\Scripts\activate
+uvicorn app.main:app --reload --port 8000
+```
+
+#### **WSL Users (Backend Only):**
+If you're using WSL and only need to start the backend server:
+```bash
+cd QALoader/backend
+source venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 ```
 

@@ -4,6 +4,7 @@
  * @created 2025.06.08 9:00 PM ET
  * @updated 2025.06.09 1:45 PM ET - Refactored project structure into src/ and public/ directories and updated JSDoc.
  * @updated June 13, 2025. 6:58 p.m. Eastern Time - Fixed login function signature to support dual authentication modes
+ * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions to AppContextType
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -84,6 +85,7 @@ export interface AppContextType {
   // CRUD operations now async and interact with backend
   addQuestions: (_topic: string, _newQuestionsData: ParsedQuestionFromAI[]) => Promise<void>; // For batch/topic replacement from already parsed data
   deleteQuestion: (_id: string) => Promise<void>;
+  bulkDeleteQuestions: (_ids: string[]) => Promise<void>; // For bulk deletion operations
   updateQuestion: (_updatedQuestion: Question) => Promise<void>;
   addNewQuestion: (_newQuestionData: Omit<Question, 'id'>) => Promise<void>;
   

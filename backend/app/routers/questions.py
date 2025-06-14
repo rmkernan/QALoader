@@ -3,6 +3,7 @@
 @description Question management API endpoints for Q&A Loader. Provides CRUD operations, search, and bootstrap data with JWT authentication.
 @created 2025.06.09 6:30 PM ET
 @updated 2025.06.09 6:30 PM ET - Phase 4 reconstruction with complete CRUD implementation
+@updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulk delete endpoint for deleting multiple questions
 
 @architectural-context
 Layer: API Router (FastAPI endpoints)
@@ -33,6 +34,7 @@ from supabase import Client
 
 from app.database import get_db
 from app.models.question import Question, QuestionCreate, QuestionUpdate
+from app.models.question_bulk import BulkDeleteRequest, BulkDeleteResponse
 from app.routers.auth import get_current_user
 from app.services.question_service import QuestionService
 
@@ -404,6 +406,102 @@ async def delete_question(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete question: {str(e)}"
+        )
+
+
+@router.delete("/questions/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_questions(
+    request: BulkDeleteRequest,
+    current_user: str = Depends(get_current_user),
+    service: QuestionService = Depends(get_question_service)
+):
+    """
+    @api DELETE /api/questions/bulk
+    @description Deletes multiple questions in a single operation with detailed result tracking
+    @param request: BulkDeleteRequest containing list of question IDs to delete
+    @returns: BulkDeleteResponse with detailed results including successes and failures
+    @authentication: Required JWT token in Authorization header
+    @errors: 
+        - 401: Invalid or missing JWT token
+        - 400: Invalid request (empty list, invalid IDs)
+        - 500: Bulk deletion error
+    @security: 
+        - Validates all IDs before deletion
+        - Provides detailed failure tracking
+        - Logs bulk operations for audit trail
+        - No partial deletions within single ID (atomic per question)
+    @example:
+        # Request
+        DELETE /api/questions/bulk
+        Authorization: Bearer <jwt_token>
+        {
+            "question_ids": ["DCF-WACC-D-001", "DCF-WACC-P-002", "VAL-COMP-T-003"]
+        }
+        
+        # Success Response
+        {
+            "success": true,
+            "deleted_count": 3,
+            "failed_count": 0,
+            "deleted_ids": ["DCF-WACC-D-001", "DCF-WACC-P-002", "VAL-COMP-T-003"],
+            "failed_ids": [],
+            "message": "Successfully deleted all 3 questions",
+            "errors": null
+        }
+        
+        # Partial Success Response
+        {
+            "success": true,
+            "deleted_count": 2,
+            "failed_count": 1,
+            "deleted_ids": ["DCF-WACC-D-001", "DCF-WACC-P-002"],
+            "failed_ids": ["VAL-COMP-T-999"],
+            "message": "Partially successful: deleted 2 of 3 questions",
+            "errors": {
+                "VAL-COMP-T-999": "Question with ID 'VAL-COMP-T-999' not found"
+            }
+        }
+    """
+    try:
+        # Validate request
+        if not request.question_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No question IDs provided for deletion"
+            )
+        
+        # Limit bulk operations to prevent abuse
+        max_bulk_delete = 100
+        if len(request.question_ids) > max_bulk_delete:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Bulk delete limited to {max_bulk_delete} questions at once. Received {len(request.question_ids)}"
+            )
+        
+        # Perform bulk deletion
+        result = await service.bulk_delete_questions(request.question_ids, current_user)
+        
+        # Return appropriate status code based on results
+        if result.failed_count == 0:
+            # Complete success
+            return result
+        elif result.deleted_count > 0:
+            # Partial success - still return 200 but with details
+            return result
+        else:
+            # Complete failure
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.message,
+                headers={"X-Failed-IDs": ",".join(result.failed_ids)}
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to perform bulk deletion: {str(e)}"
         )
 
 

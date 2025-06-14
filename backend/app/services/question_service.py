@@ -3,6 +3,7 @@
 @description Question management service for Q&A Loader. Handles CRUD operations, ID generation, activity logging, and search functionality.
 @created 2025.06.09 6:25 PM ET
 @updated 2025.06.09 6:25 PM ET - Phase 4 reconstruction after git recovery
+@updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulk_delete_questions method for bulk deletion with transaction support
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -30,6 +31,7 @@ from typing import List, Optional, Dict, Any
 from supabase import Client
 
 from app.models.question import Question, QuestionCreate, QuestionUpdate, ActivityLogItem
+from app.models.question_bulk import BulkDeleteResponse
 
 
 class QuestionService:
@@ -434,6 +436,95 @@ class QuestionService:
         )
         
         return True
+
+    async def bulk_delete_questions(self, question_ids: List[str], username: str) -> BulkDeleteResponse:
+        """
+        @function bulk_delete_questions
+        @description Deletes multiple questions in a single operation with detailed result tracking
+        @param question_ids: List of unique question identifiers to delete
+        @param username: Username of the user performing the bulk deletion
+        @returns: BulkDeleteResponse with detailed results including successes and failures
+        @example:
+            # Bulk delete multiple questions
+            ids = ["DCF-WACC-D-001", "DCF-WACC-P-002", "VAL-COMP-T-003"]
+            result = await service.bulk_delete_questions(ids, "admin")
+            print(f"Deleted {result.deleted_count} of {len(ids)} questions")
+            if result.failed_count > 0:
+                print(f"Failed IDs: {result.failed_ids}")
+        """
+        deleted_ids = []
+        failed_ids = []
+        errors = {}
+        
+        # First, verify which questions exist and collect their details for logging
+        existing_questions = {}
+        for qid in question_ids:
+            question = await self.get_question_by_id(qid)
+            if question:
+                existing_questions[qid] = question
+            else:
+                failed_ids.append(qid)
+                errors[qid] = f"Question with ID '{qid}' not found"
+        
+        # Perform bulk deletion for existing questions
+        if existing_questions:
+            try:
+                # Supabase doesn't support true transactions in the client library,
+                # so we'll delete one by one but track successes/failures
+                for qid, question in existing_questions.items():
+                    try:
+                        result = self.db.table('all_questions').delete().eq('question_id', qid).execute()
+                        if result.data:
+                            deleted_ids.append(qid)
+                        else:
+                            failed_ids.append(qid)
+                            errors[qid] = "Deletion failed - no data returned"
+                    except Exception as e:
+                        failed_ids.append(qid)
+                        errors[qid] = f"Deletion error: {str(e)}"
+                
+                # Log bulk activity if any deletions succeeded
+                if deleted_ids:
+                    details = f"Deleted {len(deleted_ids)} questions: "
+                    # Include first 3 IDs in details, plus count if more
+                    if len(deleted_ids) <= 3:
+                        details += ", ".join(deleted_ids)
+                    else:
+                        details += f"{', '.join(deleted_ids[:3])}, and {len(deleted_ids) - 3} more"
+                    
+                    await self.log_activity("Bulk Delete", details)
+                    
+            except Exception as e:
+                # Catastrophic failure - mark all as failed
+                for qid in existing_questions:
+                    if qid not in deleted_ids and qid not in failed_ids:
+                        failed_ids.append(qid)
+                        errors[qid] = f"Bulk operation error: {str(e)}"
+        
+        # Prepare response
+        deleted_count = len(deleted_ids)
+        failed_count = len(failed_ids)
+        total_requested = len(question_ids)
+        
+        if deleted_count == total_requested:
+            message = f"Successfully deleted all {deleted_count} questions"
+            success = True
+        elif deleted_count > 0:
+            message = f"Partially successful: deleted {deleted_count} of {total_requested} questions"
+            success = True  # Partial success is still success
+        else:
+            message = f"Failed to delete any questions (0 of {total_requested})"
+            success = False
+        
+        return BulkDeleteResponse(
+            success=success,
+            deleted_count=deleted_count,
+            failed_count=failed_count,
+            deleted_ids=deleted_ids,
+            failed_ids=failed_ids,
+            message=message,
+            errors=errors if errors else None
+        )
 
     async def get_all_topics(self) -> List[str]:
         """

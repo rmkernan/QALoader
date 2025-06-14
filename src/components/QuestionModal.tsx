@@ -4,6 +4,7 @@
  * @created June 9, 2025 at unknown time
  * @updated June 9, 2025 at unknown time - Applied comprehensive documentation standards, corrected date formats, completed component JSDoc, and fleshed out implementation.
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Fixed modal positioning using React Portal to prevent parent container constraints and ensure proper full-screen overlay behavior.
+ * @updated June 14, 2025. 10:52 a.m. Eastern Time - Added change detection to prevent saving when no modifications are made in edit/duplicate modes
  * 
  * @architectural-context
  * Layer: UI Component (Modal/Dialog)
@@ -91,6 +92,16 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
   const [questionText, setQuestionText] = useState('');
   const [answerText, setAnswerText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Store original values for change detection
+  const [originalValues, setOriginalValues] = useState<{
+    topic: string;
+    subtopic: string;
+    difficulty: string;
+    type: string;
+    questionText: string;
+    answerText: string;
+  } | null>(null);
 
   const uniqueContextTopics = useMemo(() => Array.from(new Set(contextTopics)), [contextTopics]);
 
@@ -99,22 +110,37 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
 
     if (questionToEdit) {
       const topicExistsInContext = uniqueContextTopics.includes(questionToEdit.topic);
+      let finalTopic: string;
+      
       if (topicExistsInContext) {
         setTopic(questionToEdit.topic);
         setIsNewTopic(false);
         setNewTopicName('');
+        finalTopic = questionToEdit.topic;
       } else {
         // If editing a question whose topic isn't in the current list,
         // treat it as a new topic entry, prefilling the name.
         setTopic("_new_topic_"); 
         setIsNewTopic(true);
         setNewTopicName(questionToEdit.topic);
+        finalTopic = questionToEdit.topic;
       }
+      
       setSubtopic(questionToEdit.subtopic);
       setDifficulty(questionToEdit.difficulty || DIFFICULTIES[0]);
       setType(questionToEdit.type || QUESTION_TYPES[0]);
       setQuestionText(questionToEdit.questionText);
       setAnswerText(questionToEdit.answerText || '');
+      
+      // Store original values for change detection (only for edit/duplicate)
+      setOriginalValues({
+        topic: finalTopic,
+        subtopic: questionToEdit.subtopic,
+        difficulty: questionToEdit.difficulty || DIFFICULTIES[0],
+        type: questionToEdit.type || QUESTION_TYPES[0],
+        questionText: questionToEdit.questionText,
+        answerText: questionToEdit.answerText || ''
+      });
     } else {
       // Reset form for new question
       setTopic(uniqueContextTopics.length > 0 ? uniqueContextTopics[0] : '');
@@ -125,6 +151,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
       setType(QUESTION_TYPES[0]);
       setQuestionText('');
       setAnswerText('');
+      setOriginalValues(null); // No change detection for new questions
     }
   }, [questionToEdit, isOpen, uniqueContextTopics]);
 
@@ -140,12 +167,37 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
     }
   };
 
+  /**
+   * @function hasChanges
+   * @description Compares current form values with original values to detect modifications
+   * @returns {boolean} True if any field has been modified, false if no changes made
+   * @example
+   * // For edit mode: returns false if user hasn't changed anything
+   * // For duplicate mode: returns false if user hasn't modified the duplicated content
+   * // For new question mode: always returns true to allow creation
+   */
+  const hasChanges = (): boolean => {
+    if (!originalValues) return true; // For new questions, always allow save
+    
+    const currentFinalTopic = isNewTopic ? newTopicName.trim() : topic;
+    
+    return (
+      currentFinalTopic !== originalValues.topic ||
+      subtopic.trim() !== originalValues.subtopic ||
+      difficulty !== originalValues.difficulty ||
+      type !== originalValues.type ||
+      questionText.trim() !== originalValues.questionText ||
+      answerText.trim() !== originalValues.answerText
+    );
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     const finalTopic = isNewTopic ? newTopicName.trim() : topic;
 
+    // Check for required fields first
     if (!finalTopic || finalTopic === 'Select Topic' || (isNewTopic && !newTopicName.trim())) {
       toast.error('Topic is required.');
       setIsLoading(false);
@@ -163,6 +215,17 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
     }
     if (!answerText.trim()) {
       toast.error('Answer text is required.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Check for changes when editing or duplicating
+    if (questionToEdit && !hasChanges()) {
+      if (isDuplicateMode) {
+        toast.error('No changes made. Please modify the question before duplicating to avoid creating identical questions.');
+      } else {
+        toast.error('No changes made. Please modify the question or click Cancel.');
+      }
       setIsLoading(false);
       return;
     }

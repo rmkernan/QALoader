@@ -13,9 +13,8 @@ This document explains how to use Project Radar components for complex tasks tha
 ### Integrated Components
 1. **ARCHITECTURE_MAP.md** (this folder) - Dynamic dependency tracking and component relationships
 2. **CONTEXT_DISCOVERY.md** (this folder) - Automatic file relevance and task-intent analysis  
-3. **SMART_DOCUMENTATION.md** (this folder) - Living documentation and pattern recognition
-4. **Neo4j Memory System** - Persistent architectural knowledge and code patterns
-5. **Enhanced ../CLAUDE.md** - Augmented development protocols and workflows
+3. **Neo4j Memory System** - Persistent architectural knowledge and code patterns
+4. **Enhanced ../CLAUDE.md** - Augmented development protocols and workflows
 
 ---
 

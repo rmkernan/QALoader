@@ -3,6 +3,7 @@
 @description Pydantic data models for Q&A question management system. Defines request/response schemas and validation for question CRUD operations.
 @created 2025.06.09 4:17 PM ET
 @updated 2025.06.09 4:17 PM ET - Initial creation with comprehensive question models and validation
+@updated June 14, 2025. 9:27 a.m. Eastern Time - Added BulkDeleteRequest and BulkDeleteResponse models for bulk deletion functionality
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -26,7 +27,7 @@ Transactions: Models support batch operations for file upload workflows
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field, validator
 

@@ -5,6 +5,8 @@
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Updated API_BASE_URL to point to backend server and added development notes about restart requirements
  * @updated June 13, 2025. 6:58 p.m. Eastern Time - Removed unused ApiResponse interface
  * @updated June 14, 2025. 8:56 a.m. Eastern Time - Removed unused verifyAuthToken function
+ * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions function for bulk deletion operations
+ * @updated June 14, 2025. 10:31 a.m. Eastern Time - Fixed authentication token key mismatch causing 403 errors on API calls
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -23,6 +25,7 @@
  */
 
 import { Question } from '../types';
+import { SESSION_TOKEN_KEY } from '../constants';
 
 // API Base Configuration
 // NOTE: Changes to this URL require frontend server restart (npm run dev restart)
@@ -43,12 +46,26 @@ interface PasswordResetResponse {
 }
 
 /**
+ * @interface BulkDeleteResponse
+ * @description Response format for bulk delete operations with detailed results
+ */
+interface BulkDeleteResponse {
+  success: boolean;
+  deleted_count: number;
+  failed_count: number;
+  deleted_ids: string[];
+  failed_ids: string[];
+  message: string;
+  errors?: Record<string, string>;
+}
+
+/**
  * @function getAuthHeaders
  * @description Gets authorization headers with JWT token if available
  * @returns {Record<string, string>} Headers object with Authorization if token exists
  */
 const getAuthHeaders = (): Record<string, string> => {
-  const token = sessionStorage.getItem('qa_loader_session');
+  const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
   return token 
     ? { ...DEFAULT_HEADERS, Authorization: `Bearer ${token}` }
     : DEFAULT_HEADERS;
@@ -271,6 +288,36 @@ export const deleteQuestion = async (questionId: string): Promise<void> => {
   if (!response.ok) {
     await handleApiError(response);
   }
+};
+
+/**
+ * @function bulkDeleteQuestions
+ * @description Deletes multiple questions in a single operation
+ * @param {string[]} questionIds - Array of question IDs to delete
+ * @returns {Promise<BulkDeleteResponse>} Detailed results of bulk deletion
+ * @example:
+ * try {
+ *   const result = await bulkDeleteQuestions(['DCF-001', 'VAL-002', 'LBO-003']);
+ *   console.log(`Deleted ${result.deleted_count} questions`);
+ *   if (result.failed_count > 0) {
+ *     console.warn(`Failed to delete: ${result.failed_ids.join(', ')}`);
+ *   }
+ * } catch (error) {
+ *   console.error('Bulk delete failed:', error.message);
+ * }
+ */
+export const bulkDeleteQuestions = async (questionIds: string[]): Promise<BulkDeleteResponse> => {
+  const response = await fetch(`${API_BASE_URL}/questions/bulk`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ question_ids: questionIds }),
+  });
+  
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+  
+  return response.json();
 };
 
 /**

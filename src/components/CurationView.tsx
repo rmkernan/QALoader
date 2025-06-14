@@ -3,6 +3,7 @@
  * @description Provides the primary UI for managing, filtering, and curating Q&A content.
  * @created June 8 2025 ??
  * @updated June 9, 2025. 1:02 p.m. Eastern Time - Applied LLM-focused documentation standards.
+ * @updated June 14, 2025. 9:27 a.m. Eastern Time - Fixed selection bug and implemented bulk delete functionality with confirmation modal
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -37,6 +38,7 @@ const CurationView: React.FC = () => {
     questions, 
     topics: contextTopics, 
     deleteQuestion, 
+    bulkDeleteQuestions,
     isContextLoading, 
     exportQuestionsToMarkdown,
     initialCurationFilters,
@@ -56,6 +58,10 @@ const CurationView: React.FC = () => {
   const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
   const bulkActionsRef = useRef<HTMLDivElement>(null);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  // Bulk delete confirmation modal state
+  const [isBulkDeleteConfirmModalOpen, setIsBulkDeleteConfirmModalOpen] = useState(false);
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
 
 
   const [filters, setFilters] = useState<Filters>({
@@ -102,11 +108,12 @@ const CurationView: React.FC = () => {
     });
   }, [questions, filters]);
 
-  // Clear row selections when filters or the underlying filtered question list changes
+  // Clear row selections when filters actually change (not just when filtered list rerenders)
+  // Fixed bug: Previously cleared on every render due to filteredQuestions reference changing
   useEffect(() => {
     setSelectedQuestionIds(new Set());
     setIsBulkActionsOpen(false); 
-  }, [filteredQuestions]);
+  }, [filters.topic, filters.subtopic, filters.difficulty, filters.type, filters.searchText]);
 
 
   // Handles clicks outside the bulk actions dropdown to close it
@@ -170,7 +177,8 @@ const CurationView: React.FC = () => {
 
   const handleDeleteQuestion = (question: Question) => {
     setQuestionToDeleteId(question.id);
-    setQuestionToDeleteDisplayInfo(`ID: ${question.id}\nQuestion: "${question.questionText.substring(0,100)}${question.questionText.length > 100 ? '...' : ''}"`) 
+    const questionText = question.questionText || '';
+    setQuestionToDeleteDisplayInfo(`ID: ${question.id}\nQuestion: "${questionText.substring(0,100)}${questionText.length > 100 ? '...' : ''}"`) 
     setIsDeleteConfirmModalOpen(true);
   };
 
@@ -217,13 +225,34 @@ const CurationView: React.FC = () => {
     });
   };
 
-  // Placeholder for bulk delete action
+  // Trigger bulk delete confirmation modal
   const handleBulkDeleteSelected = () => {
-    const numSelected = selectedQuestionIds.size;
-    toast.success(`Bulk Delete: Triggered for ${numSelected} question(s). (Prototype: No actual deletion)`);
-    logActivity("Bulk delete triggered (prototype)", `${numSelected} items`);
     setIsBulkActionsOpen(false);
-    // setSelectedQuestionIds(new Set()); // Clear selection after action
+    setIsBulkDeleteConfirmModalOpen(true);
+    setBulkDeleteConfirmText(""); // Reset confirmation text
+  };
+
+  // Confirm and execute bulk deletion
+  const confirmBulkDelete = async () => {
+    const selectedIds = Array.from(selectedQuestionIds);
+    const numSelected = selectedIds.length;
+    
+    // For large deletions, require typing "DELETE"
+    if (numSelected > 10 && bulkDeleteConfirmText !== "DELETE") {
+      toast.error("Please type DELETE to confirm bulk deletion");
+      return;
+    }
+    
+    setIsBulkDeleteConfirmModalOpen(false);
+    setBulkDeleteConfirmText("");
+    
+    try {
+      await bulkDeleteQuestions(selectedIds);
+      setSelectedQuestionIds(new Set()); // Clear selections after successful deletion
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      // Error handling is done in the context function
+    }
   };
 
   // Placeholder for bulk move action
@@ -376,7 +405,11 @@ const CurationView: React.FC = () => {
                         id={`select-q-${q.id}`}
                         className="form-checkbox h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
                         checked={selectedQuestionIds.has(q.id)}
-                        onChange={() => handleSelectRow(q.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectRow(q.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-slate-600">{q.id}</td>
@@ -467,6 +500,87 @@ const CurationView: React.FC = () => {
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500"
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {isBulkDeleteConfirmModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 modal-overlay">
+          <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-xl modal-content">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Confirm Bulk Deletion</h2>
+            
+            {/* Display count and preview of questions to delete */}
+            <div className="mb-4">
+              <p className="text-slate-700 mb-2">
+                You are about to delete <span className="font-bold text-red-600">{selectedQuestionIds.size}</span> question(s).
+              </p>
+              
+              {/* Show preview of first 5 questions */}
+              <div className="bg-slate-100 p-3 rounded-md max-h-48 overflow-y-auto mb-4">
+                <p className="text-sm font-medium text-slate-600 mb-2">Questions to be deleted:</p>
+                {Array.from(selectedQuestionIds).slice(0, 5).map(id => {
+                  const question = questions.find(q => q.id === id);
+                  return question ? (
+                    <div key={id} className="text-sm text-slate-600 mb-1">
+                      <span className="font-mono">{id}:</span> {question.questionText?.substring(0, 60) || 'No text'}
+                      {question.questionText && question.questionText.length > 60 ? '...' : ''}
+                    </div>
+                  ) : (
+                    <div key={id} className="text-sm text-slate-600 mb-1">
+                      <span className="font-mono">{id}:</span> <span className="italic">Question not found</span>
+                    </div>
+                  );
+                })}
+                {selectedQuestionIds.size > 5 && (
+                  <p className="text-sm text-slate-500 mt-2 font-medium">
+                    ... and {selectedQuestionIds.size - 5} more question(s)
+                  </p>
+                )}
+              </div>
+              
+              {/* Require typing DELETE for large deletions */}
+              {selectedQuestionIds.size > 10 && (
+                <div className="mb-4">
+                  <p className="text-sm text-red-600 font-medium mb-2">
+                    ⚠️ You are deleting more than 10 questions. Type "DELETE" to confirm:
+                  </p>
+                  <input
+                    type="text"
+                    value={bulkDeleteConfirmText}
+                    onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                    placeholder="Type DELETE to confirm"
+                    className="w-full p-2 border border-red-300 rounded-md text-sm focus:ring-red-500 focus:border-red-500"
+                    autoFocus
+                  />
+                </div>
+              )}
+              
+              <p className="text-red-600 font-medium">
+                ⚠️ This action cannot be undone. All selected questions will be permanently deleted.
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkDeleteConfirmModalOpen(false);
+                  setBulkDeleteConfirmText("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmBulkDelete}
+                disabled={selectedQuestionIds.size > 10 && bulkDeleteConfirmText !== "DELETE"}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete {selectedQuestionIds.size} Question{selectedQuestionIds.size !== 1 ? 's' : ''}
               </button>
             </div>
           </div>
