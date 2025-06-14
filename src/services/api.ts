@@ -362,13 +362,16 @@ export const validateMarkdownFile = async (topic: string, file: File) => {
 
 /**
  * @function uploadMarkdownFile
- * @description Uploads and processes markdown file for database storage
+ * @description Uploads and processes markdown file for database storage with metadata tracking
  * @param {string} topic - Topic for the uploaded content
  * @param {File} file - Markdown file to upload
+ * @param {string} [uploadedOn] - American timestamp when questions were uploaded (Eastern Time)
+ * @param {string} [uploadedBy] - Free text field for who uploaded the questions (max 25 chars)
+ * @param {string} [uploadNotes] - Free text notes about this upload (max 100 chars)
  * @returns {Promise<BatchUploadResult>} Upload result with detailed success/failure breakdown
  * @example:
  * try {
- *   const result = await uploadMarkdownFile('DCF', file);
+ *   const result = await uploadMarkdownFile('DCF', file, 'June 14, 2025. 2:18 p.m. Eastern Time', 'John Smith', 'Initial DCF questions');
  *   console.log(`Uploaded ${result.successfulUploads.length} questions`);
  *   if (result.failedUploads.length > 0) {
  *     console.warn('Failed uploads:', result.errors);
@@ -377,10 +380,20 @@ export const validateMarkdownFile = async (topic: string, file: File) => {
  *   console.error('Upload failed:', error.message);
  * }
  */
-export const uploadMarkdownFile = async (topic: string, file: File) => {
+export const uploadMarkdownFile = async (
+  topic: string, 
+  file: File, 
+  uploadedOn?: string, 
+  uploadedBy?: string, 
+  uploadNotes?: string
+) => {
   const formData = new FormData();
   formData.append('topic', topic);
   formData.append('file', file);
+  
+  if (uploadedOn) formData.append('uploaded_on', uploadedOn);
+  if (uploadedBy) formData.append('uploaded_by', uploadedBy);
+  if (uploadNotes) formData.append('upload_notes', uploadNotes);
   
   const response = await fetch(`${API_BASE_URL}/upload-markdown`, {
     method: 'POST',

@@ -6,6 +6,7 @@
  * @updated June 13, 2025. 6:58 p.m. Eastern Time - Fixed login function signature to support dual authentication modes
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions to AppContextType
  * @updated June 14, 2025. 11:47 a.m. Eastern Time - Added ValidationResult, BatchUploadResult, and ParsedQuestion interfaces for new upload workflow
+ * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to AppContextType interface for data refresh functionality
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures

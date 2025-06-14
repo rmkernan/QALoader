@@ -4,6 +4,7 @@
 @description Database table creation and validation script for Q&A Loader. Checks if required tables exist and provides SQL for manual creation.
 @created 2025.06.09 3:58 PM ET
 @updated 2025.06.09 4:13 PM ET - Added comprehensive documentation and improved error handling
+@updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) to database schema
 
 @architectural-context
 Layer: Database Setup Utility
@@ -58,6 +59,9 @@ def create_tables():
             question TEXT NOT NULL,
             answer TEXT NOT NULL,
             notes_for_tutor TEXT,
+            uploaded_on VARCHAR(50),
+            uploaded_by VARCHAR(25),
+            upload_notes VARCHAR(100),
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );

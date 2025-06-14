@@ -8,6 +8,7 @@
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulkDeleteQuestions function for bulk deletion operations
  * @updated June 14, 2025. 10:25 a.m. Eastern Time - Fixed API calls to use centralized API service functions instead of relative URLs to resolve 404 errors
  * @updated June 14, 2025. 10:39 a.m. Eastern Time - Added data transformation layer for updateQuestion and addNewQuestion to handle backend/frontend field name mismatches
+ * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to context exports for Dashboard data refresh, fixed uploadMarkdownFile validation field transformation
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -109,8 +110,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       const data = await response.json();
       
-      // DEBUG: Log raw backend data structure
-      console.log('🔍 Raw backend questions (first 2):', data.questions?.slice(0, 2));
+      // Note: Debug logging available if needed for troubleshooting field mappings
       
       // Transform backend question_id to frontend id
       const transformedQuestions = (data.questions || []).map((q: Question & { question_id?: string; question?: string; answer?: string }) => ({
@@ -314,7 +314,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const errors = result.errors || {};
     const warnings = result.warnings || [];
     
-    console.log('🔍 Processed arrays:', { successfulUploads, failedUploads, errors, warnings });
+    // Note: Array processing with defensive programming for undefined fields
     
     if (failedUploads.length === 0) {
       // Complete success
@@ -479,10 +479,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   /**
    * @function uploadMarkdownFile
-   * @description Enhanced markdown file processing with validation-first approach. Supports both validation-only mode and full upload workflow with detailed error handling.
+   * @description Enhanced markdown file processing with validation-first approach. Supports both validation-only mode and full upload workflow with detailed error handling and metadata tracking.
    * @param {string} topic - The topic associated with the file
    * @param {File} file - The Markdown file to process
    * @param {boolean} dryRun - If true, performs validation only; if false, validates then uploads
+   * @param {string} [uploadedOn] - American timestamp when questions were uploaded (Eastern Time)
+   * @param {string} [uploadedBy] - Free text field for who uploaded the questions (max 25 chars)
+   * @param {string} [uploadNotes] - Free text notes about this upload (max 100 chars)
    * @returns {Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void>} For validation, returns parsed data and report. For upload, returns void or throws error.
    * 
    * @workflow Two-step validation process:
@@ -497,13 +500,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
    *   console.log(`Found ${result.report.parsedCount} questions`);
    * }
    * 
-   * // Full upload
-   * await uploadMarkdownFile('DCF', file, false);
+   * // Full upload with metadata
+   * await uploadMarkdownFile('DCF', file, false, 'June 14, 2025. 2:18 p.m. Eastern Time', 'John Smith', 'Initial DCF questions');
    */
   const uploadMarkdownFile = useCallback(async (
     topic: string, 
     file: File, 
-    dryRun: boolean
+    dryRun: boolean,
+    uploadedOn?: string,
+    uploadedBy?: string,
+    uploadNotes?: string
   ): Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void> => {
     setIsContextLoading(true);
     
@@ -574,16 +580,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } else {
         // Full upload mode: upload and process
         try {
-          const uploadResult: BatchUploadResult = await uploadMarkdownFileAPI(topic, file);
+          const uploadResult: BatchUploadResult = await uploadMarkdownFileAPI(
+            topic, 
+            file, 
+            uploadedOn, 
+            uploadedBy, 
+            uploadNotes
+          );
           
-          // DEBUG: Log the actual upload response
-          console.log('🔍 Backend upload response:', uploadResult);
-          console.log('🔍 Response structure:', {
-            successfulUploads: uploadResult.successfulUploads,
-            failedUploads: uploadResult.failedUploads,
-            errors: uploadResult.errors,
-            warnings: uploadResult.warnings
-          });
+          // Note: Debug logging available if needed for upload troubleshooting
           
           // Handle upload results with detailed feedback
           await handleBatchUploadResult(uploadResult, topic, file.name);

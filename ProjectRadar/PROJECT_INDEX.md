@@ -1,6 +1,7 @@
 # QALoader Project Index
 
 **Created:** June 14, 2025. 11:53 a.m. Eastern Time  
+**Updated:** June 14, 2025. 2:37 p.m. Eastern Time - Phase 3 completion update with production-ready upload workflow, validation services, and enhanced API endpoints
 **Purpose:** Quick orientation guide for new Claude instances working on the QALoader project  
 **Type:** Lightweight reference and navigation guide  
 
@@ -12,6 +13,7 @@
 
 **Architecture:** React Frontend (TypeScript) → FastAPI Backend (Python) → Supabase Database (PostgreSQL)  
 **Ports:** Frontend: 5173/3000, Backend: 8000, Database: Cloud hosted  
+**Status:** Phase 3 Complete - Production Ready (95% Core Application Functional)  
 
 ---
 
@@ -31,15 +33,16 @@
 ## 📁 Key Directories
 
 ### Frontend (`src/`)
-- **components/** - UI components (LoginView, CurationView, DashboardView, etc.)
-- **contexts/AppContext.tsx** - Global state management
-- **services/api.ts** - Backend communication
-- **types.ts** - TypeScript definitions
+- **components/** - UI components (LoginView, CurationView, DashboardView, LoaderView)
+- **contexts/AppContext.tsx** - Global state management, upload workflow integration
+- **services/** - Backend communication (api.ts), client-side validation (validation.ts)
+- **types.ts** - TypeScript definitions, upload workflow types (ValidationResult, BatchUploadResult)
 
 ### Backend (`backend/app/`)
 - **routers/** - API endpoints (auth.py, questions.py, upload.py)
-- **services/** - Business logic (auth_service.py, question_service.py, analytics_service.py)
+- **services/** - Business logic (auth_service.py, question_service.py, analytics_service.py, validation_service.py)
 - **models/** - Data validation (auth.py, question.py, question_bulk.py)
+- **utils/** - Helper functions (id_generator.py for semantic question IDs)
 - **main.py** - Application entry point
 - **config.py** - Environment settings
 - **database.py** - Supabase client
@@ -51,6 +54,10 @@
 ### Working on Authentication?
 **Start with:** ARCHITECTURE_MAP.md → "Authentication/Security Tasks" section  
 **Key files:** `backend/app/services/auth_service.py`, `backend/app/routers/auth.py`, `src/components/LoginView.tsx`
+
+### Working on File Upload/Validation?
+**Start with:** ARCHITECTURE_MAP.md → "Question Upload Validation Workflow" section  
+**Key files:** `backend/app/routers/upload.py`, `backend/app/services/validation_service.py`, `backend/app/utils/id_generator.py`, `src/components/LoaderView.tsx`, `src/services/validation.ts`
 
 ### Adding API Endpoints?
 **Start with:** ARCHITECTURE_MAP.md → "Adding New API Endpoint" pattern  
@@ -77,6 +84,12 @@
 2. **Frontend:** Component → Types → Context → API Integration
 3. **See:** ARCHITECTURE_MAP.md → "Development Workflow Patterns" section
 
+### File Upload Workflow (Production-Ready)
+1. **Client Validation:** Format checking → Error feedback
+2. **Server Validation:** Content parsing → Structure validation → Error reporting
+3. **Upload Processing:** ID generation → Individual question processing → Batch results
+4. **Status:** ✅ Complete - Tested with 89-question production upload
+
 ### Fixing Bugs
 1. **Identify area:** Auth, API, Frontend, Database
 2. **Read relevant section** in ARCHITECTURE_MAP.md
@@ -94,7 +107,9 @@
 
 ### Specific Feature Documentation
 - **Backend Context:** `backend/BACKEND_CONTEXT.md`
-- **Deployment Guide:** `Docs/DEPLOYMENT.md`
+- **Upload Implementation:** `Docs/Workflows/QuestionUpload_ImplementationPlan.md` (Phase 3 Complete)
+- **Backend Design:** `Docs/BackendDesign.md` (Updated with Phase 3 validation workflow)
+- **Deployment Guide:** `Docs/DEPLOYMENT.md` (Updated with upload configuration)
 - **Project Status:** `Docs/ProjectStatus.md`
 
 ---
@@ -117,6 +132,9 @@ User: "Problem with Manage Content page"
 
 User: "Authentication isn't working"  
 → Ask: Can't log in? Logged in but API calls fail? Session timing out?
+
+User: "File upload not working"
+→ Ask: Format validation failing? Server validation errors? Upload process hanging?
 
 User: "Want to add new feature"
 → Ask: Frontend UI? Backend API? Database changes? All of the above?
@@ -154,13 +172,29 @@ User: "Why is login working but data loading fails?"
 - Reading configuration with architectural context
 - Single-component issues with clear scope
 - Clear error messages with known file locations
+- Basic upload workflow troubleshooting
 
 **Load ARCHITECTURE_MAP.md sections** for:
 - Understanding cross-component relationships
-- Complex integration workflows
+- Complex integration workflows (like validation-first upload)
 - Major architectural decisions
 - System-wide pattern analysis
+- Upload workflow implementation details
+- Production deployment considerations
+
+## 🎯 Production-Ready Status Overview
+
+**✅ Core Application (95% Complete):**
+- Backend: Authentication, CRUD APIs, upload processing, validation services
+- Frontend: All views functional, upload workflow, error handling, state management
+- Database: Schema complete, constraints enforced, semantic ID generation
+- Integration: End-to-end workflows tested, 89-question production upload verified
+
+**🔄 Next Phase Ready:**
+- Upload metadata tracking (uploaded_on, uploaded_by, upload_notes)
+- Enhanced analytics and reporting
+- Performance optimization for large datasets
 
 ---
 
-*This index provides quick orientation. The rich file header documentation gives you immediate context about purpose, dependencies, and relationships without loading heavy architectural documentation.*
+*This index provides quick orientation for a production-ready QALoader system. The rich file header documentation gives you immediate context about purpose, dependencies, and relationships. For detailed implementation status, see ARCHITECTURE_MAP.md → "Current Implementation Status" section.*

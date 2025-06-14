@@ -3,6 +3,7 @@
 **Purpose:** Comprehensive deployment documentation enabling LLMs to deploy the Q&A Loader application from scratch in production environments.
 
 **Created:** June 12, 2025. 2:08 p.m. Eastern Time
+**Updated:** June 14, 2025. 2:24 p.m. Eastern Time - Phase 3 completion update with upload metadata fields and enhanced API endpoints
 **Target Audience:** DevOps engineers, deployment specialists, LLMs performing deployment tasks
 
 ---
@@ -325,6 +326,9 @@ server {
     return 301 https://$server_name$request_uri;
 }
 
+# File upload size limits (for markdown file uploads)
+client_max_body_size 10M;
+
 server {
     listen 443 ssl http2;
     server_name your-domain.com www.your-domain.com;
@@ -362,6 +366,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # File upload settings for markdown files
+        client_max_body_size 10M;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
         
         # CORS headers (if needed)
         add_header Access-Control-Allow-Origin https://your-domain.com;
@@ -402,6 +413,30 @@ echo "0 2 * * * root certbot renew --quiet && systemctl reload nginx" | sudo tee
 ```sql
 -- 1. Create tables (run in Supabase SQL editor)
 -- Tables are created automatically by backend/create_tables.py
+-- Updated schema includes upload metadata tracking
+
+CREATE TABLE all_questions (
+    question_id TEXT PRIMARY KEY,
+    topic TEXT NOT NULL,
+    subtopic TEXT NOT NULL,
+    difficulty TEXT NOT NULL CHECK (difficulty IN ('Basic', 'Advanced')),
+    type TEXT NOT NULL CHECK (type IN ('Definition', 'Problem', 'GenConcept', 'Calculation', 'Analysis')),
+    question TEXT NOT NULL CHECK (LENGTH(TRIM(question)) > 0),
+    answer TEXT NOT NULL CHECK (LENGTH(TRIM(answer)) > 0),
+    notes_for_tutor TEXT,
+    uploaded_on TEXT,
+    uploaded_by TEXT,
+    upload_notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE activity_log (
+    id SERIAL PRIMARY KEY,
+    action TEXT NOT NULL,
+    details TEXT,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 -- 2. Set up Row Level Security (RLS)
 ALTER TABLE all_questions ENABLE ROW LEVEL SECURITY;
@@ -594,7 +629,13 @@ cat > monitor_qaloader.sh << 'EOF'
 #!/bin/bash
 # Check application health
 curl -f http://localhost:8000/health || echo "Backend health check failed"
-curl -f http://localhost/health || echo "Frontend health check failed"
+curl -f http://localhost/ || echo "Frontend health check failed"
+
+# Check upload functionality
+curl -X POST http://localhost:8000/api/validate-markdown \
+  -H "Authorization: Bearer $TEST_TOKEN" \
+  -F "topic=test" \
+  -F "file=@test_sample.md" || echo "Upload validation failed"
 
 # Check disk space
 df -h | awk '$5 > 80 {print "High disk usage on " $6 ": " $5}'
@@ -677,6 +718,13 @@ echo "🚀 Validating QALoader Deployment..."
 # Check backend health
 echo "✅ Checking backend health..."
 curl -f http://localhost:8000/health || { echo "❌ Backend health check failed"; exit 1; }
+
+# Check upload endpoints
+echo "✅ Testing upload endpoints..."
+curl -X POST http://localhost:8000/api/validate-markdown \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "topic=test" \
+  -F "file=@test.md" || { echo "❌ Upload validation test failed"; exit 1; }
 
 # Check frontend accessibility
 echo "✅ Checking frontend..."
@@ -800,12 +848,16 @@ supabase db reset --file backup_YYYYMMDD_HHMMSS.sql
 ### Deployment Checklist
 - [ ] Environment variables configured
 - [ ] SSL certificates installed
-- [ ] Database tables created
+- [ ] Database tables created with Phase 3 schema updates
+- [ ] Database constraints enforced (difficulty, type, content validation)
+- [ ] File upload limits configured (10MB nginx limit)
+- [ ] Upload endpoint functionality tested
+- [ ] JWT authentication working
 - [ ] Firewall rules configured
 - [ ] Monitoring setup
 - [ ] Backup procedures tested
 - [ ] Health checks passing
-- [ ] Performance testing completed
+- [ ] Performance testing completed (including file uploads)
 - [ ] Security hardening applied
 - [ ] Documentation updated
 

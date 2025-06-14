@@ -6,6 +6,8 @@
  * @updated June 14, 2025. 12:18 p.m. Eastern Time - Enhanced for Phase 3 UI integration with validation-first workflow and file upload status indicators
  * @updated June 14, 2025. 12:30 p.m. Eastern Time - Added Clear File button for resetting validation process when errors occur
  * @updated June 14, 2025. 1:12 p.m. Eastern Time - Fixed Step 2 empty content issue by adding user guidance instructions and progress indicators
+ * @updated June 14, 2025. 2:00 p.m. Eastern Time - Fixed backend/frontend field name mismatch for validation workflow (is_valid vs isValid), complete Phase 3 implementation tested and verified
+@updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) with American timestamp generation and character validation
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -58,9 +60,42 @@ const LoaderView: React.FC = () => {
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState<boolean>(false);
   const [topicForConfirmation, setTopicForConfirmation] = useState<string>('');
   const [confirmationInput, setConfirmationInput] = useState<string>('');
+  
+  // Upload metadata fields
+  const [uploadedOn, setUploadedOn] = useState<string>('');
+  const [uploadedBy, setUploadedBy] = useState<string>('');
+  const [uploadNotes, setUploadNotes] = useState<string>('');
 
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * @function generateAmericanTimestamp
+   * @description Generates current timestamp in American format (Eastern Time)
+   * @returns {string} Formatted timestamp like "June 14, 2025. 2:18 p.m. Eastern Time"
+   */
+  const generateAmericanTimestamp = (): string => {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    };
+    
+    const formatted = now.toLocaleDateString('en-US', options);
+    return formatted.replace(' at ', '. ') + ' Eastern Time';
+  };
+
+  // Initialize uploaded_on timestamp when component mounts
+  useEffect(() => {
+    if (!uploadedOn) {
+      setUploadedOn(generateAmericanTimestamp());
+    }
+  }, [uploadedOn]);
 
   useEffect(() => {
     if (contextTopics.length > 0 && !selectedTopic) {
@@ -131,6 +166,10 @@ const LoaderView: React.FC = () => {
     setValidationReport(null);
     setIsConfirmationModalOpen(false);
     setConfirmationInput('');
+    // Reset metadata fields
+    setUploadedOn(generateAmericanTimestamp());
+    setUploadedBy('');
+    setUploadNotes('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -208,8 +247,6 @@ const LoaderView: React.FC = () => {
         parsedCount: serverValidation.parsed_count || 0
       };
       
-      console.log('✅ Transformed validation:', transformedValidation);
-      
       const report: ValidationReport = {
         success: transformedValidation.isValid,
         message: transformedValidation.isValid 
@@ -273,8 +310,15 @@ const LoaderView: React.FC = () => {
     setIsConfirmationModalOpen(false); 
 
     try {
-      // Use new upload workflow from AppContext
-      await uploadMarkdownFile(topicForConfirmation, file, false);
+      // Use new upload workflow from AppContext with metadata
+      await uploadMarkdownFile(
+        topicForConfirmation, 
+        file, 
+        false, 
+        uploadedOn.trim() || undefined,
+        uploadedBy.trim() || undefined,
+        uploadNotes.trim() || undefined
+      );
       
       // Reset all state after successful upload
       setUploadStatus('success');
@@ -287,6 +331,10 @@ const LoaderView: React.FC = () => {
       setTopicForConfirmation('');
       setConfirmationInput('');
       setValidationStatus('pending');
+      // Reset metadata fields for next upload
+      setUploadedOn(generateAmericanTimestamp());
+      setUploadedBy('');
+      setUploadNotes('');
       
       // If a new topic was created and loaded, make it the selected topic
       if (isNewTopic && newTopicName.trim() === topicForConfirmation) {
@@ -648,6 +696,59 @@ const LoaderView: React.FC = () => {
               This will upload <strong>{validationReport?.parsedCount || 0}</strong> new questions to the database.
               Each question will receive a unique ID.
             </p>
+            {/* Upload Metadata Fields */}
+            <div className="mb-6 space-y-4 border-t pt-4">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">Upload Metadata (Optional)</h3>
+              
+              <div>
+                <label htmlFor="uploaded-on" className="block text-xs font-medium text-slate-600 mb-1">
+                  Uploaded On (Eastern Time):
+                </label>
+                <input
+                  id="uploaded-on"
+                  type="text"
+                  value={uploadedOn}
+                  onChange={(e) => setUploadedOn(e.target.value.slice(0, 50))}
+                  className="w-full p-2 text-sm border border-slate-300 rounded-md shadow-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="June 14, 2025. 2:18 p.m. Eastern Time"
+                  maxLength={50}
+                />
+                <p className="text-xs text-slate-500 mt-1">{uploadedOn.length}/50 characters</p>
+              </div>
+
+              <div>
+                <label htmlFor="uploaded-by" className="block text-xs font-medium text-slate-600 mb-1">
+                  Uploaded By:
+                </label>
+                <input
+                  id="uploaded-by"
+                  type="text"
+                  value={uploadedBy}
+                  onChange={(e) => setUploadedBy(e.target.value.slice(0, 25))}
+                  className="w-full p-2 text-sm border border-slate-300 rounded-md shadow-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Your name or identifier"
+                  maxLength={25}
+                />
+                <p className="text-xs text-slate-500 mt-1">{uploadedBy.length}/25 characters</p>
+              </div>
+
+              <div>
+                <label htmlFor="upload-notes" className="block text-xs font-medium text-slate-600 mb-1">
+                  Upload Notes:
+                </label>
+                <textarea
+                  id="upload-notes"
+                  value={uploadNotes}
+                  onChange={(e) => setUploadNotes(e.target.value.slice(0, 100))}
+                  className="w-full p-2 text-sm border border-slate-300 rounded-md shadow-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Notes about this upload (optional)"
+                  rows={2}
+                  maxLength={100}
+                />
+                <p className="text-xs text-slate-500 mt-1">{uploadNotes.length}/100 characters</p>
+              </div>
+            </div>
+
             <label htmlFor="topic-confirmation-input" className="block text-sm font-medium text-slate-700 mb-1">
               To confirm, please type the topic name ("<span className="font-semibold">{topicForConfirmation}</span>") below:
             </label>

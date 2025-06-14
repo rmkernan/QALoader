@@ -1,7 +1,8 @@
 Backend Design & API Contract: Q&A Loader
 Version: 1.0
 Date: June 8, 2025
-Status: Ready for Implementation
+Updated: June 14, 2025. 2:24 p.m. Eastern Time - Phase 3 completion update with validation workflow, semantic ID generation, and upload metadata tracking
+Status: Phase 3 Complete - Production Ready
 
 1. Architecture Overview
 1.1. Core Responsibility
@@ -26,11 +27,14 @@ CREATE TABLE all_questions (
     question_id TEXT PRIMARY KEY,
     topic TEXT NOT NULL,
     subtopic TEXT NOT NULL,
-    difficulty TEXT NOT NULL,
-    type TEXT NOT NULL,
-    question TEXT NOT NULL,
-    answer TEXT NOT NULL,
+    difficulty TEXT NOT NULL CHECK (difficulty IN ('Basic', 'Advanced')),
+    type TEXT NOT NULL CHECK (type IN ('Definition', 'Problem', 'GenConcept', 'Calculation', 'Analysis')),
+    question TEXT NOT NULL CHECK (LENGTH(TRIM(question)) > 0),
+    answer TEXT NOT NULL CHECK (LENGTH(TRIM(answer)) > 0),
     notes_for_tutor TEXT,
+    uploaded_on TEXT,
+    uploaded_by TEXT,
+    upload_notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -39,62 +43,131 @@ CREATE TABLE all_questions (
 CREATE INDEX idx_questions_filters ON all_questions (topic, subtopic, difficulty, type);
 
 2.2. question_id Generation
-The backend is responsible for generating a unique question_id for every new question. The ID should be human-readable and follow a consistent format, such as TOPIC_ABBR-SUBTOPIC_ABBR-TYPE_ABBR-SEQ (e.g., DCF-WACC-P-001). The sequence number should be calculated based on the existing questions for that combination.
+The backend generates semantic question IDs using the format: {TOPIC}-{SUBTOPIC}-{DIFFICULTY}-{TYPE}-{SEQUENCE}
+
+Examples:
+- DCF-WACC-B-D-001 (DCF, WACC, Basic, Definition, sequence 001)
+- VALUATION-COMPS-A-P-015 (Valuation, Comparable Companies, Advanced, Problem, sequence 015)
+
+Generation Process:
+1. Topic normalization: Extract abbreviations, remove spaces/special chars
+2. Subtopic normalization: Intelligent abbreviation and truncation
+3. Type mapping: Definition→D, Problem→P, GenConcept→G, Calculation→C, Analysis→A
+4. Difficulty mapping: Basic→B, Advanced→A
+5. Sequence generation: Query database for existing patterns, increment appropriately
+6. Uniqueness verification: Retry with collision detection if needed
 
 3. Core Backend Logic Requirements
-3.1. Markdown Parsing Engine
-The backend must contain a robust parser for the hierarchical Markdown format specified in the project's README.md.
+3.1. Validation-First Upload Workflow
+Implemented as a two-step process:
 
-The parser must be stateful, correctly tracking the current topic, subtopic, difficulty, and type as it iterates through the file.
+1. **Validation Endpoint** (`/api/validate-markdown`):
+   - Validates file constraints (type, size, encoding)
+   - Parses markdown structure and validates hierarchy
+   - Validates question content and required fields
+   - Returns detailed ValidationResult without database operations
+   - Provides line-by-line error reporting for user feedback
 
-It must handle changes at any level of the hierarchy and correctly attribute the context to subsequent Q&A pairs.
+2. **Upload Endpoint** (`/api/upload-markdown`):
+   - Re-validates file (ensures consistency)
+   - Generates unique semantic IDs for each question
+   - Processes questions individually with error tracking
+   - Supports partial success (continues if some questions fail)
+   - Returns BatchUploadResult with detailed status per question
 
-The output of the parser should be a list of Python objects/dictionaries matching the ParsedQuestionFromAI structure, ready for database insertion.
+Markdown Parser Features:
+- Stateful hierarchy tracking (Topic → Subtopic → Difficulty → Type)
+- Regex pattern matching for required markdown structure
+- Content validation (difficulty/type constraints, non-empty fields)
+- Comprehensive error reporting with line numbers
+- Support for optional tutor notes and upload metadata
 
-3.2. Transactional Upload Process
-The "delete and reload" operation initiated by the /api/upload-markdown endpoint must be transactional. The backend should use a single database transaction to perform the DELETE of all old questions for a topic, followed by the INSERT of all new questions. If any part of the INSERT process fails, the entire transaction must be rolled back, leaving the original data for that topic intact.
+3.2. Individual Question Processing (Non-Transactional)
+The upload workflow processes questions individually to support partial success scenarios:
+
+- **No bulk transactions**: Each question is inserted separately
+- **Partial success support**: If some questions fail, successful ones remain in database
+- **Individual error tracking**: Each failure is mapped to specific question with user-friendly error message
+- **Database error translation**: Technical errors converted to actionable user guidance
+- **Comprehensive result tracking**: BatchUploadResult includes success/failure counts, question IDs, and detailed errors
+
+This approach provides better user experience as users can see which specific questions succeeded or failed, and partial uploads don't lose all work due to single question issues.
 
 4. API Endpoint Specifications (The Contract)
 The backend must implement the following RESTful API endpoints. All endpoints should be prefixed with /api.
 
-Endpoint: GET /bootstrap-data
+Endpoint: GET /api/bootstrap-data
 Description: Fetches all initial data required to hydrate the React frontend on application load.
 
 Method: GET
+Authentication: JWT required
+Query Parameters:
+- enhanced (boolean, optional): If true, returns enhanced analytics data
 
-Response (200 OK): A JSON object containing all necessary initial state.
-
+Basic Response (200 OK):
 {
   "questions": [/* Array of full Question objects from the DB */],
   "topics": [/* Array of unique topic strings from the DB */],
-  "lastUploadTimestamp": 1678886400000, // Unix timestamp (or null)
+  "lastUploadTimestamp": "2025-06-09T18:30:00Z",
   "activityLog": [/* Array of the 5 most recent ActivityLogItem objects */]
 }
 
-Endpoint: POST /upload-markdown
-Description: The primary endpoint for the ETL process. It receives a Markdown file, parses it, and executes the transactional "delete and reload" operation for the specified topic.
-
-Method: POST
-
-Request Body: multipart/form-data containing:
-
-topic: The name of the topic (string).
-
-file: The .md file.
-
-Response (200 OK): A JSON object summarizing the successful operation.
-
+Enhanced Response (?enhanced=true):
 {
-  "success": true,
-  "message": "Successfully replaced 150 questions for topic 'DCF'."
+  "questions": [/* same as basic */],
+  "topics": [/* same as basic */],
+  "statistics": {/* question metrics by difficulty, type, topic */},
+  "systemHealth": {/* database status, performance metrics */},
+  "activityTrends": [/* daily activity breakdown with trends */],
+  "lastUploadTimestamp": "2025-06-09T18:30:00Z",
+  "activityLog": [/* same as basic */]
 }
 
-Response (400 Bad Request): If parsing fails or the file is malformed.
+Endpoint: POST /api/validate-markdown
+Description: Validates markdown file structure and content without saving to database
 
+Method: POST
+Request Body: multipart/form-data containing:
+- topic: The name of the topic (string)
+- file: The .md file (max 10MB, .md/.txt extensions only)
+
+Response (200 OK): ValidationResult
 {
-  "success": false,
-  "message": "Markdown validation failed.",
-  "errors": ["Missing 'Answer' for question on line 47."]
+  "is_valid": true,
+  "errors": [],
+  "warnings": ["Long content in question DCF-WACC-B-001"],
+  "parsed_count": 25,
+  "line_numbers": {"topic": 1, "first_subtopic": 3, "first_question": 8}
+}
+
+Endpoint: POST /api/upload-markdown
+Description: Validates and uploads questions from markdown file to database with metadata tracking
+
+Method: POST
+Request Body: multipart/form-data containing:
+- topic: The name of the topic (string)
+- file: The .md file
+- uploaded_on: American timestamp when questions were uploaded (optional)
+- uploaded_by: Free text field for who uploaded the questions (optional, max 25 chars)
+- upload_notes: Free text notes about this upload (optional, max 100 chars)
+
+Response (200 OK): BatchUploadResult
+{
+  "total_attempted": 25,
+  "successful_uploads": ["DCF-WACC-B-D-001", "DCF-WACC-B-D-002"],
+  "failed_uploads": ["DCF-WACC-B-P-001"],
+  "errors": {"DCF-WACC-B-P-001": "Question ID already exists in database"},
+  "warnings": [],
+  "processing_time_ms": 2340
+}
+
+Response (400 Bad Request): If validation fails
+{
+  "detail": {
+    "message": "File validation failed",
+    "errors": ["Missing required '# Topic: [name]' header"],
+    "warnings": []
+  }
 }
 
 Endpoint: GET /questions
@@ -140,19 +213,31 @@ Path Parameter: {id} - The unique ID of the question to delete.
 
 Response (204 No Content): An empty response indicating successful deletion.
 
-Endpoint: POST /login
-Description: Authenticates the user.
+Endpoint: POST /api/login
+Description: Authenticates the user and returns JWT token
 
 Method: POST
-
 Request Body (JSON):
+{
+  "username": "admin",
+  "password": "user_entered_password"
+}
 
-{ "password": "user_entered_password" }
+Logic: Compares credentials against ADMIN_PASSWORD environment variable
 
-Logic: Compares the provided password against a ADMIN_PASSWORD environment variable on the server.
+Response (200 OK):
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "username": "admin",
+  "expires_in": 28800
+}
 
-Response (200 OK): A JSON object containing a session token (e.g., a JWT) if the password is correct.
+Response (401 Unauthorized): If credentials are incorrect
+{ "detail": "Invalid username or password" }
 
-{ "token": "a_secure_session_token" }
-
-Response (401 Unauthorized): If the password is incorrect.
+Endpoint: GET /api/auth/verify
+Description: Verify JWT token validity
+Method: GET
+Authentication: JWT required
+Response (200 OK): {"username": "admin", "valid": true}

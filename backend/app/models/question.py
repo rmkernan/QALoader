@@ -5,6 +5,7 @@
 @updated 2025.06.09 4:17 PM ET - Initial creation with comprehensive question models and validation
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added BulkDeleteRequest and BulkDeleteResponse models for bulk deletion functionality
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Enhanced with validation models for file upload workflow, updated difficulty constraint to Basic/Advanced only
+@updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on timestamp, uploaded_by 25 chars, upload_notes 100 chars) for enhanced question tracking
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -50,6 +51,9 @@ class QuestionBase(BaseModel):
     question: str = Field(..., min_length=1, description="The actual question text")
     answer: str = Field(..., min_length=1, description="The complete answer text")
     notes_for_tutor: Optional[str] = Field(None, description="Additional notes or guidance for tutors")
+    uploaded_on: Optional[str] = Field(None, max_length=50, description="American timestamp when question was uploaded (Eastern Time)")
+    uploaded_by: Optional[str] = Field(None, max_length=25, description="Free text field for who uploaded the question")
+    upload_notes: Optional[str] = Field(None, max_length=100, description="Free text notes about the upload process")
 
     @validator("difficulty")
     def validate_difficulty(cls, v):
@@ -245,15 +249,21 @@ class ValidationResult(BaseModel):
 class BatchUploadRequest(BaseModel):
     """
     @class BatchUploadRequest
-    @description Request model for batch question upload operations
+    @description Request model for batch question upload operations with metadata tracking
     @example:
         request = BatchUploadRequest(
             topic="DCF",
-            questions=[parsed_question_1, parsed_question_2]
+            questions=[parsed_question_1, parsed_question_2],
+            uploaded_on="June 14, 2025. 2:18 p.m. Eastern Time",
+            uploaded_by="John Smith",
+            upload_notes="Initial DCF questions for spring semester"
         )
     """
     topic: str = Field(..., min_length=1, max_length=100, description="Topic for all questions")
     questions: List[ParsedQuestionFromAI] = Field(..., min_items=1, description="List of questions to upload")
+    uploaded_on: Optional[str] = Field(None, max_length=50, description="American timestamp when questions were uploaded (Eastern Time)")
+    uploaded_by: Optional[str] = Field(None, max_length=25, description="Free text field for who uploaded the questions")
+    upload_notes: Optional[str] = Field(None, max_length=100, description="Free text notes about this upload")
 
 
 class BatchUploadResult(BaseModel):

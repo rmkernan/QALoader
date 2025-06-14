@@ -3,6 +3,7 @@
 @description API endpoints for file upload and validation operations. Handles markdown file processing with validation-first approach.
 @created June 14, 2025. 11:27 a.m. Eastern Time
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Enhanced with comprehensive validation and upload workflow
+@updated June 14, 2025. 2:18 p.m. Eastern Time - Added support for upload metadata fields (uploaded_on, uploaded_by, upload_notes)
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -165,13 +166,19 @@ async def validate_markdown_file(
 async def upload_markdown_file(
     topic: str = Form(..., description="Topic name for the questions"),
     file: UploadFile = File(..., description="Markdown file to upload"),
+    uploaded_on: str = Form(None, description="American timestamp when questions were uploaded (Eastern Time)"),
+    uploaded_by: str = Form(None, description="Free text field for who uploaded the questions"),
+    upload_notes: str = Form(None, description="Free text notes about this upload"),
     current_user: dict = Depends(get_current_user)
 ):
     """
     @api POST /api/upload-markdown
-    @description Validates and uploads questions from markdown file to database
+    @description Validates and uploads questions from markdown file to database with metadata tracking
     @param topic: Topic name for the questions
     @param file: Uploaded markdown file
+    @param uploaded_on: American timestamp when questions were uploaded (Eastern Time)
+    @param uploaded_by: Free text field for who uploaded the questions (max 25 chars)
+    @param upload_notes: Free text notes about this upload (max 100 chars)
     @returns: BatchUploadResult with detailed upload status for each question
     @authentication: Required JWT token in Authorization header
     @errors:
@@ -185,7 +192,7 @@ async def upload_markdown_file(
         Content-Type: multipart/form-data
         Authorization: Bearer <jwt_token>
         
-        topic=DCF&file=<markdown_file>
+        topic=DCF&file=<markdown_file>&uploaded_on=June 14, 2025. 2:18 p.m. Eastern Time&uploaded_by=John Smith&upload_notes=Initial DCF questions
     """
     start_time = time.time()
     
@@ -241,7 +248,10 @@ async def upload_markdown_file(
                     "type": question.type,
                     "question": question.question,
                     "answer": question.answer,
-                    "notes_for_tutor": question.notes_for_tutor
+                    "notes_for_tutor": question.notes_for_tutor,
+                    "uploaded_on": uploaded_on,
+                    "uploaded_by": uploaded_by,
+                    "upload_notes": upload_notes
                 }
                 
                 # Insert into database
