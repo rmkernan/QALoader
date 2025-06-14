@@ -4,6 +4,7 @@
  * @created June 9, 2025 at unknown time
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Updated API_BASE_URL to point to backend server and added development notes about restart requirements
  * @updated June 13, 2025. 6:58 p.m. Eastern Time - Removed unused ApiResponse interface
+ * @updated June 14, 2025. 8:56 a.m. Eastern Time - Removed unused verifyAuthToken function
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -191,32 +192,6 @@ export const loginUser = async (username: string, password: string) => {
   return response.json();
 };
 
-/**
- * @function verifyAuthToken
- * @description Verifies if current JWT token is still valid
- * @returns {Promise<{username: string, valid: boolean}>} Token verification result
- * @example:
- * try {
- *   const result = await verifyAuthToken();
- *   if (result.valid) {
- *     console.log('Logged in as:', result.username);
- *   }
- * } catch (error) {
- *   console.error('Token invalid:', error.message);
- * }
- */
-export const verifyAuthToken = async () => {
-  const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
-  
-  if (!response.ok) {
-    await handleApiError(response);
-  }
-  
-  return response.json();
-};
 
 /**
  * @function fetchQuestions
