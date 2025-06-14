@@ -4,6 +4,7 @@
 @created 2025.06.09 6:30 PM ET
 @updated 2025.06.09 6:30 PM ET - Phase 4 reconstruction with complete CRUD implementation
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulk delete endpoint for deleting multiple questions
+@updated June 14, 2025. 11:04 a.m. Eastern Time - Fixed FastAPI route order conflict by moving bulk delete route before parameterized route (corrected timestamp per CLAUDE.md process violation)
 
 @architectural-context
 Layer: API Router (FastAPI endpoints)
@@ -361,54 +362,6 @@ async def update_question(
         )
 
 
-@router.delete("/questions/{question_id}")
-async def delete_question(
-    question_id: str,
-    current_user: str = Depends(get_current_user),
-    service: QuestionService = Depends(get_question_service)
-):
-    """
-    @api DELETE /api/questions/{question_id}
-    @description Deletes a question by ID with activity logging
-    @param question_id: Unique question identifier (e.g., "DCF-WACC-D-001")
-    @returns: Confirmation message with deleted question ID
-    @authentication: Required JWT token in Authorization header
-    @errors: 
-        - 401: Invalid or missing JWT token
-        - 404: Question not found
-        - 500: Database deletion error
-    @example:
-        # Request
-        DELETE /api/questions/DCF-WACC-D-001
-        Authorization: Bearer <jwt_token>
-        
-        # Response
-        {
-            "message": "Question deleted successfully",
-            "question_id": "DCF-WACC-D-001"
-        }
-    """
-    try:
-        success = await service.delete_question(question_id, current_user)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Question with ID '{question_id}' not found"
-            )
-        
-        return {
-            "message": "Question deleted successfully",
-            "question_id": question_id
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete question: {str(e)}"
-        )
-
-
 @router.delete("/questions/bulk", response_model=BulkDeleteResponse)
 async def bulk_delete_questions(
     request: BulkDeleteRequest,
@@ -502,6 +455,54 @@ async def bulk_delete_questions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to perform bulk deletion: {str(e)}"
+        )
+
+
+@router.delete("/questions/{question_id}")
+async def delete_question(
+    question_id: str,
+    current_user: str = Depends(get_current_user),
+    service: QuestionService = Depends(get_question_service)
+):
+    """
+    @api DELETE /api/questions/{question_id}
+    @description Deletes a question by ID with activity logging
+    @param question_id: Unique question identifier (e.g., "DCF-WACC-D-001")
+    @returns: Confirmation message with deleted question ID
+    @authentication: Required JWT token in Authorization header
+    @errors: 
+        - 401: Invalid or missing JWT token
+        - 404: Question not found
+        - 500: Database deletion error
+    @example:
+        # Request
+        DELETE /api/questions/DCF-WACC-D-001
+        Authorization: Bearer <jwt_token>
+        
+        # Response
+        {
+            "message": "Question deleted successfully",
+            "question_id": "DCF-WACC-D-001"
+        }
+    """
+    try:
+        success = await service.delete_question(question_id, current_user)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Question with ID '{question_id}' not found"
+            )
+        
+        return {
+            "message": "Question deleted successfully",
+            "question_id": question_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete question: {str(e)}"
         )
 
 
