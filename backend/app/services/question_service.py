@@ -6,6 +6,7 @@
 @updated June 14, 2025. 9:27 a.m. Eastern Time - Added bulk_delete_questions method for bulk deletion with transaction support
 @updated June 14, 2025. 3:54 p.m. Eastern Time - Removed created_at field references and fixed imports for consolidated models
 @updated June 14, 2025. 4:27 p.m. Eastern Time - Added short timestamp generation method and updated updated_at field to use consistent MM/DD/YY H:MMPM ET format
+@updated June 14, 2025. 5:42 p.m. Eastern Time - Enhanced get_activity_log to filter out system events (login, startup, search queries) from dashboard display
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -572,7 +573,7 @@ class QuestionService:
     async def get_activity_log(self, limit: int = 10) -> List[ActivityLogItem]:
         """
         @function get_activity_log
-        @description Retrieves recent activity log entries
+        @description Retrieves recent activity log entries, filtering out system events
         @param limit: Maximum number of entries to return
         @returns: List of activity log items, newest first
         @example:
@@ -581,9 +582,19 @@ class QuestionService:
             for activity in activities:
                 print(f"{activity.timestamp}: {activity.action}")
         """
-        result = self.db.table('activity_log').select('*').order('timestamp', desc=True).limit(limit).execute()
+        # Exclude system events like login, startup, search queries
+        excluded_actions = ['User Session', 'System Startup', 'Search Query']
         
-        return [ActivityLogItem(**row) for row in result.data]
+        result = self.db.table('activity_log').select('*').order('timestamp', desc=True).execute()
+        
+        # Filter out excluded actions
+        filtered_activities = [
+            ActivityLogItem(**row) for row in result.data 
+            if row.get('action') not in excluded_actions
+        ]
+        
+        # Return up to limit items
+        return filtered_activities[:limit]
 
     async def get_bootstrap_data(self) -> Dict[str, Any]:
         """

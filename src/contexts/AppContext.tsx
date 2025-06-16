@@ -10,6 +10,7 @@
  * @updated June 14, 2025. 10:39 a.m. Eastern Time - Added data transformation layer for updateQuestion and addNewQuestion to handle backend/frontend field name mismatches
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to context exports for Dashboard data refresh, fixed uploadMarkdownFile validation field transformation
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function signature to support optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
+ * @updated June 14, 2025. 5:42 p.m. Eastern Time - Fixed data transformation for metadata fields (uploaded_on → uploadedOn, etc.) in fetchInitialData, updateQuestion, and addNewQuestion
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -114,11 +115,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Note: Debug logging available if needed for troubleshooting field mappings
       
       // Transform backend question_id to frontend id
-      const transformedQuestions = (data.questions || []).map((q: Question & { question_id?: string; question?: string; answer?: string }) => ({
+      const transformedQuestions = (data.questions || []).map((q: Question & { 
+        question_id?: string; 
+        question?: string; 
+        answer?: string;
+        uploaded_on?: string;
+        uploaded_by?: string;
+        upload_notes?: string;
+      }) => ({
         ...q,
         id: q.question_id || q.id,  // Use question_id from backend, fallback to id
         questionText: q.question || q.questionText,  // Backend uses 'question', frontend uses 'questionText'
-        answerText: q.answer || q.answerText  // Backend uses 'answer', frontend uses 'answerText'
+        answerText: q.answer || q.answerText,  // Backend uses 'answer', frontend uses 'answerText'
+        uploadedOn: q.uploaded_on || q.uploadedOn,  // Backend uses snake_case
+        uploadedBy: q.uploaded_by || q.uploadedBy,  // Backend uses snake_case
+        uploadNotes: q.upload_notes || q.uploadNotes  // Backend uses snake_case
       }));
       setQuestions(transformedQuestions);
       setTopics(data.topics && data.topics.length > 0 ? data.topics : INITIAL_TOPICS); 
@@ -401,7 +412,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     try {
       // Transform frontend format to backend format
-      const backendQuestion = {
+      const backendQuestion: any = {
         question_id: updatedQuestion.id,
         topic: updatedQuestion.topic,
         subtopic: updatedQuestion.subtopic,
@@ -411,6 +422,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         answer: updatedQuestion.answerText
       };
       
+      // Only include metadata fields if they have values
+      if (updatedQuestion.uploadedOn) backendQuestion.uploaded_on = updatedQuestion.uploadedOn;
+      if (updatedQuestion.uploadedBy) backendQuestion.uploaded_by = updatedQuestion.uploadedBy;
+      if (updatedQuestion.uploadNotes) backendQuestion.upload_notes = updatedQuestion.uploadNotes;
+      
       const savedQuestion = await updateQuestionAPI(updatedQuestion.id, backendQuestion);
       
       // Transform backend response to frontend format
@@ -418,7 +434,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...savedQuestion,
         id: savedQuestion.question_id || savedQuestion.id,
         questionText: savedQuestion.question || savedQuestion.questionText,
-        answerText: savedQuestion.answer || savedQuestion.answerText
+        answerText: savedQuestion.answer || savedQuestion.answerText,
+        uploadedOn: savedQuestion.uploaded_on || savedQuestion.uploadedOn,
+        uploadedBy: savedQuestion.uploaded_by || savedQuestion.uploadedBy,
+        uploadNotes: savedQuestion.upload_notes || savedQuestion.uploadNotes
       };
       
       setQuestions(prevQuestions => 
@@ -444,7 +463,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     try {
       // Transform frontend format to backend format
-      const backendQuestion = {
+      const backendQuestion: any = {
         topic: newQuestionData.topic,
         subtopic: newQuestionData.subtopic,
         difficulty: newQuestionData.difficulty,
@@ -453,6 +472,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         answer: newQuestionData.answerText
       };
       
+      // Only include metadata fields if they have values
+      if (newQuestionData.uploadedOn) backendQuestion.uploaded_on = newQuestionData.uploadedOn;
+      if (newQuestionData.uploadedBy) backendQuestion.uploaded_by = newQuestionData.uploadedBy;
+      if (newQuestionData.uploadNotes) backendQuestion.upload_notes = newQuestionData.uploadNotes;
+      
       const actualNewQuestion = await createQuestionAPI(backendQuestion);
       
       // Transform backend response to frontend format
@@ -460,7 +484,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...actualNewQuestion,
         id: actualNewQuestion.question_id || actualNewQuestion.id,
         questionText: actualNewQuestion.question || actualNewQuestion.questionText,
-        answerText: actualNewQuestion.answer || actualNewQuestion.answerText
+        answerText: actualNewQuestion.answer || actualNewQuestion.answerText,
+        uploadedOn: actualNewQuestion.uploaded_on || actualNewQuestion.uploadedOn,
+        uploadedBy: actualNewQuestion.uploaded_by || actualNewQuestion.uploadedBy,
+        uploadNotes: actualNewQuestion.upload_notes || actualNewQuestion.uploadNotes
       };
       
       setQuestions(prevQuestions => [...prevQuestions, transformedQuestion]);

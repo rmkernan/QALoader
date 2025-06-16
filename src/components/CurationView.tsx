@@ -6,6 +6,7 @@
  * @updated June 14, 2025. 9:27 a.m. Eastern Time - Fixed selection bug and implemented bulk delete functionality with confirmation modal
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata filtering fields (uploaded_by, upload_notes) with second filter row UI and enhanced filtering logic
  * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploaded_on timestamp filtering field with correct date format placeholder (06/14/25 3:25PM ET)
+ * @updated June 14, 2025. 5:42 p.m. Eastern Time - Enhanced uploadedOn filtering for date-only matching, added Refresh button, imported fetchInitialData from context
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -45,7 +46,8 @@ const CurationView: React.FC = () => {
     exportQuestionsToMarkdown,
     initialCurationFilters,
     clearInitialCurationFilters,
-    logActivity // Added for logging bulk actions
+    logActivity, // Added for logging bulk actions
+    fetchInitialData // Added for refresh functionality
   } = useAppContext();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,8 +117,9 @@ const CurationView: React.FC = () => {
                               (q.uploadedBy && q.uploadedBy.toLowerCase().includes(filters.uploadedBy.toLowerCase()));
       const uploadNotesMatch = filters.uploadNotes === "" || 
                                (q.uploadNotes && q.uploadNotes.toLowerCase().includes(filters.uploadNotes.toLowerCase()));
+      // For uploadedOn, match date part only (format: MM/DD/YY)
       const uploadedOnMatch = filters.uploadedOn === "" || 
-                              (q.uploadedOn && q.uploadedOn.toLowerCase().includes(filters.uploadedOn.toLowerCase()));
+                              (q.uploadedOn && q.uploadedOn.toLowerCase().startsWith(filters.uploadedOn.toLowerCase()));
       return topicMatch && subtopicMatch && difficultyMatch && typeMatch && searchMatch && uploadedByMatch && uploadNotesMatch && uploadedOnMatch;
     });
   }, [questions, filters]);
@@ -358,13 +361,13 @@ const CurationView: React.FC = () => {
               type="text" 
               id="uploadedOn"
               name="uploadedOn"
-              placeholder="06/14/25 3:25PM ET" 
+              placeholder="06/14/25 (date only)" 
               value={filters.uploadedOn}
               onChange={handleFilterChange}
               className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setFilters({
                 topic: "All Topics",
@@ -379,6 +382,16 @@ const CurationView: React.FC = () => {
               className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-400"
             >
               Clear All Filters
+            </button>
+            <button
+              onClick={() => {
+                fetchInitialData();
+                toast.success("Questions refreshed from database");
+              }}
+              className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              disabled={isContextLoading}
+            >
+              {isContextLoading ? "Refreshing..." : "Refresh"}
             </button>
           </div>
         </div>
