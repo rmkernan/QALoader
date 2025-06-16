@@ -102,6 +102,10 @@ Click "Login" and you'll see the QALoader dashboard.
 
 ---
 
+  cd /mnt/c/PythonProjects/QALoader/backend
+  source venv/bin/activate
+  uvicorn app.main:app --reload --port 8000
+
 ## 🔧 First-Time Setup (Do This Once)
 
 ### **🪟 Windows Setup:**
