@@ -1,10 +1,11 @@
 /**
  * @file components/QuestionModal.tsx
- * @description A modal dialog component for creating, editing, and duplicating Q&A items. It manages form state, including dynamic topic creation, and interacts with `AppContext` to persist changes.
+ * @description A modal dialog (overlay window that blocks interaction with the page behind it) for creating, editing, and duplicating Q&A items. It manages form state, including dynamic topic creation, and interacts with `AppContext` to persist changes.
  * @created June 9, 2025 at unknown time
  * @updated June 9, 2025 at unknown time - Applied comprehensive documentation standards, corrected date formats, completed component JSDoc, and fleshed out implementation.
  * @updated June 13, 2025. 6:34 p.m. Eastern Time - Fixed modal positioning using React Portal to prevent parent container constraints and ensure proper full-screen overlay behavior.
  * @updated June 14, 2025. 10:52 a.m. Eastern Time - Added change detection to prevent saving when no modifications are made in edit/duplicate modes
+ * @updated June 16, 2025. 1:42 p.m. Eastern Time - Added notesForTutor field and duplicate mode instructions, enhanced modal concept documentation
  * 
  * @architectural-context
  * Layer: UI Component (Modal/Dialog)
@@ -29,6 +30,12 @@
  * Purpose: N/A (Does not directly use mock data, but consumes `contextTopics` which might have initial/fallback values. Form data is user-entered).
  * Behavior: N/A
  * Activation: N/A
+ * 
+ * @duplicate-mode-context
+ * Purpose: Create variations of existing questions for similar scenarios
+ * Use Case: When instructors need multiple versions of a question with slight variations
+ * Behavior: Pre-fills all fields from original question, assigns new ID on save
+ * Example: Creating multiple WACC calculation problems with different company data
  */
 import React, { useState, useEffect, FormEvent, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -91,6 +98,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
   const [type, setType] = useState(QUESTION_TYPES[0]);
   const [questionText, setQuestionText] = useState('');
   const [answerText, setAnswerText] = useState('');
+  const [notesForTutor, setNotesForTutor] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   // Store original values for change detection
@@ -101,6 +109,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
     type: string;
     questionText: string;
     answerText: string;
+    notesForTutor: string;
   } | null>(null);
 
   const uniqueContextTopics = useMemo(() => Array.from(new Set(contextTopics)), [contextTopics]);
@@ -131,6 +140,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
       setType(questionToEdit.type || QUESTION_TYPES[0]);
       setQuestionText(questionToEdit.questionText);
       setAnswerText(questionToEdit.answerText || '');
+      setNotesForTutor(questionToEdit.notesForTutor || '');
       
       // Store original values for change detection (only for edit/duplicate)
       setOriginalValues({
@@ -139,7 +149,8 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
         difficulty: questionToEdit.difficulty || DIFFICULTIES[0],
         type: questionToEdit.type || QUESTION_TYPES[0],
         questionText: questionToEdit.questionText,
-        answerText: questionToEdit.answerText || ''
+        answerText: questionToEdit.answerText || '',
+        notesForTutor: questionToEdit.notesForTutor || ''
       });
     } else {
       // Reset form for new question
@@ -151,6 +162,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
       setType(QUESTION_TYPES[0]);
       setQuestionText('');
       setAnswerText('');
+      setNotesForTutor('');
       setOriginalValues(null); // No change detection for new questions
     }
   }, [questionToEdit, isOpen, uniqueContextTopics]);
@@ -187,7 +199,8 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
       difficulty !== originalValues.difficulty ||
       type !== originalValues.type ||
       questionText.trim() !== originalValues.questionText ||
-      answerText.trim() !== originalValues.answerText
+      answerText.trim() !== originalValues.answerText ||
+      notesForTutor.trim() !== originalValues.notesForTutor
     );
   };
 
@@ -237,6 +250,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
       type,
       questionText: questionText.trim(),
       answerText: answerText.trim(),
+      notesForTutor: notesForTutor.trim() || undefined, // Only include if not empty
     };
 
     try {
@@ -276,6 +290,17 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
+
+        {/* Duplicate Mode Instructions */}
+        {isDuplicateMode && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>Create a Question Variation:</strong> Use this feature to create a new question 
+              based on an existing one. All fields are pre-filled from the original. Make your 
+              desired changes - the new question will receive its own unique ID when saved.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Topic Selection */}
@@ -390,6 +415,23 @@ const QuestionModal: React.FC<QuestionModalProps> = ({ isOpen, onClose, question
               placeholder="Enter the answer text..."
               disabled={isLoading}
               required
+            />
+          </div>
+
+          {/* Notes for Tutor - Optional field for instructor guidance */}
+          <div>
+            <label htmlFor="notesForTutor" className="block text-sm font-medium text-slate-700 mb-1">
+              Notes for Tutor <span className="text-slate-500 font-normal">(Optional)</span>
+            </label>
+            <textarea 
+              id="notesForTutor" 
+              name="notesForTutor" 
+              rows={3}
+              value={notesForTutor}
+              onChange={(e) => setNotesForTutor(e.target.value)}
+              className="w-full p-2.5 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900 sm:text-sm"
+              placeholder="Optional notes or guidance for tutors..."
+              disabled={isLoading}
             />
           </div>
 

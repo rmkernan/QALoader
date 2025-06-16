@@ -7,7 +7,8 @@
  * @updated June 14, 2025. 12:30 p.m. Eastern Time - Added Clear File button for resetting validation process when errors occur
  * @updated June 14, 2025. 1:12 p.m. Eastern Time - Fixed Step 2 empty content issue by adding user guidance instructions and progress indicators
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Fixed backend/frontend field name mismatch for validation workflow (is_valid vs isValid), complete Phase 3 implementation tested and verified
-@updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) with American timestamp generation and character validation
+ * @updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) with American timestamp generation and character validation
+ * @updated June 16, 2025. 1:42 p.m. Eastern Time - Changed page title from "Load Questions from Markdown" to "Question Loader" for consistency with navigation
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -361,7 +362,7 @@ const LoaderView: React.FC = () => {
 
   return (
     <div className="view-enter-active p-8">
-      <h2 className="text-3xl font-bold text-slate-900 mb-6">Load Questions from Markdown</h2>
+      <h2 className="text-3xl font-bold text-slate-900 mb-6">Question Loader</h2>
       <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
         {/* Step 1: Topic and File Selection */}
         <div className="mb-8">

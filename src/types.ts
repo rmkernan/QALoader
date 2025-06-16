@@ -9,6 +9,7 @@
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to AppContextType interface for data refresh functionality
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata fields (uploadedOn, uploadedBy, uploadNotes) to Question interface and filtering fields to Filters interface
  * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploadedOn field to Filters interface for timestamp filtering support
+ * @updated June 16, 2025. 1:42 p.m. Eastern Time - Added notesForTutor field to Question interface for tutor guidance support
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -41,6 +42,7 @@ export interface Question {
   type: string; // e.g., "Problem", "GenConcept", "Definition"
   questionText: string;
   answerText: string;
+  notesForTutor?: string; // Optional guidance or instructions for tutors
   uploadedOn?: string; // Short timestamp format: MM/DD/YY H:MMPM ET
   uploadedBy?: string; // Who uploaded the question (max 25 chars)
   uploadNotes?: string; // Notes about the upload (max 100 chars)

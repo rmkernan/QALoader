@@ -11,6 +11,7 @@
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Added fetchInitialData to context exports for Dashboard data refresh, fixed uploadMarkdownFile validation field transformation
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function signature to support optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * @updated June 14, 2025. 5:42 p.m. Eastern Time - Fixed data transformation for metadata fields (uploaded_on → uploadedOn, etc.) in fetchInitialData, updateQuestion, and addNewQuestion
+ * @updated June 16, 2025. 2:01 p.m. Eastern Time - Added missing notesForTutor field transformation in updateQuestion and addNewQuestion functions
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -119,6 +120,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         question_id?: string; 
         question?: string; 
         answer?: string;
+        notes_for_tutor?: string;
         uploaded_on?: string;
         uploaded_by?: string;
         upload_notes?: string;
@@ -127,6 +129,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         id: q.question_id || q.id,  // Use question_id from backend, fallback to id
         questionText: q.question || q.questionText,  // Backend uses 'question', frontend uses 'questionText'
         answerText: q.answer || q.answerText,  // Backend uses 'answer', frontend uses 'answerText'
+        notesForTutor: q.notes_for_tutor || q.notesForTutor,  // Backend uses snake_case
         uploadedOn: q.uploaded_on || q.uploadedOn,  // Backend uses snake_case
         uploadedBy: q.uploaded_by || q.uploadedBy,  // Backend uses snake_case
         uploadNotes: q.upload_notes || q.uploadNotes  // Backend uses snake_case
@@ -423,6 +426,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
       
       // Only include metadata fields if they have values
+      if (updatedQuestion.notesForTutor) backendQuestion.notes_for_tutor = updatedQuestion.notesForTutor;
       if (updatedQuestion.uploadedOn) backendQuestion.uploaded_on = updatedQuestion.uploadedOn;
       if (updatedQuestion.uploadedBy) backendQuestion.uploaded_by = updatedQuestion.uploadedBy;
       if (updatedQuestion.uploadNotes) backendQuestion.upload_notes = updatedQuestion.uploadNotes;
@@ -435,6 +439,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         id: savedQuestion.question_id || savedQuestion.id,
         questionText: savedQuestion.question || savedQuestion.questionText,
         answerText: savedQuestion.answer || savedQuestion.answerText,
+        notesForTutor: savedQuestion.notes_for_tutor || savedQuestion.notesForTutor,
         uploadedOn: savedQuestion.uploaded_on || savedQuestion.uploadedOn,
         uploadedBy: savedQuestion.uploaded_by || savedQuestion.uploadedBy,
         uploadNotes: savedQuestion.upload_notes || savedQuestion.uploadNotes
@@ -473,6 +478,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
       
       // Only include metadata fields if they have values
+      if (newQuestionData.notesForTutor) backendQuestion.notes_for_tutor = newQuestionData.notesForTutor;
       if (newQuestionData.uploadedOn) backendQuestion.uploaded_on = newQuestionData.uploadedOn;
       if (newQuestionData.uploadedBy) backendQuestion.uploaded_by = newQuestionData.uploadedBy;
       if (newQuestionData.uploadNotes) backendQuestion.upload_notes = newQuestionData.uploadNotes;
@@ -485,6 +491,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         id: actualNewQuestion.question_id || actualNewQuestion.id,
         questionText: actualNewQuestion.question || actualNewQuestion.questionText,
         answerText: actualNewQuestion.answer || actualNewQuestion.answerText,
+        notesForTutor: actualNewQuestion.notes_for_tutor || actualNewQuestion.notesForTutor,
         uploadedOn: actualNewQuestion.uploaded_on || actualNewQuestion.uploadedOn,
         uploadedBy: actualNewQuestion.uploaded_by || actualNewQuestion.uploadedBy,
         uploadNotes: actualNewQuestion.upload_notes || actualNewQuestion.uploadNotes

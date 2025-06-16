@@ -7,6 +7,7 @@
 @updated June 14, 2025. 3:54 p.m. Eastern Time - Removed created_at field references and fixed imports for consolidated models
 @updated June 14, 2025. 4:27 p.m. Eastern Time - Added short timestamp generation method and updated updated_at field to use consistent MM/DD/YY H:MMPM ET format
 @updated June 14, 2025. 5:42 p.m. Eastern Time - Enhanced get_activity_log to filter out system events (login, startup, search queries) from dashboard display
+@updated June 16, 2025. 2:14 PM Eastern Time - Fixed timezone handling and preserved metadata fields in update_question
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -62,16 +63,16 @@ class QuestionService:
     def _generate_short_timestamp(self) -> str:
         """
         @function _generate_short_timestamp
-        @description Generates current timestamp in short Eastern Time format
+        @description Generates current timestamp in short Eastern Time format with proper EST/EDT handling
         @returns: Formatted timestamp like "06/14/25 3:25PM ET"
         @example:
             timestamp = self._generate_short_timestamp()
             # Returns: "06/14/25 3:25PM ET"
         """
-        from datetime import timezone, timedelta
+        import pytz
         
-        # Get current time in Eastern Time
-        eastern = timezone(timedelta(hours=-5))  # EST/EDT handling
+        # Get current time in Eastern Time (handles EST/EDT automatically)
+        eastern = pytz.timezone('US/Eastern')
         now = datetime.now(eastern)
         
         month = f"{now.month:02d}"
@@ -406,7 +407,7 @@ class QuestionService:
         if not existing:
             return None
         
-        # Prepare update data
+        # Prepare update data - only update core fields, preserve metadata
         update_data = {
             'topic': question_data.topic,
             'subtopic': question_data.subtopic,
@@ -417,6 +418,9 @@ class QuestionService:
             'notes_for_tutor': question_data.notes_for_tutor,
             'updated_at': self._generate_short_timestamp()
         }
+        
+        # IMPORTANT: Do not overwrite existing upload metadata fields
+        # These fields should only be set during initial upload, not during edits
         
         # Update in database
         result = self.db.table('all_questions').update(update_data).eq('question_id', question_id).execute()

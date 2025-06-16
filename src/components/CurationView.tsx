@@ -7,6 +7,8 @@
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata filtering fields (uploaded_by, upload_notes) with second filter row UI and enhanced filtering logic
  * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploaded_on timestamp filtering field with correct date format placeholder (06/14/25 3:25PM ET)
  * @updated June 14, 2025. 5:42 p.m. Eastern Time - Enhanced uploadedOn filtering for date-only matching, added Refresh button, imported fetchInitialData from context
+ * @updated June 16, 2025. 1:42 p.m. Eastern Time - Changed page title from "Manage Content" to "Question Manager" for consistency with navigation
+ * @updated June 16, 2025. 2:14 PM Eastern Time - Added sortable column headers for Question ID, Topic, Subtopic, Difficulty, Type, Uploaded On, and Uploaded By
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -78,6 +80,9 @@ const CurationView: React.FC = () => {
     uploadNotes: "",
     uploadedOn: "",
   });
+  
+  // Sort state: { field: string, direction: 'asc' | 'desc' }
+  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
 
   // Effect to apply initial filters passed from other views (e.g., Dashboard)
   useEffect(() => {
@@ -102,7 +107,7 @@ const CurationView: React.FC = () => {
 
   // Memoized list of questions filtered based on current filter state
   const filteredQuestions = useMemo(() => {
-    return questions.filter(q => {
+    let filtered = questions.filter(q => {
       const topicMatch = filters.topic === "All Topics" || q.topic === filters.topic;
       const subtopicMatch = filters.subtopic === "All Subtopics" || q.subtopic === filters.subtopic;
       const difficultyMatch = filters.difficulty === "All Difficulties" || q.difficulty === filters.difficulty;
@@ -122,7 +127,27 @@ const CurationView: React.FC = () => {
                               (q.uploadedOn && q.uploadedOn.toLowerCase().startsWith(filters.uploadedOn.toLowerCase()));
       return topicMatch && subtopicMatch && difficultyMatch && typeMatch && searchMatch && uploadedByMatch && uploadNotesMatch && uploadedOnMatch;
     });
-  }, [questions, filters]);
+    
+    // Apply sorting if configured
+    if (sortConfig) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.field as keyof Question] || '';
+        let bValue = b[sortConfig.field as keyof Question] || '';
+        
+        // Convert to string for comparison
+        aValue = String(aValue);
+        bValue = String(bValue);
+        
+        if (sortConfig.direction === 'asc') {
+          return aValue.localeCompare(bValue);
+        } else {
+          return bValue.localeCompare(aValue);
+        }
+      });
+    }
+    
+    return filtered;
+  }, [questions, filters, sortConfig]);
 
   // Clear row selections when filters actually change (not just when filtered list rerenders)
   // Fixed bug: Previously cleared on every render due to filteredQuestions reference changing
@@ -171,6 +196,21 @@ const CurationView: React.FC = () => {
       }
       return newFilters;
     });
+  };
+
+  /**
+   * @function handleSort
+   * @description Handles column header clicks to sort the questions table
+   * @param {string} field - The field to sort by (e.g., 'id', 'topic', 'difficulty')
+   */
+  const handleSort = (field: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    
+    if (sortConfig && sortConfig.field === field && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    setSortConfig({ field, direction });
   };
   
   const handleAddNewQuestion = () => {
@@ -290,7 +330,7 @@ const CurationView: React.FC = () => {
   return (
     <div className="view-enter-active p-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-slate-900">Manage Content</h2>
+        <h2 className="text-3xl font-bold text-slate-900">Question Manager</h2>
         <button 
           onClick={handleAddNewQuestion}
           className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 flex items-center gap-2 transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -470,14 +510,28 @@ const CurationView: React.FC = () => {
                       disabled={filteredQuestions.length === 0}
                     />
                   </th>
-                  <th className="px-6 py-3">Question ID</th>
-                  <th className="px-6 py-3">Topic</th>
-                  <th className="px-6 py-3">Subtopic</th>
-                  <th className="px-6 py-3">Difficulty</th>
-                  <th className="px-6 py-3">Type</th>
+                  <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('id')}>
+                    Question ID {sortConfig?.field === 'id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('topic')}>
+                    Topic {sortConfig?.field === 'topic' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('subtopic')}>
+                    Subtopic {sortConfig?.field === 'subtopic' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('difficulty')}>
+                    Difficulty {sortConfig?.field === 'difficulty' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('type')}>
+                    Type {sortConfig?.field === 'type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th className="px-6 py-3">Question</th>
-                  <th className="px-4 py-3">Uploaded On</th>
-                  <th className="px-4 py-3">Uploaded By</th>
+                  <th className="px-4 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('uploadedOn')}>
+                    Uploaded On {sortConfig?.field === 'uploadedOn' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-4 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('uploadedBy')}>
+                    Uploaded By {sortConfig?.field === 'uploadedBy' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th className="px-4 py-3">Upload Notes</th>
                   <th className="px-6 py-3 text-center">Actions</th>
                 </tr>
@@ -568,7 +622,11 @@ const CurationView: React.FC = () => {
         isDuplicateMode={isDuplicateMode} 
       />
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal 
+          Note: This is an inline modal pattern - the modal is defined directly in the component
+          rather than as a separate component. This is appropriate for simple, single-use modals
+          that don't need to be reused elsewhere. The modal uses conditional rendering based on
+          isDeleteConfirmModalOpen state. */}
       {isDeleteConfirmModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 modal-overlay">
           <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-xl modal-content">
@@ -602,7 +660,10 @@ const CurationView: React.FC = () => {
         </div>
       )}
 
-      {/* Bulk Delete Confirmation Modal */}
+      {/* Bulk Delete Confirmation Modal 
+          Note: Another inline modal for bulk operations. This pattern keeps related UI logic
+          together in the same component. For more complex modals or those used across multiple
+          components, a separate modal component (like QuestionModal) would be more appropriate. */}
       {isBulkDeleteConfirmModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 modal-overlay">
           <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-xl modal-content">
