@@ -10,6 +10,7 @@
 @updated June 19, 2025. 2:12 PM Eastern Time - Removed topic parameter from parse_markdown_to_questions - topics extracted from content
 @updated June 19, 2025. 4:00 PM Eastern Time - Updated valid question types to prioritize Question and Problem types
 @updated June 19, 2025. 4:15 PM Eastern Time - Made topic required in question parsing - no more Unknown topic defaults
+@updated June 19, 2025. 4:43 PM Eastern Time - Fixed missing topic tracking in _extract_question_blocks causing validation errors
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -339,6 +340,7 @@ class ValidationService:
         blocks = []
         lines = content.split('\n')
         
+        current_topic = None
         current_subtopic = "Unknown"
         current_difficulty = None
         current_type = None
@@ -354,6 +356,16 @@ class ValidationService:
         
         for line in lines:
             line_stripped = line.strip()
+            
+            # Track topic changes
+            topic_match = re.match(r'^# Topic: (.+)$', line)
+            if topic_match:
+                # Save current block before changing topic
+                save_current_block()
+                current_topic = topic_match.group(1).strip()
+                in_question_block = False
+                current_question_block = []
+                continue
             
             # Track subtopic changes
             subtopic_match = re.match(r'^## (?:Subtopic.*?:\s*)?(.+)$', line)
@@ -391,9 +403,10 @@ class ValidationService:
                 save_current_block()
                 
                 # Start new question block if we have context
-                if current_difficulty and current_type:
+                if current_topic and current_difficulty and current_type:
                     in_question_block = True
                     current_question_block = [
+                        f"# Topic: {current_topic}",
                         f"## Subtopic: {current_subtopic}",
                         f"### Difficulty: {current_difficulty}",
                         f"#### Type: {current_type}",
