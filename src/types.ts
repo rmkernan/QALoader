@@ -10,7 +10,6 @@
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata fields (uploadedOn, uploadedBy, uploadNotes) to Question interface and filtering fields to Filters interface
  * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploadedOn field to Filters interface for timestamp filtering support
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Added notesForTutor field to Question interface for tutor guidance support
- * @updated June 19, 2025. 4:56 PM Eastern Time - Added duplicate detection types: DuplicateCheckResult and SimilarQuestion interfaces
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -193,44 +192,6 @@ export interface Filters {
   uploadedBy: string;
   uploadNotes: string;
   uploadedOn: string;
-}
-
-/**
- * @interface SimilarQuestion
- * @description Represents a similar question found during duplicate checking
- * @field {string} id - Question ID in the database
- * @field {string} question - The question text
- * @field {string} topic - Topic of the question
- * @field {string} subtopic - Subtopic of the question
- * @field {string} difficulty - Difficulty level
- * @field {string} type - Question type
- * @field {number} similarity - Similarity percentage (0-100)
- */
-export interface SimilarQuestion {
-  id: string;
-  question: string;
-  topic: string;
-  subtopic: string;
-  difficulty: string;
-  type: string;
-  similarity: number;
-}
-
-/**
- * @interface DuplicateCheckResult
- * @description Result of duplicate checking operation
- * @field {Record<string, string>} exactDuplicates - Map of question text to existing question ID
- * @field {Record<string, SimilarQuestion[]>} similarQuestions - Map of question text to similar questions
- * @field {number} totalQuestions - Total number of questions checked
- * @field {number} duplicatesFound - Number of duplicates found (exact + similar)
- * @field {string[]} validationWarnings - Any warnings from validation
- */
-export interface DuplicateCheckResult {
-  exactDuplicates: Record<string, string>;
-  similarQuestions: Record<string, SimilarQuestion[]>;
-  totalQuestions: number;
-  duplicatesFound: number;
-  validationWarnings?: string[];
 }
 
 // For environment variables, especially API_KEY

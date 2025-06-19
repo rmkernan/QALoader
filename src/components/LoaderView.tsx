@@ -10,7 +10,6 @@
  * @updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) with American timestamp generation and character validation
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Changed page title from "Load Questions from Markdown" to "Question Loader" for consistency with navigation
  * @updated June 19, 2025. 1:48 PM Eastern Time - Removed topic selection step, topics now extracted from markdown file content
- * @updated June 19, 2025. 4:59 PM Eastern Time - Added duplicate detection step before upload with similar question display
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -28,9 +27,9 @@
  */
 import React, { useState, ChangeEvent, useEffect, useRef, DragEvent } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ParsedQuestionFromAI, ValidationReport, ValidationResult, BatchUploadResult, DuplicateCheckResult } from '../types';
+import { ParsedQuestionFromAI, ValidationReport, ValidationResult, BatchUploadResult } from '../types';
 import { validateMarkdownFormat, getValidationSummary } from '../services/validation';
-import { validateMarkdownFile as validateMarkdownFileAPI, checkForDuplicates } from '../services/api';
+import { validateMarkdownFile as validateMarkdownFileAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { UploadIcon } from './icons/IconComponents'; // Changed from CloudUploadIcon
 
@@ -51,11 +50,6 @@ const LoaderView: React.FC = () => {
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [_uploadResult, setUploadResult] = useState<BatchUploadResult | null>(null);
   const [_showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
-  
-  // Duplicate check state
-  const [duplicateCheckStatus, setDuplicateCheckStatus] = useState<'idle' | 'checking' | 'complete'>('idle');
-  const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateCheckResult | null>(null);
-  const [showDuplicateDetails, setShowDuplicateDetails] = useState<boolean>(false);
   
   // Legacy state for backward compatibility
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -177,10 +171,6 @@ const LoaderView: React.FC = () => {
     setValidationReport(null);
     setIsConfirmationModalOpen(false);
     setConfirmationInput('');
-    // Reset duplicate check state
-    setDuplicateCheckStatus('idle');
-    setDuplicateCheckResult(null);
-    setShowDuplicateDetails(false);
     // Reset metadata fields
     setUploadedOn(generateShortTimestamp());
     setUploadedBy('');
@@ -281,46 +271,10 @@ const LoaderView: React.FC = () => {
     }
   };
 
-  const handleCheckDuplicates = async () => {
-    if (!file || !validationReport?.success) {
-      toast.error("Please validate content before checking for duplicates.");
-      return;
-    }
-
-    setDuplicateCheckStatus('checking');
-    setDuplicateCheckResult(null);
-
-    try {
-      const result = await checkForDuplicates(file, 0.85);
-      setDuplicateCheckResult(result);
-      setDuplicateCheckStatus('complete');
-      
-      if (result.duplicatesFound > 0) {
-        toast.warning(`Found ${result.duplicatesFound} potential duplicates. Please review before uploading.`);
-        setShowDuplicateDetails(true);
-      } else {
-        toast.success("No duplicates found! You can proceed with upload.");
-      }
-    } catch (error) {
-      console.error("Duplicate check failed:", error);
-      setDuplicateCheckStatus('idle');
-      toast.error("Failed to check for duplicates. You can still proceed with upload if needed.");
-    }
-  };
-
   const openConfirmationModal = () => {
     if (!validationReport?.topics || validationReport.topics.length === 0) {
       toast.error("Cannot open confirmation: No topics found in validation report.");
       return;
-    }
-    // If duplicates were found, show a warning
-    if (duplicateCheckResult && duplicateCheckResult.duplicatesFound > 0) {
-      const proceed = window.confirm(
-        `WARNING: ${duplicateCheckResult.duplicatesFound} duplicate(s) detected. Are you sure you want to proceed with the upload?`
-      );
-      if (!proceed) {
-        return;
-      }
     }
     setIsConfirmationModalOpen(true);
     setConfirmationInput(''); 
@@ -362,10 +316,6 @@ const LoaderView: React.FC = () => {
       if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
       setConfirmationInput('');
       setValidationStatus('pending');
-      // Reset duplicate check state
-      setDuplicateCheckStatus('idle');
-      setDuplicateCheckResult(null);
-      setShowDuplicateDetails(false);
       // Reset metadata fields for next upload
       setUploadedOn(generateShortTimestamp());
       setUploadedBy('');
@@ -675,124 +625,10 @@ const LoaderView: React.FC = () => {
               </>
             )}
             
-            {/* Step 3: Check for Duplicates (shown after successful content validation) */}
-            {validationReport?.success && (
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 3: Check for Duplicates</h3>
-                
-                {duplicateCheckStatus === 'idle' && (
-                  <div className="mb-4">
-                    <p className="text-sm text-slate-600 mb-4">
-                      Before uploading, check if any of these questions already exist in the database.
-                    </p>
-                    <button
-                      onClick={handleCheckDuplicates}
-                      className="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-150 ease-in-out"
-                      disabled={duplicateCheckStatus === 'checking'}
-                    >
-                      Check for Duplicates
-                    </button>
-                  </div>
-                )}
-                
-                {duplicateCheckStatus === 'checking' && (
-                  <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
-                      <span className="text-indigo-800 font-medium">Checking for duplicate questions...</span>
-                    </div>
-                  </div>
-                )}
-                
-                {duplicateCheckStatus === 'complete' && duplicateCheckResult && (
-                  <div className="mb-6">
-                    <div className={`mb-4 p-4 border rounded-md ${
-                      duplicateCheckResult.duplicatesFound > 0 
-                        ? 'bg-yellow-50 border-yellow-300' 
-                        : 'bg-green-50 border-green-300'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className={`font-semibold ${
-                            duplicateCheckResult.duplicatesFound > 0 ? 'text-yellow-800' : 'text-green-800'
-                          }`}>
-                            {duplicateCheckResult.duplicatesFound > 0 
-                              ? `Found ${duplicateCheckResult.duplicatesFound} potential duplicate(s)` 
-                              : 'No duplicates found!'
-                            }
-                          </p>
-                          {duplicateCheckResult.duplicatesFound > 0 && (
-                            <p className="text-sm text-yellow-700 mt-1">
-                              Review the duplicates below before proceeding with upload.
-                            </p>
-                          )}
-                        </div>
-                        {duplicateCheckResult.duplicatesFound > 0 && (
-                          <button
-                            onClick={() => setShowDuplicateDetails(!showDuplicateDetails)}
-                            className="text-sm text-yellow-700 hover:text-yellow-800 underline"
-                          >
-                            {showDuplicateDetails ? 'Hide Details' : 'Show Details'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Duplicate Details */}
-                    {showDuplicateDetails && duplicateCheckResult.duplicatesFound > 0 && (
-                      <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {/* Exact Duplicates */}
-                        {Object.keys(duplicateCheckResult.exactDuplicates).length > 0 && (
-                          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <h4 className="font-semibold text-red-800 mb-2">Exact Duplicates:</h4>
-                            <ul className="space-y-2 text-sm">
-                              {Object.entries(duplicateCheckResult.exactDuplicates).map(([question, id]) => (
-                                <li key={id} className="flex flex-col space-y-1">
-                                  <span className="text-red-700 font-medium">Question: {question}</span>
-                                  <span className="text-red-600">Existing ID: {id}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        {/* Similar Questions */}
-                        {Object.keys(duplicateCheckResult.similarQuestions).length > 0 && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                            <h4 className="font-semibold text-yellow-800 mb-2">Similar Questions:</h4>
-                            <div className="space-y-4">
-                              {Object.entries(duplicateCheckResult.similarQuestions).map(([newQuestion, matches]) => (
-                                <div key={newQuestion} className="border-l-4 border-yellow-400 pl-4">
-                                  <p className="font-medium text-yellow-900 mb-2">New Question: {newQuestion}</p>
-                                  <ul className="space-y-2 ml-4">
-                                    {matches.map((match) => (
-                                      <li key={match.id} className="text-sm">
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-yellow-700">{match.question}</span>
-                                          <span className="text-yellow-600 font-medium">{match.similarity}% similar</span>
-                                        </div>
-                                        <div className="text-xs text-yellow-600 mt-1">
-                                          ID: {match.id} | {match.topic} - {match.subtopic} ({match.difficulty})
-                                        </div>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Step 4: Load to Database (shown if analysis successful) */}
+            {/* Step 3: Load to Database (shown if analysis successful) */}
             {canLoadToDB && (
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Step 4: Load to Database</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Step 3: Load to Database</h3>
                 <p className="text-sm text-slate-600 mb-4">
                   This will delete all existing questions for the topic '{validationReport?.topic}' and replace them with the {validationReport?.parsedCount} new questions. 
                   This action cannot be undone.

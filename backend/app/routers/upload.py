@@ -6,7 +6,6 @@
 @updated June 14, 2025. 2:18 p.m. Eastern Time - Added support for upload metadata fields (uploaded_on, uploaded_by, upload_notes)
 @updated June 14, 2025. 4:46 p.m. Eastern Time - CRITICAL FIX: Added missing updated_at field to database insertion, resolving zero upload issue
 @updated June 19, 2025. 2:08 PM Eastern Time - Removed topic parameter from validation and upload endpoints - topics extracted from file content
-@updated June 19, 2025. 4:55 PM Eastern Time - Added /api/check-duplicates endpoint for pre-upload duplicate detection
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -37,7 +36,6 @@ from typing import List, Dict, Any
 from app.database import supabase
 from app.routers.auth import get_current_user
 from app.services.validation_service import validation_service, ValidationResult, BatchUploadResult
-from app.services.duplicate_service import DuplicateService
 from app.utils.id_generator import id_generator
 from app.models.question import (
     QuestionCreate, 
@@ -160,107 +158,6 @@ async def validate_markdown_file(
         raise HTTPException(status_code=400, detail="File encoding error. Please ensure file is UTF-8 encoded.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
-    finally:
-        # Reset file position for potential reuse
-        await file.seek(0)
-
-
-@router.post("/check-duplicates")
-async def check_duplicates(
-    file: UploadFile = File(..., description="Markdown file to check for duplicates"),
-    similarity_threshold: float = Form(0.85, description="Similarity threshold for fuzzy matching (0-1)"),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    @api POST /api/check-duplicates
-    @description Checks for duplicate questions in the database before upload
-    @param file: Uploaded markdown file containing questions with embedded topics
-    @param similarity_threshold: Minimum similarity score (0-1) to consider as duplicate
-    @returns: Dictionary containing exact and similar duplicate matches
-    @authentication: Required JWT token in Authorization header
-    @errors:
-        - 400: Invalid file format or validation errors
-        - 401: Invalid or missing JWT token
-        - 413: File too large
-        - 500: Server processing error
-    @example:
-        # Request
-        POST /api/check-duplicates
-        Content-Type: multipart/form-data
-        Authorization: Bearer <jwt_token>
-        
-        file=<markdown_file>&similarity_threshold=0.85
-        
-        # Response
-        {
-            "exact_duplicates": {
-                "What is NPV?": "ACC-INV-B-Q-001"
-            },
-            "similar_questions": {
-                "How do you calculate IRR?": [
-                    {
-                        "id": "ACC-INV-A-Q-002",
-                        "question": "What's the formula for IRR?",
-                        "similarity": 87.5
-                    }
-                ]
-            },
-            "total_questions": 10,
-            "duplicates_found": 2
-        }
-    """
-    try:
-        # Validate file constraints
-        await validate_file(file)
-        
-        # Read file content
-        content = await file.read()
-        content_str = content.decode('utf-8')
-        
-        # Parse and validate questions
-        questions, validation_result = validation_service.parse_markdown_to_questions(content_str)
-        
-        # If validation failed, return validation errors
-        if not validation_result.is_valid:
-            raise HTTPException(
-                status_code=400, 
-                detail={
-                    "message": "File validation failed",
-                    "errors": validation_result.errors,
-                    "warnings": validation_result.warnings
-                }
-            )
-        
-        # Check for duplicates using the duplicate service
-        duplicate_service = DuplicateService(supabase)
-        
-        # Check for exact duplicates
-        exact_duplicates = duplicate_service.check_exact_duplicates(questions)
-        
-        # Check for similar questions
-        similar_questions = duplicate_service.check_similar_questions(
-            questions, 
-            similarity_threshold
-        )
-        
-        # Calculate summary statistics
-        total_questions = len(questions)
-        duplicates_found = len(exact_duplicates) + len(similar_questions)
-        
-        return {
-            "exact_duplicates": exact_duplicates,
-            "similar_questions": similar_questions,
-            "total_questions": total_questions,
-            "duplicates_found": duplicates_found,
-            "validation_warnings": validation_result.warnings
-        }
-        
-    except HTTPException:
-        raise
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File encoding error. Please ensure file is UTF-8 encoded.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Duplicate check error: {str(e)}")
     finally:
         # Reset file position for potential reuse
         await file.seek(0)

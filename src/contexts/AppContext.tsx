@@ -419,7 +419,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     try {
       // Transform frontend format to backend format
-      const backendQuestion: Record<string, string | undefined> = {
+      const backendQuestion: any = {
         question_id: updatedQuestion.id,
         topic: updatedQuestion.topic,
         subtopic: updatedQuestion.subtopic,
@@ -471,7 +471,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addNewQuestion = useCallback(async (newQuestionData: Omit<Question, 'id'>) => {
     setIsContextLoading(true);
     try {
-      const actualNewQuestion = await createQuestionAPI(newQuestionData);
+      // Transform frontend format to backend format
+      const backendQuestion: any = {
+        topic: newQuestionData.topic,
+        subtopic: newQuestionData.subtopic,
+        difficulty: newQuestionData.difficulty,
+        type: newQuestionData.type,
+        question: newQuestionData.questionText,
+        answer: newQuestionData.answerText
+      };
+      
+      // Only include metadata fields if they have values
+      if (newQuestionData.notesForTutor) backendQuestion.notes_for_tutor = newQuestionData.notesForTutor;
+      if (newQuestionData.uploadedOn) backendQuestion.uploaded_on = newQuestionData.uploadedOn;
+      if (newQuestionData.uploadedBy) backendQuestion.uploaded_by = newQuestionData.uploadedBy;
+      if (newQuestionData.uploadNotes) backendQuestion.upload_notes = newQuestionData.uploadNotes;
+      
+      const actualNewQuestion = await createQuestionAPI(backendQuestion);
       
       // Transform backend response to frontend format
       const transformedQuestion = {
