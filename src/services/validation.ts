@@ -2,6 +2,8 @@
  * @file src/services/validation.ts
  * @description Client-side validation service for markdown file structure and content validation
  * @created June 14, 2025. 4:05 p.m. Eastern Time
+ * @updated June 19, 2025. 12:03 PM Eastern Time - Added 'Question' to ALLOWED_QUESTION_TYPES to match backend validation
+ * @updated June 19, 2025. 12:15 PM Eastern Time - Fixed regex patterns to handle indented content and match backend validation
  * 
  * @architectural-context
  * Layer: Frontend Service Layer (validation logic)
@@ -41,8 +43,8 @@ const MARKDOWN_PATTERNS = {
     subtopic: /^## Subtopic.*?: (.+)$/m,
     difficulty: /^### Difficulty: (Basic|Advanced)$/m,
     type: /^#### Type: (.+)$/m,
-    question: /^\*\*Question:\*\* (.+)$/m,
-    answer: /^\*\*Brief Answer:\*\*/m  // Just check for the header, not the content on same line
+    question: /^\s*\*\*Question:\*\* (.+)$/m,  // Allow leading whitespace
+    answer: /^\s*\*\*Answer:\*\*/m  // Match backend pattern - use "Answer" not "Brief Answer" and allow leading whitespace
 };
 
 /**
@@ -54,7 +56,8 @@ const ALLOWED_QUESTION_TYPES = [
     'Problem', 
     'GenConcept', 
     'Calculation', 
-    'Analysis'
+    'Analysis',
+    'Question'
 ];
 
 /**
@@ -262,7 +265,7 @@ const validateQuestionBlocks = (content: string, _lines: string[]): {
 
         // Check for required answer pattern
         if (!MARKDOWN_PATTERNS.answer.test(block.content)) {
-            errors.push(`Question block ${blockNumber}: Missing "**Brief Answer:** [content]" format`);
+            errors.push(`Question block ${blockNumber}: Missing "**Answer:** [content]" format`);
         }
 
         // Validate question type

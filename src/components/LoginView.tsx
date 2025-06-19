@@ -2,6 +2,7 @@
  * @file components/LoginView.tsx
  * @description Provides the user interface for authentication with support for both username/password login and password reset flow.
  * @created June 13, 2025. 12:03 p.m. Eastern Time
+ * @updated June 16, 2025. 8:51 PM Eastern Time - Added test user selector for development mode
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page - Authentication)
@@ -18,11 +19,20 @@
  * Auth Requirements: Public component - handles unauthenticated users
  * Security: Supports both real backend authentication and mock fallback, includes password reset flow
  */
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { APP_TITLE } from '../constants';
 import { AppLogoIcon } from './icons/IconComponents';
 import { PasswordResetView } from './PasswordResetView';
+
+// Test user configuration
+const TEST_USERS = [
+  { email: 'testuser1@dev.com', username: 'testuser1', label: 'Test User 1' },
+  { email: 'testuser2@dev.com', username: 'testuser2', label: 'Test User 2' },
+  { email: 'testuser3@dev.com', username: 'testuser3', label: 'Test User 3' }
+];
+
+const TEST_USER_PASSWORD = '12345678aA1';
 
 /**
  * @component LoginView
@@ -42,6 +52,27 @@ const LoginView: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPasswordReset, setShowPasswordReset] = useState<boolean>(false);
   const [useAdvancedAuth, setUseAdvancedAuth] = useState<boolean>(false);
+  const [enableTestUsers, setEnableTestUsers] = useState<boolean>(false);
+  const [selectedTestUser, setSelectedTestUser] = useState<string>('');
+
+  // Check if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                       window.location.hostname === 'localhost' ||
+                       window.location.hostname === '127.0.0.1';
+
+  /**
+   * @function handleTestUserSelect
+   * @description Populates form fields when a test user is selected
+   * @param {string} userEmail - Email of the selected test user
+   */
+  const handleTestUserSelect = (userEmail: string) => {
+    const user = TEST_USERS.find(u => u.email === userEmail);
+    if (user) {
+      setUsername(user.email); // Can use either email or username to login
+      setPassword(TEST_USER_PASSWORD);
+      setSelectedTestUser(userEmail);
+    }
+  };
 
   /**
    * @function handleSubmit
@@ -79,6 +110,15 @@ const LoginView: React.FC = () => {
   const handlePasswordResetBack = () => {
     setShowPasswordReset(false);
   };
+
+  // Reset test user selection when toggling test users off
+  useEffect(() => {
+    if (!enableTestUsers) {
+      setSelectedTestUser('');
+      setUsername('');
+      setPassword('');
+    }
+  }, [enableTestUsers]);
 
   // Show password reset view
   if (showPasswordReset) {
@@ -122,11 +162,49 @@ const LoginView: React.FC = () => {
             </button>
           </div>
 
+          {/* Test User Toggle - Only show in development mode with backend auth */}
+          {isDevelopment && useAdvancedAuth && (
+            <div className="border-t pt-4">
+              <label className="flex items-center space-x-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={enableTestUsers}
+                  onChange={(e) => setEnableTestUsers(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <span>Enable Test User Login</span>
+              </label>
+            </div>
+          )}
+
+          {/* Test User Dropdown */}
+          {enableTestUsers && useAdvancedAuth && (
+            <div>
+              <label htmlFor="test-user" className="block text-sm font-medium text-slate-700 mb-1">
+                Select Test User
+              </label>
+              <select
+                id="test-user"
+                value={selectedTestUser}
+                onChange={(e) => handleTestUserSelect(e.target.value)}
+                className="block w-full px-4 py-3 border border-slate-300 rounded-md shadow-sm bg-white text-slate-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                disabled={isLoading || isContextLoading}
+              >
+                <option value="">Choose a test user...</option>
+                {TEST_USERS.map(user => (
+                  <option key={user.email} value={user.email}>
+                    {user.label} ({user.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Username field - only shown in advanced mode */}
           {useAdvancedAuth && (
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-slate-700 sr-only">
-                Username
+              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
+                Username or Email
               </label>
               <input
                 id="username"
@@ -137,7 +215,7 @@ const LoginView: React.FC = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="appearance-none block w-full px-4 py-3 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white text-slate-900"
-                placeholder="Username (admin)"
+                placeholder="Enter username or email"
                 disabled={isLoading || isContextLoading}
               />
             </div>
@@ -145,7 +223,7 @@ const LoginView: React.FC = () => {
 
           {/* Password field */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700 sr-only">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
               Password
             </label>
             <input
@@ -158,7 +236,7 @@ const LoginView: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="appearance-none block w-full px-4 py-3 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white text-slate-900"
-              placeholder="Password"
+              placeholder="Enter password"
               disabled={isLoading || isContextLoading}
               aria-describedby="password-hint"
             />
@@ -194,8 +272,14 @@ const LoginView: React.FC = () => {
         <div id="password-hint" className="mt-6 text-center text-xs text-slate-400 space-y-1">
           {useAdvancedAuth ? (
             <>
-              <p>Backend Auth: admin / your_admin_password</p>
-              <p>Password reset available for admin@qaloader.com</p>
+              {enableTestUsers ? (
+                <p>Test users all use password: {TEST_USER_PASSWORD}</p>
+              ) : (
+                <>
+                  <p>Use your assigned credentials to log in</p>
+                  <p>Password reset available for registered emails</p>
+                </>
+              )}
             </>
           ) : (
             <p>Simple Login: password123</p>

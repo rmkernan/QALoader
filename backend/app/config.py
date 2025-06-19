@@ -3,6 +3,8 @@
 @description Application configuration management using Pydantic settings. Loads environment variables from .env file and provides typed configuration access.
 @created 2025.06.09 3:26 PM ET
 @updated 2025.06.09 4:09 PM ET - Added documentation headers and security documentation for environment variables
+@updated June 16, 2025. 8:54 PM Eastern Time - Removed ADMIN_PASSWORD as authentication now uses database
+@updated June 19, 2025. 11:25 AM Eastern Time - Added extra ignore to allow environment variables used by external scripts
 
 @architectural-context
 Layer: Configuration Management
@@ -47,11 +49,9 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
 
     # Authentication Configuration
-    # ADMIN_PASSWORD: Plain text password for admin login (temporary implementation - should use hashing)
     # JWT_SECRET_KEY: Secret key for signing JWT tokens (CRITICAL - keep secure, rotate regularly)
     # JWT_ALGORITHM: Algorithm for JWT token signing (HS256 recommended)
     # JWT_ACCESS_TOKEN_EXPIRE_MINUTES: Token expiration time in minutes
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "password123")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-secret-key-here")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
@@ -60,6 +60,8 @@ class Settings(BaseSettings):
         env_file = ".env"
         # SECURITY: Prevent case sensitivity issues that could lead to configuration errors
         case_sensitive = True
+        # Allow extra environment variables (used by external scripts like backup_supabase.sh)
+        extra = "ignore"
 
 
 # Global settings instance

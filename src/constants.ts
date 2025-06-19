@@ -4,6 +4,8 @@
  * @created 2025.06.08 9:00 PM ET
  * @updated 2025.06.09 1:22 PM ET - Applied comprehensive documentation standards.
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Updated navigation labels to Question Loader and Question Manager for consistency
+ * @updated June 19, 2025. 12:03 PM Eastern Time - Added standard backend question types to align with validation service
+ * @updated June 19, 2025. 12:11 PM Eastern Time - Removed unused GEMINI_MODEL_TEXT constant
  * 
  * @architectural-context
  * Layer: Configuration
@@ -32,7 +34,7 @@ export const INITIAL_TOPICS: string[] = [
 ];
 
 export const DIFFICULTIES: string[] = ["Basic", "Advanced", "Expert", "Unknown"];
-export const QUESTION_TYPES: string[] = ["Problem", "GenConcept", "Definition", "Theory", "Case Study", "Unknown"];
+export const QUESTION_TYPES: string[] = ["Definition", "Problem", "GenConcept", "Calculation", "Analysis", "Question"];
 
 
 export const NAV_ITEMS = [
@@ -40,8 +42,6 @@ export const NAV_ITEMS = [
   { id: View.LOADER, label: "Question Loader", icon: 'M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z' },
   { id: View.CURATION, label: "Question Manager", icon: 'M10 3.75a2 2 0 100 4 2 2 0 000-4zM4.167 6.375a.625.625 0 01.625-.625h10.416a.625.625 0 010 1.25H4.792a.625.625 0 01-.625-.625zM4.167 11.375a.625.625 0 01.625-.625h10.416a.625.625 0 010 1.25H4.792a.625.625 0 01-.625-.625zM10 13.75a2 2 0 100 4 2 2 0 000-4z' },
 ];
-
-export const GEMINI_MODEL_TEXT = 'gemini-2.5-flash-preview-04-17';
 
 export const SESSION_TOKEN_KEY = 'qnaLoaderSessionToken';
 export const MOCK_PASSWORD = 'password123'; // For prototype only

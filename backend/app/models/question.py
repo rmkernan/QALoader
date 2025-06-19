@@ -9,6 +9,7 @@
 @updated June 14, 2025. 3:36 p.m. Eastern Time - Removed created_at field and updated timestamp format to MM/DD/YY H:MMPM ET for uploaded_on and updated_at
 @updated June 14, 2025. 4:05 p.m. Eastern Time - Fixed uploaded_on field max_length constraint to properly support short timestamp format (MM/DD/YY H:MMPM ET)
 @updated June 14, 2025. 4:27 p.m. Eastern Time - Changed updated_at field from datetime to string with short timestamp format for consistency with uploaded_on
+@updated June 19, 2025. 12:01 PM Eastern Time - Added 'Question' to valid type values in both QuestionBase and ParsedQuestionFromAI validators
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -81,7 +82,7 @@ class QuestionBase(BaseModel):
         @returns: The validated type value
         @raises ValueError: If type is not in allowed values
         """
-        allowed = ["Definition", "Problem", "GenConcept", "Calculation", "Analysis"]
+        allowed = ["Definition", "Problem", "GenConcept", "Calculation", "Analysis", "Question"]
         if v not in allowed:
             raise ValueError(f"Type must be one of: {allowed}")
         return v
@@ -196,7 +197,7 @@ class ParsedQuestionFromAI(BaseModel):
         @returns: The validated type value
         @raises ValueError: If type is not in allowed values
         """
-        allowed = ["Definition", "Problem", "GenConcept", "Calculation", "Analysis"]
+        allowed = ["Definition", "Problem", "GenConcept", "Calculation", "Analysis", "Question"]
         if v not in allowed:
             raise ValueError(f"Type must be one of: {allowed}")
         return v

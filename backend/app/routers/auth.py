@@ -2,6 +2,7 @@
 @file backend/app/routers/auth.py
 @description Authentication endpoints for Q&A Loader. Handles login and JWT token management for secure API access.
 @created June 9, 2025 at unknown time
+@updated June 16, 2025. 8:35 PM Eastern Time - Updated to support database authentication with username/email login
 
 @architectural-context
 Layer: API Router (FastAPI endpoints)
@@ -11,17 +12,17 @@ Pattern: RESTful API with JWT authentication and standardized error responses
 @workflow-context
 User Journey: User authentication, secure API access, and password reset flow
 Sequence Position: Auth endpoints called for login, token verification, and password reset operations
-Inputs: Login credentials, reset requests, reset tokens from frontend
-Outputs: JWT tokens for authenticated API requests, password reset confirmations
+Inputs: Login credentials (username or email), reset requests, reset tokens from frontend
+Outputs: JWT tokens with user info for authenticated API requests, password reset confirmations
 
 @authentication-context
 Auth Requirements: Mixed public/protected endpoints - login and reset are public, verify requires JWT
-Security: Password validation, JWT token generation, reset token validation, rate limiting considerations
+Security: Password validation against database, JWT token generation with user data, reset token validation
 API Security: Reset endpoints designed to prevent email enumeration attacks, always return success responses
 
 @database-context
-Tables: No direct database access - delegates to auth service
-Operations: Authentication only, no database CRUD operations
+Tables: No direct database access - delegates to auth service which queries users table
+Operations: Authentication only, no direct database CRUD operations
 Transactions: N/A - stateless authentication
 """
 
@@ -52,16 +53,21 @@ security = HTTPBearer()
 async def login(login_data: LoginRequest):
     """
     @function login
-    @description Authenticates user with username/password and returns JWT token for API access
-    @param login_data: LoginRequest containing username and password
+    @description Authenticates user with username/email and password, returns JWT token for API access
+    @param login_data: LoginRequest containing username (or email) and password
     @returns: LoginResponse with JWT token and user info
     @raises HTTPException: 401 if credentials are invalid
     @example:
-        # POST /api/login
-        # Body: {"username": "admin", "password": "password123"}
-        # Response: {"access_token": "eyJ...", "token_type": "bearer", "username": "admin"}
+        # POST /api/login with username
+        # Body: {"username": "testuser1", "password": "12345678aA1"}
+        # 
+        # POST /api/login with email
+        # Body: {"username": "testuser1@dev.com", "password": "12345678aA1"}
+        # 
+        # Response: {"access_token": "eyJ...", "token_type": "bearer", "username": "testuser1"}
     """
-    user = authenticate_user(login_data.username, login_data.password)
+    # Authenticate user (accepts username or email)
+    user = await authenticate_user(login_data.username, login_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,7 +75,13 @@ async def login(login_data: LoginRequest):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token(data={"sub": user})
+    # Create token with username and email
+    access_token = create_access_token(data={
+        "sub": user["username"],
+        "email": user["email"],
+        "user_id": str(user["id"]),
+        "full_name": user.get("full_name", "")
+    })
     
     # Log successful login
     try:
@@ -77,20 +89,23 @@ async def login(login_data: LoginRequest):
         from app.services.question_service import QuestionService
         from datetime import datetime
         
-        question_service = QuestionService(supabase)
-        await question_service.log_system_event('User Session', {
-            'description': f'User login successful',
-            'username': user,
-            'timestamp': datetime.now().isoformat(),
-            'ip_address': 'localhost'  # In production, get from request
-        })
+        if supabase:
+            question_service = QuestionService(supabase)
+            await question_service.log_system_event('User Session', {
+                'description': f'User login successful',
+                'username': user["username"],
+                'email': user["email"],
+                'is_test_user': user.get("is_test_user", False),
+                'timestamp': datetime.now().isoformat(),
+                'ip_address': 'localhost'  # In production, get from request
+            })
     except Exception as e:
         print(f"Failed to log login event: {e}")
     
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        username=user,
+        username=user["username"],
         expires_in=28800  # 8 hours in seconds
     )
 

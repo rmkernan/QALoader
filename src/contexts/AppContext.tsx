@@ -12,10 +12,11 @@
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function signature to support optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * @updated June 14, 2025. 5:42 p.m. Eastern Time - Fixed data transformation for metadata fields (uploaded_on → uploadedOn, etc.) in fetchInitialData, updateQuestion, and addNewQuestion
  * @updated June 16, 2025. 2:01 p.m. Eastern Time - Added missing notesForTutor field transformation in updateQuestion and addNewQuestion functions
+ * @updated June 19, 2025. 12:11 PM Eastern Time - Removed unused geminiService import as part of cleanup
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
- * Dependencies: react, ../types, ../constants, ../services/geminiService, react-hot-toast
+ * Dependencies: react, ../types, ../constants, react-hot-toast
  * Pattern: React Context API for providing global state and updater functions. Centralizes data operations, authentication logic, and interactions with simulated backend services.
  * 
  * @workflow-context  
@@ -36,7 +37,6 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
 import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem, ValidationResult, BatchUploadResult } from '../types';
 import { INITIAL_TOPICS, SESSION_TOKEN_KEY, MOCK_PASSWORD } from '../constants'; 
-import { parseMarkdownToQA as _parseMarkdownToQA } from '../services/geminiService';
 import { loginUser, bulkDeleteQuestions as bulkDeleteQuestionsAPI, deleteQuestion as deleteQuestionAPI, createQuestion as createQuestionAPI, updateQuestion as updateQuestionAPI, validateMarkdownFile as validateMarkdownFileAPI, uploadMarkdownFile as uploadMarkdownFileAPI } from '../services/api';
 import { validateMarkdownFormat, getValidationSummary } from '../services/validation';
 import toast from 'react-hot-toast';

@@ -2,17 +2,18 @@
 @file backend/app/services/auth_service.py
 @description JWT authentication service for Q&A Loader. Handles token creation, validation, and password verification with secure hashing.
 @created June 9, 2025 at unknown time
+@updated June 16, 2025. 8:32 PM Eastern Time - Refactored to use database for user authentication instead of hardcoded admin
 
 @architectural-context
 Layer: Service Layer (Business Logic)
-Dependencies: jose (JWT), passlib (password hashing), app.config (settings), datetime (expiration), secrets (token generation)
-Environment Variables: JWT_SECRET_KEY (token signing), ADMIN_PASSWORD (temporary auth)
+Dependencies: jose (JWT), passlib (password hashing), app.config (settings), datetime (expiration), secrets (token generation), app.database (Supabase client)
+Environment Variables: JWT_SECRET_KEY (token signing), removed ADMIN_PASSWORD dependency
 Pattern: Service pattern with stateless authentication using JWT tokens and password reset flow
 
 @workflow-context
 User Journey: Login authentication, protected route access, and password reset workflow
 Sequence Position: Called by auth router for login, token validation, and password reset operations
-Inputs: Username/password for login, JWT tokens for validation, email for reset, reset tokens for password updates
+Inputs: Username/email/password for login, JWT tokens for validation, email for reset, reset tokens for password updates
 Outputs: JWT tokens for successful login, user context for protected routes, reset tokens and success confirmations
 
 @authentication-context
@@ -22,19 +23,20 @@ Critical Security: JWT_SECRET_KEY must be kept secure and rotated regularly, res
 Password Security: Passwords hashed with bcrypt, never stored or logged in plain text, reset tokens are cryptographically secure
 
 @database-context
-Tables: password_reset_tokens table for storing reset tokens with expiration
-Operations: INSERT/SELECT/DELETE for reset token management, password verification operations
+Tables: users (user credentials), password_reset_tokens (reset tokens with expiration)
+Operations: SELECT for user lookup, INSERT/SELECT/DELETE for reset token management, UPDATE for password changes
 Transactions: Reset token cleanup and password updates should be transactional
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, Any
 import secrets
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.config import settings
+from app.database import supabase
 
 # Password hashing context using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -42,6 +44,36 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # JWT settings
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 hours
+
+
+async def get_user_by_username_or_email(username_or_email: str) -> Optional[Dict[str, Any]]:
+    """
+    @function get_user_by_username_or_email
+    @description Retrieves user from database by username or email
+    @param username_or_email: Username or email to search for
+    @returns: User dictionary if found, None otherwise
+    @example:
+        # Find user by username
+        user = await get_user_by_username_or_email("testuser1")
+        # Find user by email
+        user = await get_user_by_username_or_email("testuser1@dev.com")
+    """
+    if not supabase:
+        return None
+    
+    try:
+        # Check if input is email (contains @)
+        if "@" in username_or_email:
+            result = supabase.table("users").select("*").eq("email", username_or_email).execute()
+        else:
+            result = supabase.table("users").select("*").eq("username", username_or_email).execute()
+        
+        if result.data and len(result.data) > 0:
+            return result.data[0]
+        return None
+    except Exception as e:
+        print(f"Error fetching user: {e}")
+        return None
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -124,29 +156,37 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def authenticate_user(username: str, password: str) -> Optional[str]:
+async def authenticate_user(username_or_email: str, password: str) -> Optional[Dict[str, Any]]:
     """
     @function authenticate_user
-    @description Authenticates a user with username and password, returning username if valid
-    @param username: Username to authenticate
+    @description Authenticates a user with username/email and password, returning user info if valid
+    @param username_or_email: Username or email to authenticate
     @param password: Plain text password to verify
-    @returns: Username if authentication successful, None if failed
+    @returns: User dictionary if authentication successful, None if failed
     @example:
-        # Authenticate admin user
-        user = authenticate_user("admin", "password123")
+        # Authenticate by username
+        user = await authenticate_user("testuser1", "12345678aA1")
+        # Authenticate by email
+        user = await authenticate_user("testuser1@dev.com", "12345678aA1")
         if user:
-            token = create_access_token({"sub": user})
+            token = create_access_token({"sub": user["username"], "email": user["email"]})
             return {"access_token": token, "token_type": "bearer"}
-
-    @security-note
-    Currently uses hardcoded admin credentials from environment variables.
-    In production, this should query a user database with proper password hashing.
-    The admin password should be stored as a bcrypt hash in the database.
     """
-    # Temporary implementation: hardcoded admin user
-    # In production, this would query a user database
-    if username == "admin" and password == settings.ADMIN_PASSWORD:
-        return username
+    # Fetch user from database
+    user = await get_user_by_username_or_email(username_or_email)
+    if not user:
+        return None
+    
+    # Verify password against stored hash
+    if verify_password(password, user["password_hash"]):
+        return {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "is_test_user": user.get("is_test_user", False)
+        }
+    
     return None
 
 
@@ -181,38 +221,52 @@ def generate_reset_token() -> str:
 async def initiate_password_reset(email: str) -> bool:
     """
     @function initiate_password_reset
-    @description Initiates password reset process by generating token and sending email
+    @description Initiates password reset process by generating token and storing in database
     @param email: Email address for password reset
-    @returns: True if reset initiated successfully, False if email not found
+    @returns: True if reset initiated successfully (always returns True for security)
     @example:
         # Initiate password reset
-        success = await initiate_password_reset("admin@qaloader.com")
+        success = await initiate_password_reset("testuser1@dev.com")
         if success:
             print("Reset email sent")
     
     @security-note:
-    For security, this function should always return True to prevent email enumeration attacks.
-    In production, store reset tokens with expiration in database and send actual emails.
+    For security, this function always returns True to prevent email enumeration attacks.
+    Stores reset tokens with expiration in database.
     """
-    # Temporary implementation: Only allow admin email
-    if email != "admin@qaloader.com":
-        # Return True to prevent email enumeration - don't reveal if email exists
+    if not supabase:
         return True
     
-    # Generate reset token
-    reset_token = generate_reset_token()
-    expiry = datetime.utcnow() + timedelta(hours=1)
+    try:
+        # Check if user exists (but don't reveal this to caller)
+        user_result = supabase.table("users").select("id, email").eq("email", email).execute()
+        
+        if user_result.data and len(user_result.data) > 0:
+            user = user_result.data[0]
+            
+            # Generate reset token
+            reset_token = generate_reset_token()
+            expiry = datetime.utcnow() + timedelta(hours=1)
+            
+            # Store reset token in database
+            token_data = {
+                "user_id": user["id"],
+                "token": reset_token,
+                "expires_at": expiry.isoformat(),
+                "used": False
+            }
+            supabase.table("password_reset_tokens").insert(token_data).execute()
+            
+            # TODO: Send actual email with reset link
+            # For now, log the reset token
+            print(f"Password reset token for {email}: {reset_token}")
+            print(f"Token expires at: {expiry}")
+            print(f"Reset URL: http://localhost:5173/reset-password?token={reset_token}")
+            
+    except Exception as e:
+        print(f"Error in password reset: {e}")
     
-    # TODO: Store reset token in database with expiration
-    # In production: store_reset_token(email, reset_token, expiry)
-    
-    # TODO: Send actual email with reset link
-    # In production: send_reset_email(email, reset_token)
-    
-    # For demo purposes, log the reset token
-    print(f"Password reset token for {email}: {reset_token}")
-    print(f"Token expires at: {expiry}")
-    
+    # Always return True for security
     return True
 
 
@@ -229,14 +283,30 @@ async def verify_reset_token(token: str) -> Optional[str]:
             print(f"Valid token for {email}")
     
     @security-note:
-    In production, this should check database for token validity and expiration.
-    Tokens should be single-use and deleted after successful password reset.
+    Checks database for token validity and expiration.
+    Tokens are single-use and marked as used after successful password reset.
     """
-    # Temporary implementation: Accept any token for admin email
-    # In production: query database for token and check expiration
-    if token and len(token) == 64:  # Valid hex token length
-        return "admin@qaloader.com"
-    return None
+    if not supabase or not token:
+        return None
+    
+    try:
+        # Query token with user info
+        result = supabase.table("password_reset_tokens").select(
+            "*, users!inner(email)"
+        ).eq("token", token).eq("used", False).execute()
+        
+        if result.data and len(result.data) > 0:
+            token_data = result.data[0]
+            
+            # Check if token is expired
+            expires_at = datetime.fromisoformat(token_data["expires_at"].replace("Z", "+00:00"))
+            if expires_at > datetime.utcnow():
+                return token_data["users"]["email"]
+        
+        return None
+    except Exception as e:
+        print(f"Error verifying reset token: {e}")
+        return None
 
 
 async def reset_password(token: str, new_password: str) -> bool:
@@ -253,27 +323,40 @@ async def reset_password(token: str, new_password: str) -> bool:
             print("Password updated successfully")
     
     @security-note:
-    In production, this should update the user's password hash in database,
-    delete the used reset token, and optionally invalidate all existing sessions.
+    Updates the user's password hash in database and marks token as used.
+    In production, should also invalidate all existing sessions.
     """
-    # Verify token first
+    if not supabase:
+        return False
+    
+    # Verify token and get email
     email = await verify_reset_token(token)
     if not email:
         return False
     
-    # Hash the new password
-    hashed_password = get_password_hash(new_password)
-    
-    # TODO: Update password in database
-    # In production: update_user_password(email, hashed_password)
-    
-    # TODO: Delete used reset token
-    # In production: delete_reset_token(token)
-    
-    # For demo purposes, log the password change
-    print(f"Password updated for {email}: {hashed_password[:20]}...")
-    
-    return True
+    try:
+        # Hash the new password
+        hashed_password = get_password_hash(new_password)
+        
+        # Update user's password
+        user_result = supabase.table("users").update({
+            "password_hash": hashed_password,
+            "updated_at": datetime.utcnow().isoformat()
+        }).eq("email", email).execute()
+        
+        if user_result.data:
+            # Mark token as used
+            supabase.table("password_reset_tokens").update({
+                "used": True
+            }).eq("token", token).execute()
+            
+            print(f"Password updated successfully for {email}")
+            return True
+        
+        return False
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        return False
 
 
 async def send_reset_email(email: str, reset_token: str) -> bool:
