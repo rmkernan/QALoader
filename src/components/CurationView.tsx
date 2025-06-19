@@ -107,7 +107,7 @@ const CurationView: React.FC = () => {
 
   // Memoized list of questions filtered based on current filter state
   const filteredQuestions = useMemo(() => {
-    let filtered = questions.filter(q => {
+    const filtered = questions.filter(q => {
       const topicMatch = filters.topic === "All Topics" || q.topic === filters.topic;
       const subtopicMatch = filters.subtopic === "All Subtopics" || q.subtopic === filters.subtopic;
       const difficultyMatch = filters.difficulty === "All Difficulties" || q.difficulty === filters.difficulty;

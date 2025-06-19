@@ -10,6 +10,7 @@
  * @updated June 14, 2025. 11:50 a.m. Eastern Time - Added validateMarkdownFile function for new validation workflow
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function to accept optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * @updated June 19, 2025. 1:54 PM Eastern Time - Removed topic parameter from validation and upload functions - topics extracted from file content
+ * @updated June 19, 2025. 4:57 PM Eastern Time - Added checkForDuplicates function for pre-upload duplicate detection
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -27,7 +28,7 @@
  * Security: Handles JWT token attachment, response validation, error standardization
  */
 
-import { Question } from '../types';
+import { Question, DuplicateCheckResult } from '../types';
 import { SESSION_TOKEN_KEY } from '../constants';
 
 // API Base Configuration
@@ -358,6 +359,56 @@ export const validateMarkdownFile = async (file: File) => {
   }
   
   return response.json();
+};
+
+/**
+ * @function checkForDuplicates
+ * @description Checks for duplicate questions in the database before upload
+ * @param {File} file - Markdown file to check for duplicates
+ * @param {number} [similarityThreshold=0.85] - Minimum similarity score (0-1) for fuzzy matching
+ * @returns {Promise<DuplicateCheckResult>} Result containing exact and similar duplicates
+ * @example:
+ * try {
+ *   const result = await checkForDuplicates(file, 0.85);
+ *   if (result.duplicatesFound > 0) {
+ *     console.log('Found duplicates:', result.exactDuplicates);
+ *     console.log('Similar questions:', result.similarQuestions);
+ *   }
+ * } catch (error) {
+ *   console.error('Duplicate check failed:', error.message);
+ * }
+ */
+export const checkForDuplicates = async (
+  file: File,
+  similarityThreshold: number = 0.85
+): Promise<DuplicateCheckResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('similarity_threshold', similarityThreshold.toString());
+  
+  const response = await fetch(`${API_BASE_URL}/check-duplicates`, {
+    method: 'POST',
+    headers: {
+      // Note: Don't set Content-Type for FormData - browser sets it automatically
+      Authorization: getAuthHeaders().Authorization || '',
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+  
+  const data = await response.json();
+  
+  // Map backend response to frontend interface
+  return {
+    exactDuplicates: data.exact_duplicates || {},
+    similarQuestions: data.similar_questions || {},
+    totalQuestions: data.total_questions || 0,
+    duplicatesFound: data.duplicates_found || 0,
+    validationWarnings: data.validation_warnings || [],
+  };
 };
 
 /**
