@@ -5,6 +5,7 @@
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Enhanced with comprehensive validation and upload workflow
 @updated June 14, 2025. 2:18 p.m. Eastern Time - Added support for upload metadata fields (uploaded_on, uploaded_by, upload_notes)
 @updated June 14, 2025. 4:46 p.m. Eastern Time - CRITICAL FIX: Added missing updated_at field to database insertion, resolving zero upload issue
+@updated June 19, 2025. 2:08 PM Eastern Time - Removed topic parameter from validation and upload endpoints - topics extracted from file content
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -107,15 +108,13 @@ def categorize_database_error(error: Exception, question_id: str) -> str:
 
 @router.post("/validate-markdown", response_model=ValidationResultModel)
 async def validate_markdown_file(
-    topic: str = Form(..., description="Topic name for the questions"),
     file: UploadFile = File(..., description="Markdown file to validate"),
     current_user: dict = Depends(get_current_user)
 ):
     """
     @api POST /api/validate-markdown
     @description Validates markdown file structure and content without saving to database
-    @param topic: Topic name for the questions
-    @param file: Uploaded markdown file
+    @param file: Uploaded markdown file containing questions with embedded topics
     @returns: ValidationResult with detailed feedback
     @authentication: Required JWT token in Authorization header
     @errors:
@@ -129,7 +128,7 @@ async def validate_markdown_file(
         Content-Type: multipart/form-data
         Authorization: Bearer <jwt_token>
         
-        topic=DCF&file=<markdown_file>
+        file=<markdown_file>
     """
     start_time = time.time()
     
@@ -142,7 +141,7 @@ async def validate_markdown_file(
         content_str = content.decode('utf-8')
         
         # Parse and validate questions
-        questions, validation_result = validation_service.parse_markdown_to_questions(content_str, topic)
+        questions, validation_result = validation_service.parse_markdown_to_questions(content_str)
         
         # Return validation result
         return ValidationResultModel(
@@ -166,8 +165,8 @@ async def validate_markdown_file(
 
 @router.post("/upload-markdown", response_model=BatchUploadResultModel)
 async def upload_markdown_file(
-    topic: str = Form(..., description="Topic name for the questions"),
-    file: UploadFile = File(..., description="Markdown file to upload"),
+    file: UploadFile = File(..., description="Markdown file to upload with embedded topics"),
+    replace_existing: bool = Form(False, description="Whether to replace existing questions"),
     uploaded_on: str = Form(None, description="American timestamp when questions were uploaded (Eastern Time)"),
     uploaded_by: str = Form(None, description="Free text field for who uploaded the questions"),
     upload_notes: str = Form(None, description="Free text notes about this upload"),
@@ -176,8 +175,8 @@ async def upload_markdown_file(
     """
     @api POST /api/upload-markdown
     @description Validates and uploads questions from markdown file to database with metadata tracking
-    @param topic: Topic name for the questions
-    @param file: Uploaded markdown file
+    @param file: Uploaded markdown file containing questions with embedded topics
+    @param replace_existing: Whether to replace existing questions (not currently used)
     @param uploaded_on: American timestamp when questions were uploaded (Eastern Time)
     @param uploaded_by: Free text field for who uploaded the questions (max 25 chars)
     @param upload_notes: Free text notes about this upload (max 100 chars)
@@ -207,7 +206,7 @@ async def upload_markdown_file(
         content_str = content.decode('utf-8')
         
         # Parse and validate questions
-        questions, validation_result = validation_service.parse_markdown_to_questions(content_str, topic)
+        questions, validation_result = validation_service.parse_markdown_to_questions(content_str)
         
         # If validation failed, return validation errors
         if not validation_result.is_valid:
@@ -234,7 +233,7 @@ async def upload_markdown_file(
             try:
                 # Generate unique ID
                 unique_id = await id_generator.generate_unique_question_id(
-                    topic, 
+                    question.topic,  # Use topic from question, not parameter
                     question.subtopic, 
                     question.difficulty, 
                     question.type, 
@@ -257,7 +256,7 @@ async def upload_markdown_file(
                 
                 db_question = {
                     "question_id": unique_id,
-                    "topic": topic,
+                    "topic": question.topic,  # Use topic from question
                     "subtopic": question.subtopic,
                     "difficulty": question.difficulty,
                     "type": question.type,
@@ -340,7 +339,7 @@ async def batch_replace_questions(
             try:
                 # Generate unique ID
                 unique_id = await id_generator.generate_unique_question_id(
-                    topic, 
+                    question.topic,  # Use topic from question, not parameter
                     question.subtopic, 
                     question.difficulty, 
                     question.type, 
@@ -363,7 +362,7 @@ async def batch_replace_questions(
                 
                 db_question = {
                     "question_id": unique_id,
-                    "topic": topic,
+                    "topic": question.topic,  # Use topic from question
                     "subtopic": question.subtopic,
                     "difficulty": question.difficulty,
                     "type": question.type,

@@ -32,6 +32,14 @@ export interface MarkdownValidationResult {
     warnings: string[];
     lineNumbers: Record<string, number>;
     parsedCount: number;
+    questions?: Array<{
+        topic?: string;
+        subtopic?: string;
+        difficulty?: string;
+        type?: string;
+        questionText?: string;
+        answerText?: string;
+    }>;
 }
 
 /**
@@ -92,7 +100,8 @@ export const validateMarkdownFormat = async (file: File): Promise<MarkdownValida
         errors: [],
         warnings: [],
         lineNumbers: {},
-        parsedCount: 0
+        parsedCount: 0,
+        questions: []
     };
 
     try {
@@ -117,6 +126,7 @@ export const validateMarkdownFormat = async (file: File): Promise<MarkdownValida
         result.errors.push(...questionValidation.errors);
         result.warnings.push(...questionValidation.warnings);
         result.parsedCount = questionValidation.questionCount;
+        result.questions = questionValidation.questions;
 
         // Set final validity
         result.isValid = result.errors.length === 0;
@@ -247,10 +257,26 @@ const validateQuestionBlocks = (content: string, _lines: string[]): {
     errors: string[];
     warnings: string[];
     questionCount: number;
+    questions: Array<{
+        topic?: string;
+        subtopic?: string;
+        difficulty?: string;
+        type?: string;
+        questionText?: string;
+        answerText?: string;
+    }>;
 } => {
     const errors: string[] = [];
     const warnings: string[] = [];
     let questionCount = 0;
+    const questions: Array<{
+        topic?: string;
+        subtopic?: string;
+        difficulty?: string;
+        type?: string;
+        questionText?: string;
+        answerText?: string;
+    }> = [];
 
     // Find question blocks
     const questionBlocks = extractQuestionBlocks(content);
@@ -306,6 +332,23 @@ const validateQuestionBlocks = (content: string, _lines: string[]): {
             }
         }
 
+        // Extract question data for topic extraction
+        const topicMatch = block.content.match(MARKDOWN_PATTERNS.topic);
+        const subtopicMatch = block.content.match(MARKDOWN_PATTERNS.subtopic);
+        const difficultyMatchData = block.content.match(MARKDOWN_PATTERNS.difficulty);
+        const typeMatchData = block.content.match(MARKDOWN_PATTERNS.type);
+        const questionMatchData = block.content.match(MARKDOWN_PATTERNS.question);
+        const answerMatchData = block.content.match(MARKDOWN_PATTERNS.answer);
+        
+        questions.push({
+            topic: topicMatch?.[1],
+            subtopic: subtopicMatch?.[1],
+            difficulty: difficultyMatchData?.[1],
+            type: typeMatchData?.[1],
+            questionText: questionMatchData?.[1],
+            answerText: answerMatchData ? block.content.substring(block.content.indexOf(answerMatchData[0]) + answerMatchData[0].length).trim() : undefined
+        });
+        
         questionCount++;
     });
 
@@ -314,7 +357,7 @@ const validateQuestionBlocks = (content: string, _lines: string[]): {
         errors.push('No valid question blocks found in file');
     }
 
-    return { errors, warnings, questionCount };
+    return { errors, warnings, questionCount, questions };
 };
 
 /**

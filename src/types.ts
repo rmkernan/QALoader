@@ -69,7 +69,8 @@ export interface ValidationReport {
   success: boolean;
   message: string;
   parsedCount?: number;
-  topic?: string;
+  topic?: string;  // Keep for backward compatibility
+  topics?: string[];  // New field for multiple topics from file
   errors?: string[]; // Store detailed errors if any
 }
 
@@ -155,9 +156,11 @@ export interface AppContextType {
   
   // Modified for dry run and actual upload
   uploadMarkdownFile: (
-    _topic: string, 
     _file: File, 
-    _dryRun: boolean
+    _dryRun: boolean,
+    _uploadedOn?: string,
+    _uploadedBy?: string,
+    _uploadNotes?: string
   ) => Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void>;
 
   exportQuestionsToMarkdown: (_selectedTopic?: string, _selectedSubtopic?: string, _selectedDifficulty?: string, _selectedType?: string, _searchText?: string) => void;

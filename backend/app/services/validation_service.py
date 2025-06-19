@@ -7,6 +7,7 @@
 @updated June 14, 2025. 4:20 p.m. Eastern Time - Fixed critical parsing logic that was only capturing 1 question instead of all 89 questions due to flawed flow control
 @updated June 19, 2025. 11:39 AM Eastern Time - Updated validation patterns to handle new markdown format with **Answer:** instead of **Brief Answer:**
 @updated June 19, 2025. 11:44 AM Eastern Time - Added support for optional **Notes for Tutor:** field parsing
+@updated June 19, 2025. 2:12 PM Eastern Time - Removed topic parameter from parse_markdown_to_questions - topics extracted from content
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -61,6 +62,7 @@ class ParsedQuestion(BaseModel):
     @description Individual question parsed from markdown with all required fields
     @example:
         question = ParsedQuestion(
+            topic="Finance",
             subtopic="WACC Calculation",
             difficulty="Basic",
             type="GenConcept",
@@ -69,6 +71,7 @@ class ParsedQuestion(BaseModel):
             line_number=15
         )
     """
+    topic: str
     subtopic: str
     difficulty: str
     type: str
@@ -228,18 +231,17 @@ class ValidationService:
             parsed_count=len(questions)
         )
 
-    def parse_markdown_to_questions(self, content: str, topic: str) -> Tuple[List[ParsedQuestion], ValidationResult]:
+    def parse_markdown_to_questions(self, content: str) -> Tuple[List[ParsedQuestion], ValidationResult]:
         """
         @function parse_markdown_to_questions
         @description Parses markdown content into structured question objects
         @param content: Raw markdown file content
-        @param topic: Topic name for the questions
         @returns: Tuple of (parsed questions list, validation result)
         @example:
-            questions, result = service.parse_markdown_to_questions(content, "DCF")
+            questions, result = service.parse_markdown_to_questions(content)
             if result.is_valid:
                 for q in questions:
-                    print(f"Parsed: {q.subtopic} - {q.difficulty}")
+                    print(f"Parsed: {q.topic} - {q.subtopic} - {q.difficulty}")
         """
         # First validate structure
         structure_result = self.validate_markdown_structure(content)
@@ -411,6 +413,12 @@ class ValidationService:
             if notes_text:
                 notes_for_tutor = notes_text
         
+        # Extract topic from the block
+        topic = "Unknown"
+        topic_match = self.PATTERNS['topic'].search(block)
+        if topic_match:
+            topic = topic_match.group(1).strip()
+        
         # Extract subtopic from the block (now properly included by _extract_question_blocks)
         subtopic = "Unknown"
         subtopic_match = self.PATTERNS['subtopic'].search(block)
@@ -418,6 +426,7 @@ class ValidationService:
             subtopic = subtopic_match.group(1).strip()
         
         return ParsedQuestion(
+            topic=topic,
             subtopic=subtopic,
             difficulty=difficulty_match.group(1),
             type=type_match.group(1),

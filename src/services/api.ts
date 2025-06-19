@@ -9,6 +9,7 @@
  * @updated June 14, 2025. 10:31 a.m. Eastern Time - Fixed authentication token key mismatch causing 403 errors on API calls
  * @updated June 14, 2025. 11:50 a.m. Eastern Time - Added validateMarkdownFile function for new validation workflow
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function to accept optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
+ * @updated June 19, 2025. 1:54 PM Eastern Time - Removed topic parameter from validation and upload functions - topics extracted from file content
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -325,12 +326,11 @@ export const bulkDeleteQuestions = async (questionIds: string[]): Promise<BulkDe
 /**
  * @function validateMarkdownFile
  * @description Validates markdown file structure and content without saving to database
- * @param {string} topic - Topic for the uploaded content
  * @param {File} file - Markdown file to validate
  * @returns {Promise<ValidationResult>} Validation result with detailed feedback
  * @example:
  * try {
- *   const result = await validateMarkdownFile('DCF', file);
+ *   const result = await validateMarkdownFile(file);
  *   if (result.isValid) {
  *     console.log(`Found ${result.parsedCount} valid questions`);
  *   } else {
@@ -340,9 +340,8 @@ export const bulkDeleteQuestions = async (questionIds: string[]): Promise<BulkDe
  *   console.error('Validation failed:', error.message);
  * }
  */
-export const validateMarkdownFile = async (topic: string, file: File) => {
+export const validateMarkdownFile = async (file: File) => {
   const formData = new FormData();
-  formData.append('topic', topic);
   formData.append('file', file);
   
   const response = await fetch(`${API_BASE_URL}/validate-markdown`, {
@@ -382,15 +381,15 @@ export const validateMarkdownFile = async (topic: string, file: File) => {
  * }
  */
 export const uploadMarkdownFile = async (
-  topic: string, 
-  file: File, 
+  file: File,
+  replaceExisting: boolean = false,
   uploadedOn?: string, 
   uploadedBy?: string, 
   uploadNotes?: string
 ) => {
   const formData = new FormData();
-  formData.append('topic', topic);
   formData.append('file', file);
+  formData.append('replace_existing', replaceExisting.toString());
   
   // Append optional metadata fields (frontend camelCase to backend snake_case mapping)
   if (uploadedOn) formData.append('uploaded_on', uploadedOn);

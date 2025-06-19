@@ -9,6 +9,7 @@
  * @updated June 14, 2025. 2:00 p.m. Eastern Time - Fixed backend/frontend field name mismatch for validation workflow (is_valid vs isValid), complete Phase 3 implementation tested and verified
  * @updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) with American timestamp generation and character validation
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Changed page title from "Load Questions from Markdown" to "Question Loader" for consistency with navigation
+ * @updated June 19, 2025. 1:48 PM Eastern Time - Removed topic selection step, topics now extracted from markdown file content
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -38,12 +39,10 @@ import { UploadIcon } from './icons/IconComponents'; // Changed from CloudUpload
  * @returns {JSX.Element}
  */
 const LoaderView: React.FC = () => {
-  const { topics: contextTopics, uploadMarkdownFile } = useAppContext();
+  const { uploadMarkdownFile } = useAppContext();
   
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
-  const [newTopicName, setNewTopicName] = useState<string>('');
-  const [isNewTopic, setIsNewTopic] = useState<boolean>(false);
   const [file, setFile] = useState<File | null>(null);
+  const [extractedTopics, setExtractedTopics] = useState<string[]>([]);  // Topics extracted from file
   
   // Enhanced validation state management
   const [validationStatus, setValidationStatus] = useState<'pending' | 'validating' | 'valid' | 'invalid'>('pending');
@@ -59,7 +58,7 @@ const LoaderView: React.FC = () => {
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
 
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState<boolean>(false);
-  const [topicForConfirmation, setTopicForConfirmation] = useState<string>('');
+  // Remove topicForConfirmation - no longer needed
   const [confirmationInput, setConfirmationInput] = useState<string>('');
   
   // Upload metadata fields
@@ -99,11 +98,7 @@ const LoaderView: React.FC = () => {
     }
   }, [uploadedOn]);
 
-  useEffect(() => {
-    if (contextTopics.length > 0 && !selectedTopic) {
-        setSelectedTopic(contextTopics[0]);
-    }
-  }, [contextTopics, selectedTopic]);
+  // Remove topic selection useEffect - no longer needed
 
   const processSelectedFile = async (selectedFile: File | null) => {
     if (selectedFile) {
@@ -129,7 +124,15 @@ const LoaderView: React.FC = () => {
           
           if (clientValidation.isValid) {
             setValidationStatus('valid');
-            toast.success(getValidationSummary(clientValidation));
+            
+            // Extract unique topics from parsed questions
+            const topics = new Set<string>();
+            clientValidation.questions?.forEach(q => {
+              if (q.topic) topics.add(q.topic);
+            });
+            setExtractedTopics(Array.from(topics));
+            
+            toast.success(getValidationSummary(clientValidation) + ` Found ${topics.size} topic(s).`);
           } else {
             setValidationStatus('invalid');
             toast.error(getValidationSummary(clientValidation));
@@ -204,26 +207,9 @@ const LoaderView: React.FC = () => {
     }
   };
 
-  const handleTopicChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
-    if (value === "_new_topic_") {
-        setIsNewTopic(true);
-        setSelectedTopic(""); 
-        setNewTopicName("");
-    } else {
-        setIsNewTopic(false);
-        setSelectedTopic(value);
-    }
-    setParsedData(null);
-    setValidationReport(null);
-  };
+  // Remove handleTopicChange - no longer needed
 
   const handleValidateContent = async () => {
-    const currentTopic = isNewTopic ? newTopicName.trim() : selectedTopic;
-    if (!currentTopic) {
-        toast.error("Please select or enter a topic name.");
-        return;
-    }
     if (!file) { 
         toast.error("Please select a Markdown file.");
         return;
@@ -238,8 +224,8 @@ const LoaderView: React.FC = () => {
     setParsedData(null);
 
     try {
-      // Server-side content validation
-      const serverValidation = await validateMarkdownFileAPI(currentTopic, file);
+      // Server-side content validation - no topic parameter needed
+      const serverValidation = await validateMarkdownFileAPI(file);
       
       // Transform backend response (snake_case) to frontend format (camelCase)
       const transformedValidation = {
@@ -252,10 +238,10 @@ const LoaderView: React.FC = () => {
       const report: ValidationReport = {
         success: transformedValidation.isValid,
         message: transformedValidation.isValid 
-          ? `Successfully validated ${transformedValidation.parsedCount} questions for topic '${currentTopic}'`
+          ? `Successfully validated ${transformedValidation.parsedCount} questions`
           : `Content validation failed: ${transformedValidation.errors.length} error${transformedValidation.errors.length !== 1 ? 's' : ''} found`,
         parsedCount: transformedValidation.parsedCount,
-        topic: currentTopic,
+        topics: extractedTopics,  // Store extracted topics instead of single topic
         errors: transformedValidation.errors.length > 0 ? transformedValidation.errors : undefined
       };
       
@@ -276,7 +262,7 @@ const LoaderView: React.FC = () => {
         success: false, 
         message: errorMessage,
         errors: [errorMessage],
-        topic: currentTopic,
+        topics: extractedTopics,  // Use extracted topics
         parsedCount: 0
       });
       toast.error(`Content validation error: ${errorMessage}`);
@@ -286,17 +272,16 @@ const LoaderView: React.FC = () => {
   };
 
   const openConfirmationModal = () => {
-    if (!validationReport?.topic) {
-      toast.error("Cannot open confirmation: Topic from validation report is missing.");
+    if (!validationReport?.topics || validationReport.topics.length === 0) {
+      toast.error("Cannot open confirmation: No topics found in validation report.");
       return;
     }
-    setTopicForConfirmation(validationReport.topic);
     setIsConfirmationModalOpen(true);
     setConfirmationInput(''); 
   };
 
   const handleConfirmLoad = async () => {
-    if (!validationReport?.success || !topicForConfirmation) {
+    if (!validationReport?.success) {
       toast.error("Content validation must be successful before upload. Cannot proceed.");
       setIsConfirmationModalOpen(false);
       return;
@@ -312,9 +297,8 @@ const LoaderView: React.FC = () => {
     setIsConfirmationModalOpen(false); 
 
     try {
-      // Use new upload workflow from AppContext with metadata
+      // Use new upload workflow from AppContext with metadata - no topic parameter
       await uploadMarkdownFile(
-        topicForConfirmation, 
         file, 
         false, 
         uploadedOn.trim() || undefined,
@@ -330,7 +314,6 @@ const LoaderView: React.FC = () => {
       setUploadResult(null);
       setFile(null); 
       if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
-      setTopicForConfirmation('');
       setConfirmationInput('');
       setValidationStatus('pending');
       // Reset metadata fields for next upload
@@ -338,12 +321,8 @@ const LoaderView: React.FC = () => {
       setUploadedBy('');
       setUploadNotes('');
       
-      // If a new topic was created and loaded, make it the selected topic
-      if (isNewTopic && newTopicName.trim() === topicForConfirmation) {
-          setSelectedTopic(topicForConfirmation);
-          setIsNewTopic(false);
-          setNewTopicName("");
-      }
+      // Topic selection removed - topics extracted from file
+      setExtractedTopics([]);  // Reset for next upload
       
     } catch (error) {
         setUploadStatus('error');
@@ -354,8 +333,8 @@ const LoaderView: React.FC = () => {
     }
   };
 
-  const currentActiveTopic = isNewTopic ? newTopicName.trim() : selectedTopic;
-  const canValidateContent = !!file && !!currentActiveTopic && validationStatus === 'valid' && !isAnalyzing && !isLoadingToDB;
+  // Topic no longer required for validation
+  const canValidateContent = !!file && validationStatus === 'valid' && !isAnalyzing && !isLoadingToDB;
   const canLoadToDB = validationReport?.success && !isLoadingToDB && !isAnalyzing && uploadStatus !== 'uploading';
   
   // Note: canAnalyze removed as it's replaced by canValidateContent
@@ -364,34 +343,18 @@ const LoaderView: React.FC = () => {
     <div className="view-enter-active p-8">
       <h2 className="text-3xl font-bold text-slate-900 mb-6">Question Loader</h2>
       <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
-        {/* Step 1: Topic and File Selection */}
+        {/* Step 1: File Selection */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 1: Select Topic and File</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label htmlFor="topic-select" className="block text-sm font-medium text-slate-700 mb-1">Topic</label>
-              <select 
-                id="topic-select" 
-                value={isNewTopic ? "_new_topic_" : selectedTopic}
-                onChange={handleTopicChange}
-                className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900"
-                disabled={isAnalyzing || isLoadingToDB}
-              >
-                <option value="" disabled={!isNewTopic}>Select a topic</option>
-                {contextTopics.map(topic => <option key={topic} value={topic}>{topic}</option>)}
-                <option value="_new_topic_">-- Create New Topic --</option>
-              </select>
-              {isNewTopic && (
-                <input 
-                    type="text"
-                    placeholder="Enter new topic name"
-                    value={newTopicName}
-                    onChange={(e) => setNewTopicName(e.target.value)}
-                    className="mt-2 w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900"
-                    disabled={isAnalyzing || isLoadingToDB}
-                />
-              )}
-            </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 1: Select File</h3>
+          <div className="mb-6">
+            {/* Show extracted topics if available */}
+            {extractedTopics.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm font-medium text-blue-800">
+                  Topics found in file: {extractedTopics.join(', ')}
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Markdown File</label>
               <div
@@ -689,11 +652,13 @@ const LoaderView: React.FC = () => {
           <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg modal-content">
             <h2 id="confirmation-modal-title" className="text-xl font-bold text-slate-900 mb-4">Confirm Upload Operation</h2>
             <p className="text-slate-700 mb-1">
-              You are about to upload new questions for the topic:
+              You are about to upload new questions to the database.
             </p>
-            <p className="text-green-600 font-semibold text-lg mb-4 break-all">
-              "{topicForConfirmation}"
-            </p>
+            {extractedTopics.length > 0 && (
+              <p className="text-green-600 font-semibold text-lg mb-4">
+                Topics found: {extractedTopics.join(', ')}
+              </p>
+            )}
             <p className="text-slate-700 mb-2">
               This will upload <strong>{validationReport?.parsedCount || 0}</strong> new questions to the database.
               Each question will receive a unique ID.
@@ -751,11 +716,11 @@ const LoaderView: React.FC = () => {
               </div>
             </div>
 
-            <label htmlFor="topic-confirmation-input" className="block text-sm font-medium text-slate-700 mb-1">
-              To confirm, please type the topic name ("<span className="font-semibold">{topicForConfirmation}</span>") below:
+            <label htmlFor="confirmation-input" className="block text-sm font-medium text-slate-700 mb-1">
+              To confirm, please type "<span className="font-semibold">UPLOAD</span>" below:
             </label>
             <input
-              id="topic-confirmation-input"
+              id="confirmation-input"
               type="text"
               value={confirmationInput}
               onChange={(e) => setConfirmationInput(e.target.value)}
@@ -776,7 +741,7 @@ const LoaderView: React.FC = () => {
                 type="button"
                 onClick={handleConfirmLoad}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50 transition-colors duration-150 ease-in-out"
-                disabled={confirmationInput !== topicForConfirmation || isLoadingToDB || uploadStatus === 'uploading'}
+                disabled={confirmationInput.toUpperCase() !== 'UPLOAD' || isLoadingToDB || uploadStatus === 'uploading'}
               >
                 {isLoadingToDB ? 'Uploading...' : 'Confirm Upload'}
               </button>

@@ -320,7 +320,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
    */
   const handleBatchUploadResult = useCallback(async (
     result: BatchUploadResult, 
-    topic: string, 
     fileName: string
   ): Promise<void> => {
     // Defensive programming: ensure all arrays exist
@@ -334,20 +333,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (failedUploads.length === 0) {
       // Complete success
       toast.success(`✅ All ${successfulUploads.length} questions uploaded successfully!`);
-      logActivity("File upload completed", `${fileName} - ${successfulUploads.length} questions added to ${topic}`);
+      logActivity("File upload completed", `${fileName} - ${successfulUploads.length} questions added`);
       
     } else if (successfulUploads.length > 0) {
       // Partial success - show summary with option to view details
       const successMessage = `✅ ${successfulUploads.length} questions uploaded successfully.`;
       const failureMessage = `❌ ${failedUploads.length} questions failed.`;
       
+      // Show success with error details available
       toast.success(
-        `${successMessage}\n${failureMessage}\nClick to view error details.`,
+        `${successMessage}\n${failureMessage}`,
         {
-          duration: 8000,
-          onClick: () => showErrorDetailsModal(errors, failedUploads)
+          duration: 8000
         }
       );
+      
+      // Show error details modal if user wants to see them
+      if (Object.keys(errors).length > 0) {
+        showErrorDetailsModal(errors, failedUploads);
+      }
       
       logActivity(
         "File upload partial success", 
@@ -539,7 +543,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
    * await uploadMarkdownFile('DCF', file, false, 'June 14, 2025. 2:18 p.m. Eastern Time', 'John Smith', 'Initial DCF questions');
    */
   const uploadMarkdownFile = useCallback(async (
-    topic: string, 
     file: File, 
     dryRun: boolean,
     uploadedOn?: string,
@@ -557,7 +560,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           success: false,
           message: `File format validation failed: ${clientValidation.errors.length} error${clientValidation.errors.length !== 1 ? 's' : ''} found`,
           errors: clientValidation.errors,
-          topic: topic,
           parsedCount: 0
         };
         
@@ -575,15 +577,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (dryRun) {
         // Validation-only mode: use server validation endpoint
         try {
-          const serverValidation: ValidationResult = await validateMarkdownFileAPI(topic, file);
+          const serverValidation: ValidationResult = await validateMarkdownFileAPI(file);
           
           const report: ValidationReport = {
             success: serverValidation.isValid,
             message: serverValidation.isValid 
-              ? `Successfully validated ${serverValidation.parsedCount} questions for topic '${topic}'`
+              ? `Successfully validated ${serverValidation.parsedCount} questions`
               : `Validation failed: ${serverValidation.errors.length} error${serverValidation.errors.length !== 1 ? 's' : ''} found`,
             parsedCount: serverValidation.parsedCount,
-            topic: topic,
             errors: serverValidation.errors.length > 0 ? serverValidation.errors : undefined
           };
           
@@ -604,7 +605,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             success: false,
             message: error instanceof Error ? error.message : "Server validation failed",
             errors: error instanceof Error ? [error.message] : undefined,
-            topic: topic,
             parsedCount: 0
           };
           toast.error(`Server validation failed: ${report.message}`);
@@ -616,8 +616,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Full upload mode: upload and process
         try {
           const uploadResult: BatchUploadResult = await uploadMarkdownFileAPI(
-            topic, 
-            file, 
+            file,
+            false,  // replaceExisting - always false for now
             uploadedOn, 
             uploadedBy, 
             uploadNotes
@@ -626,7 +626,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           // Note: Debug logging available if needed for upload troubleshooting
           
           // Handle upload results with detailed feedback
-          await handleBatchUploadResult(uploadResult, topic, file.name);
+          await handleBatchUploadResult(uploadResult, file.name);
           
           // Refresh data after successful upload
           await fetchInitialData();
