@@ -3,6 +3,7 @@
  * @description Defines the main application navigation sidebar, handling view selection and user logout.
  * @created June 10, 2025. 10:15 a.m. Eastern Time
  * @updated June 10, 2025. 10:15 a.m. Eastern Time - Revised documentation for LLM conciseness.
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate management navigation for PostgreSQL pg_trgm integration
  * 
  * @architectural-context
  * Layer: UI Component (Primary Navigation)
@@ -23,7 +24,7 @@
 import React from 'react';
 import { View } from '../types';
 import { NAV_ITEMS, APP_TITLE } from '../constants';
-import { DashboardIcon, UploadIcon, TuneIcon, AppLogoIcon } from './icons/IconComponents';
+import { DashboardIcon, UploadIcon, TuneIcon, DuplicateIcon, AppLogoIcon } from './icons/IconComponents';
 import { useAppContext } from '../contexts/AppContext';
 
 interface SidebarProps {
@@ -35,6 +36,7 @@ const iconMap: Record<View, React.FC<{className?: string}>> = {
     [View.DASHBOARD]: DashboardIcon,
     [View.LOADER]: UploadIcon,
     [View.CURATION]: TuneIcon,
+    [View.DUPLICATES]: DuplicateIcon,
 };
 
 /**

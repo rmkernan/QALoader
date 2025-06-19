@@ -10,6 +10,7 @@
  * @updated June 14, 2025. 11:50 a.m. Eastern Time - Added validateMarkdownFile function for new validation workflow
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function to accept optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * @updated June 19, 2025. 1:54 PM Eastern Time - Removed topic parameter from validation and upload functions - topics extracted from file content
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection API functions for PostgreSQL pg_trgm integration
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -27,7 +28,7 @@
  * Security: Handles JWT token attachment, response validation, error standardization
  */
 
-import { Question } from '../types';
+import { Question, DuplicateGroup } from '../types';
 import { SESSION_TOKEN_KEY } from '../constants';
 
 // API Base Configuration
@@ -403,6 +404,95 @@ export const uploadMarkdownFile = async (
       Authorization: getAuthHeaders().Authorization || '',
     },
     body: formData,
+  });
+  
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+  
+  return response.json();
+};
+
+/**
+ * @function getDuplicates
+ * @description Retrieves all potential duplicates in the database using similarity matching
+ * @param {number} threshold - Similarity threshold for duplicate detection (0.1-1.0)
+ * @returns {Promise<{count: number, groups: DuplicateGroup[]}>} Grouped duplicate information
+ * @example:
+ * try {
+ *   const result = await getDuplicates(0.8);
+ *   console.log(`Found ${result.count} duplicates in ${result.groups.length} groups`);
+ * } catch (error) {
+ *   console.error('Failed to get duplicates:', error.message);
+ * }
+ */
+export const getDuplicates = async (threshold: number = 0.8): Promise<{count: number, groups: DuplicateGroup[]}> => {
+  const response = await fetch(`${API_BASE_URL}/duplicates?threshold=${threshold}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+  
+  return response.json();
+};
+
+/**
+ * @function scanForDuplicates
+ * @description Scan for duplicates, optionally limited to specific question IDs
+ * @param {string[]} questionIds - Optional array of question IDs to scan
+ * @param {number} threshold - Similarity threshold for duplicate detection (0.1-1.0)
+ * @returns {Promise<{count: number, groups: DuplicateGroup[]}>} Grouped duplicate information
+ * @example:
+ * try {
+ *   const result = await scanForDuplicates(['DCF-001', 'DCF-002'], 0.8);
+ *   console.log(`Found ${result.count} duplicates`);
+ * } catch (error) {
+ *   console.error('Scan failed:', error.message);
+ * }
+ */
+export const scanForDuplicates = async (
+  questionIds?: string[], 
+  threshold: number = 0.8
+): Promise<{count: number, groups: DuplicateGroup[]}> => {
+  const params = new URLSearchParams();
+  if (questionIds && questionIds.length > 0) {
+    params.append('question_ids', questionIds.join(','));
+  }
+  params.append('threshold', threshold.toString());
+
+  const response = await fetch(`${API_BASE_URL}/duplicates/scan?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+  
+  return response.json();
+};
+
+/**
+ * @function batchDeleteDuplicates
+ * @description Delete multiple duplicate questions in a batch operation
+ * @param {string[]} questionIds - Array of question IDs to delete
+ * @returns {Promise<BulkDeleteResponse>} Deletion summary with success/failure counts
+ * @example:
+ * try {
+ *   const result = await batchDeleteDuplicates(['DCF-001', 'DCF-002']);
+ *   console.log(`Deleted ${result.deleted_count} duplicates`);
+ * } catch (error) {
+ *   console.error('Batch delete failed:', error.message);
+ * }
+ */
+export const batchDeleteDuplicates = async (questionIds: string[]): Promise<BulkDeleteResponse> => {
+  const response = await fetch(`${API_BASE_URL}/duplicates/batch`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ question_ids: questionIds }),
   });
   
   if (!response.ok) {

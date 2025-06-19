@@ -10,6 +10,8 @@
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Added metadata fields (uploadedOn, uploadedBy, uploadNotes) to Question interface and filtering fields to Filters interface
  * @updated June 14, 2025. 4:12 p.m. Eastern Time - Added uploadedOn field to Filters interface for timestamp filtering support
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Added notesForTutor field to Question interface for tutor guidance support
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection interfaces for PostgreSQL pg_trgm integration
+ * @updated June 19, 2025. 6:04 PM Eastern Time - Removed simple login option, consolidated to backend authentication only
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -23,7 +25,7 @@
  * Outputs: Type safety and IntelliSense for development
  * 
  * @authentication-context
- * Auth Modes: Defines login function signature supporting both mock and real authentication
+ * Auth Modes: Defines login function signature for backend JWT authentication
  * Security: Type safety for authentication state and user data structures
  */
 /* eslint-disable no-unused-vars */
@@ -31,6 +33,7 @@ export enum View {
   DASHBOARD = 'dashboard',
   LOADER = 'loader',
   CURATION = 'curation',
+  DUPLICATES = 'duplicates',
 }
 /* eslint-enable no-unused-vars */
 
@@ -93,13 +96,15 @@ export interface ValidationResult {
 
 /**
  * @interface BatchUploadResult
- * @description Result of batch question upload operation from server
+ * @description Result of batch question upload operation from server including duplicate detection
  * @field {number} totalAttempted - Total number of questions attempted for upload
  * @field {string[]} successfulUploads - Array of question IDs that uploaded successfully
  * @field {string[]} failedUploads - Array of question IDs that failed to upload
  * @field {Record<string, string>} errors - Map of question ID to error message for failures
  * @field {string[]} warnings - Array of warning messages from validation
  * @field {number} processingTimeMs - Server processing time in milliseconds
+ * @field {number} duplicateCount - Number of potential duplicates found
+ * @field {DuplicateGroup[]} duplicateGroups - Grouped duplicate information
  */
 export interface BatchUploadResult {
   totalAttempted: number;
@@ -108,6 +113,8 @@ export interface BatchUploadResult {
   errors: Record<string, string>;
   warnings: string[];
   processingTimeMs: number;
+  duplicateCount?: number;
+  duplicateGroups?: DuplicateGroup[];
 }
 
 /**
@@ -127,6 +134,28 @@ export interface ParsedQuestion {
   question: string;
   answer: string;
   notesForTutor?: string;
+}
+
+/**
+ * @interface DuplicateGroup
+ * @description Grouped duplicate questions with similarity scores
+ * @field {string} primaryId - ID of the primary question in the group
+ * @field {Question} primaryQuestion - Full question object for the primary question
+ * @field {DuplicateQuestion[]} duplicates - Array of duplicate questions with similarity scores
+ */
+export interface DuplicateGroup {
+  primaryId: string;
+  primaryQuestion: {
+    id: string;
+    text: string;
+    topic: string;
+  };
+  duplicates: Array<{
+    id: string;
+    text: string;
+    topic: string;
+    similarityScore: number;
+  }>;
 }
 
 export interface ActivityLogItem {

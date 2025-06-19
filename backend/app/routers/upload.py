@@ -6,6 +6,7 @@
 @updated June 14, 2025. 2:18 p.m. Eastern Time - Added support for upload metadata fields (uploaded_on, uploaded_by, upload_notes)
 @updated June 14, 2025. 4:46 p.m. Eastern Time - CRITICAL FIX: Added missing updated_at field to database insertion, resolving zero upload issue
 @updated June 19, 2025. 2:08 PM Eastern Time - Removed topic parameter from validation and upload endpoints - topics extracted from file content
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection using PostgreSQL pg_trgm extension
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -36,6 +37,7 @@ from typing import List, Dict, Any
 from app.database import supabase
 from app.routers.auth import get_current_user
 from app.services.validation_service import validation_service, ValidationResult, BatchUploadResult
+from app.services.duplicate_service import duplicate_service
 from app.utils.id_generator import id_generator
 from app.models.question import (
     QuestionCreate, 
@@ -284,6 +286,17 @@ async def upload_markdown_file(
                 upload_result.failed_uploads.append(unique_id if 'unique_id' in locals() else f"question_{len(upload_result.failed_uploads) + 1}")
                 upload_result.errors[unique_id if 'unique_id' in locals() else f"question_{len(upload_result.failed_uploads)}"] = error_message
         
+        # Check for duplicates (non-blocking)
+        duplicate_info = {"count": 0, "groups": []}
+        if upload_result.successful_uploads:
+            try:
+                duplicate_info = await duplicate_service.detect_duplicates(
+                    upload_result.successful_uploads
+                )
+            except Exception as e:
+                # Don't fail upload if duplicate detection fails
+                print(f"Duplicate detection failed: {str(e)}")
+        
         # Calculate processing time
         processing_time = int((time.time() - start_time) * 1000)
         
@@ -293,7 +306,9 @@ async def upload_markdown_file(
             failed_uploads=upload_result.failed_uploads,
             errors=upload_result.errors,
             warnings=upload_result.warnings,
-            processing_time_ms=processing_time
+            processing_time_ms=processing_time,
+            duplicate_count=duplicate_info.get('count', 0),
+            duplicate_groups=duplicate_info.get('groups', [])
         )
         
     except HTTPException:

@@ -5,6 +5,7 @@
 @updated 2025.06.09 4:07 PM ET - Added comprehensive documentation headers and function documentation
 @updated June 13, 2025. 6:34 p.m. Eastern Time - Added additional CORS origins for WSL development environment compatibility
 @updated June 19, 2025. 3:56 PM Eastern Time - Added detailed startup timing logs to identify performance bottlenecks
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicates router for duplicate question management
 
 @architectural-context
 Layer: API Application Entry Point
@@ -28,7 +29,7 @@ import time
 import os
 
 from app.database import init_db
-from app.routers import auth, questions, upload
+from app.routers import auth, questions, upload, duplicates
 
 # Track startup time
 startup_start = time.time()
@@ -50,6 +51,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(questions.router, prefix="/api", tags=["questions"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
+app.include_router(duplicates.router, tags=["duplicates"])
 
 
 @app.on_event("startup")

@@ -13,30 +13,32 @@
  * @updated June 14, 2025. 5:42 p.m. Eastern Time - Fixed data transformation for metadata fields (uploaded_on → uploadedOn, etc.) in fetchInitialData, updateQuestion, and addNewQuestion
  * @updated June 16, 2025. 2:01 p.m. Eastern Time - Added missing notesForTutor field transformation in updateQuestion and addNewQuestion functions
  * @updated June 19, 2025. 12:11 PM Eastern Time - Removed unused geminiService import as part of cleanup
+ * @updated June 19, 2025. 6:04 PM Eastern Time - Removed simple login option, consolidated to backend authentication only
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection support with post-upload notifications
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
  * Dependencies: react, ../types, ../constants, react-hot-toast
- * Pattern: React Context API for providing global state and updater functions. Centralizes data operations, authentication logic, and interactions with simulated backend services.
+ * Pattern: React Context API for providing global state and updater functions. Centralizes data operations, authentication logic, and interactions with backend services.
  * 
  * @workflow-context  
  * User Journey: Supports all user journeys by providing shared data (questions, topics, auth status) and actions (CRUD operations, login/logout, file uploads).
  * Sequence Position: Initialized at the root of the application (App.tsx) and persists throughout the user session.
  * Inputs: Child components consuming context values, user actions triggering context functions (e.g., login, addQuestions).
- * Outputs: Provides state (questions, topics, isAuthenticated) and functions to modify state to descendant components. Triggers backend API calls (simulated) and UI notifications.
+ * Outputs: Provides state (questions, topics, isAuthenticated) and functions to modify state to descendant components. Triggers backend API calls and UI notifications.
  * 
  * @authentication-context
- * Auth Modes: Supports dual authentication - real backend login and mock password fallback
+ * Auth Modes: Backend JWT authentication only
  * Security: Handles session token storage in sessionStorage, JWT token-based API authentication
  * 
  * @mock-data-context
- * Purpose: `MOCK_PASSWORD` facilitates prototype login. `INITIAL_TOPICS` provides fallback data if backend is unavailable. `uploadMarkdownFile` "dry run" uses Gemini API (real if key provided) without backend persistence.
- * Behavior: Login checks against `MOCK_PASSWORD`. `fetchInitialData` attempts real API call with fallbacks. `uploadMarkdownFile` non-dry-run simulates backend processing.
- * Activation: Mock password always used in `login`. Fallback data used on API failure. Dry run mode is an explicit parameter to `uploadMarkdownFile`.
+ * Purpose: `INITIAL_TOPICS` provides fallback data if backend is unavailable. `uploadMarkdownFile` "dry run" mode allows validation without persistence.
+ * Behavior: `fetchInitialData` attempts real API call with fallbacks. `uploadMarkdownFile` dry-run validates without database changes.
+ * Activation: Fallback data used on API failure. Dry run mode is an explicit parameter to `uploadMarkdownFile`.
  */
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
 import { Question, TopicSummary, AppContextType, ParsedQuestionFromAI, Filters, ValidationReport, ActivityLogItem, ValidationResult, BatchUploadResult } from '../types';
-import { INITIAL_TOPICS, SESSION_TOKEN_KEY, MOCK_PASSWORD } from '../constants'; 
+import { INITIAL_TOPICS, SESSION_TOKEN_KEY } from '../constants'; 
 import { loginUser, bulkDeleteQuestions as bulkDeleteQuestionsAPI, deleteQuestion as deleteQuestionAPI, createQuestion as createQuestionAPI, updateQuestion as updateQuestionAPI, validateMarkdownFile as validateMarkdownFileAPI, uploadMarkdownFile as uploadMarkdownFileAPI } from '../services/api';
 import { validateMarkdownFormat, getValidationSummary } from '../services/validation';
 import toast from 'react-hot-toast';
@@ -327,24 +329,59 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const failedUploads = result.failedUploads || [];
     const errors = result.errors || {};
     const warnings = result.warnings || [];
+    const duplicateCount = result.duplicateCount || 0;
     
     // Note: Array processing with defensive programming for undefined fields
     
     if (failedUploads.length === 0) {
       // Complete success
-      toast.success(`✅ All ${successfulUploads.length} questions uploaded successfully!`);
-      logActivity("File upload completed", `${fileName} - ${successfulUploads.length} questions added`);
+      let successMessage = `✅ All ${successfulUploads.length} questions uploaded successfully!`;
+      
+      // Add duplicate notification if duplicates were found
+      if (duplicateCount > 0) {
+        successMessage += `\n⚠️ ${duplicateCount} potential duplicates found.`;
+        toast.success(successMessage, {
+          duration: 10000,
+          style: {
+            maxWidth: '500px',
+          }
+        });
+        
+        // Show additional duplicate management toast
+        setTimeout(() => {
+          toast(
+            `Review duplicates at /duplicates or continue working`,
+            {
+              icon: '📋',
+              duration: 8000,
+              position: 'bottom-right'
+            }
+          );
+        }, 2000);
+      } else {
+        toast.success(successMessage);
+      }
+      
+      logActivity("File upload completed", `${fileName} - ${successfulUploads.length} questions added${duplicateCount > 0 ? `, ${duplicateCount} duplicates found` : ''}`);
       
     } else if (successfulUploads.length > 0) {
       // Partial success - show summary with option to view details
-      const successMessage = `✅ ${successfulUploads.length} questions uploaded successfully.`;
+      let successMessage = `✅ ${successfulUploads.length} questions uploaded successfully.`;
       const failureMessage = `❌ ${failedUploads.length} questions failed.`;
+      
+      // Add duplicate notification if duplicates were found
+      if (duplicateCount > 0) {
+        successMessage += `\n⚠️ ${duplicateCount} potential duplicates found.`;
+      }
       
       // Show success with error details available
       toast.success(
         `${successMessage}\n${failureMessage}`,
         {
-          duration: 8000
+          duration: 8000,
+          style: {
+            maxWidth: '500px',
+          }
         }
       );
       
@@ -355,7 +392,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       logActivity(
         "File upload partial success", 
-        `${fileName} - ${successfulUploads.length} succeeded, ${failedUploads.length} failed`
+        `${fileName} - ${successfulUploads.length} succeeded, ${failedUploads.length} failed${duplicateCount > 0 ? `, ${duplicateCount} duplicates found` : ''}`
       );
       
     } else {
@@ -419,7 +456,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     try {
       // Transform frontend format to backend format
-      const backendQuestion: any = {
+      const backendQuestion: Record<string, unknown> = {
         question_id: updatedQuestion.id,
         topic: updatedQuestion.topic,
         subtopic: updatedQuestion.subtopic,
@@ -472,7 +509,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsContextLoading(true);
     try {
       // Transform frontend format to backend format
-      const backendQuestion: any = {
+      const backendQuestion: Record<string, unknown> = {
         topic: newQuestionData.topic,
         subtopic: newQuestionData.subtopic,
         difficulty: newQuestionData.difficulty,
@@ -742,50 +779,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   /**
    * @function login
-   * @description Authenticates the user with backend API. Supports both real authentication and mock mode fallback.
-   * @param {string} usernameOrPassword - Username for real auth, or password for mock mode
-   * @param {string} [password] - Password for real auth (optional for backward compatibility)
+   * @description Authenticates the user with backend API using JWT authentication.
+   * @param {string} usernameOrPassword - Username or email for authentication
+   * @param {string} [password] - Password for authentication (required)
    * @returns {Promise<boolean>} True if login is successful, false otherwise.
    */
   const login = useCallback(async (usernameOrPassword: string, password?: string): Promise<boolean> => {
     setIsContextLoading(true); 
     try {
-      // Try real backend authentication first
-      if (password) {
-        // Real authentication with username and password
-        const result = await loginUser(usernameOrPassword, password);
-        sessionStorage.setItem(SESSION_TOKEN_KEY, result.access_token);
-        setIsAuthenticated(true);
-        toast.success(`Login successful! Welcome, ${result.username}`);
-        logActivity("Logged in", `User: ${result.username}`);
-        return true;
-      } else {
-        // Fallback to mock authentication for backward compatibility
-        if (usernameOrPassword === MOCK_PASSWORD) {
-          sessionStorage.setItem(SESSION_TOKEN_KEY, 'mock-jwt-token-for-prototype');
-          setIsAuthenticated(true); 
-          toast.success('Login successful!');
-          logActivity("Logged in", "Mock authentication"); 
-          return true;
-        } else {
-          toast.error('Login failed: Invalid credentials.');
-          setIsContextLoading(false); 
-          return false;
-        }
+      // Require both username and password for backend authentication
+      if (!password) {
+        toast.error('Login failed: Password is required.');
+        setIsContextLoading(false);
+        return false;
       }
+
+      // Backend authentication with username/email and password
+      const result = await loginUser(usernameOrPassword, password);
+      sessionStorage.setItem(SESSION_TOKEN_KEY, result.access_token);
+      setIsAuthenticated(true);
+      toast.success(`Login successful! Welcome, ${result.username}`);
+      logActivity("Logged in", `User: ${result.username}`);
+      return true;
     } catch (error) {
       console.error('Login error:', error);
-      
-      // Fallback to mock authentication on API failure
-      if (!password && usernameOrPassword === MOCK_PASSWORD) {
-        sessionStorage.setItem(SESSION_TOKEN_KEY, 'mock-jwt-token-for-prototype');
-        setIsAuthenticated(true);
-        toast.success('Login successful (offline mode)!');
-        logActivity("Logged in", "Mock authentication (API unavailable)");
-        return true;
-      }
-      
-      toast.error(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Login failed: ${error instanceof Error ? error.message : 'Backend unavailable. Please try again later.'}`);
       setIsContextLoading(false); 
       return false;
     } 

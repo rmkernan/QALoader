@@ -4,6 +4,7 @@
  * @created 2025.06.08 9:00 PM ET
  * @updated 2025.06.09 1:45 PM ET - Refactored project structure into src/ and public/ directories and updated JSDoc.
  * @updated June 19, 2025. 3:56 PM Eastern Time - Added component mount timing logs for performance tracking
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate management view routing for PostgreSQL pg_trgm integration
  * 
  * @architectural-context
  * Layer: UI Component (Root Application Shell)
@@ -27,6 +28,7 @@ import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
 import LoaderView from './components/LoaderView';
 import CurationView from './components/CurationView';
+import DuplicateManagementView from './components/DuplicateManagementView';
 import LoginView from './components/LoginView'; // Import LoginView
 import { View } from './types';
 import { AppProvider, useAppContext } from './contexts/AppContext';
@@ -58,6 +60,8 @@ const AppContent: React.FC = () => {
         return <LoaderView />;
       case View.CURATION:
         return <CurationView />;
+      case View.DUPLICATES:
+        return <DuplicateManagementView setActiveView={setActiveView} />;
       default:
         return <DashboardView setActiveView={setActiveView} />;
     }

@@ -10,6 +10,7 @@
 @updated June 14, 2025. 4:05 p.m. Eastern Time - Fixed uploaded_on field max_length constraint to properly support short timestamp format (MM/DD/YY H:MMPM ET)
 @updated June 14, 2025. 4:27 p.m. Eastern Time - Changed updated_at field from datetime to string with short timestamp format for consistency with uploaded_on
 @updated June 19, 2025. 12:01 PM Eastern Time - Added 'Question' to valid type values in both QuestionBase and ParsedQuestionFromAI validators
+@updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection fields to BatchUploadResult model
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -271,13 +272,15 @@ class BatchUploadRequest(BaseModel):
 class BatchUploadResult(BaseModel):
     """
     @class BatchUploadResult
-    @description Result of batch question upload operation with detailed tracking for each question
+    @description Result of batch question upload operation with detailed tracking for each question including duplicate detection
     @example:
         result = BatchUploadResult(
             total_attempted=25,
             successful_uploads=["DCF-WACC-B-G-001", "DCF-WACC-B-G-002"],
             failed_uploads=["DCF-WACC-B-P-001"],
-            errors={"DCF-WACC-B-P-001": "Duplicate ID"}
+            errors={"DCF-WACC-B-P-001": "Duplicate ID"},
+            duplicate_count=3,
+            duplicate_groups=[{"primary_id": "DCF-WACC-B-G-001", "duplicates": [...]}]
         )
     """
     total_attempted: int = Field(..., description="Total number of questions attempted")
@@ -286,6 +289,8 @@ class BatchUploadResult(BaseModel):
     errors: Dict[str, str] = Field(default_factory=dict, description="Question ID to error message mapping")
     warnings: List[str] = Field(default_factory=list, description="General warnings about the upload operation")
     processing_time_ms: Optional[int] = Field(None, description="Time taken to process the upload in milliseconds")
+    duplicate_count: Optional[int] = Field(0, description="Number of potential duplicates found")
+    duplicate_groups: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Grouped duplicate information")
 
 
 class BulkDeleteRequest(BaseModel):

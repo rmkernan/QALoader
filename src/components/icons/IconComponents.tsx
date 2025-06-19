@@ -3,6 +3,7 @@
  * @description Provides reusable SVG icon components for the application UI.
  * @created June 8, 2025. 9:30 p.m. Eastern Time
  * @updated June 9, 2025. 1:02 p.m. Eastern Time - Applied LLM-focused documentation standards.
+@updated June 19, 2025. 6:01 PM Eastern Time - Added DuplicateIcon for duplicate management feature
  * 
  * @architectural-context
  * Layer: UI Utility (Icon Library)
