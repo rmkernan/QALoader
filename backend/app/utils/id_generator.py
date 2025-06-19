@@ -3,6 +3,7 @@
 @description Question ID generation utility for creating unique, semantic question identifiers following established patterns.
 @created June 14, 2025. 11:27 a.m. Eastern Time
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Initial creation with semantic ID generation logic
+@updated June 19, 2025. 4:00 PM Eastern Time - Updated abbreviation system for topics, subtopics, and question types
 
 @architectural-context
 Layer: Utility Layer (Helper Functions)
@@ -36,13 +37,31 @@ class IDGenerator:
     @description Generates unique, semantic question IDs following established patterns
     """
     
-    # Type code mapping for question types
+    # Type code mapping for question types - simplified to Q (Question) or P (Problem)
     TYPE_CODES = {
-        'GenConcept': 'G',
+        'Question': 'Q',
         'Problem': 'P',
-        'Definition': 'D',
-        'Calculation': 'C',
-        'Analysis': 'A'
+        'GenConcept': 'Q',  # Map to Question
+        'Definition': 'Q',  # Map to Question
+        'Calculation': 'P', # Map to Problem
+        'Analysis': 'Q'     # Map to Question
+    }
+    
+    # Topic abbreviation mapping for common topics
+    TOPIC_ABBREVIATIONS = {
+        'accounting': 'ACC',
+        'finance': 'FIN',
+        'economics': 'ECON',
+        'business': 'BUS',
+        'marketing': 'MKT',
+        'operations': 'OPS',
+        'strategy': 'STRAT',
+        'management': 'MGMT',
+        'dcf': 'DCF',
+        'valuation': 'VAL',
+        'financial modeling': 'FINMOD',
+        'mergers and acquisitions': 'MA',
+        'm&a': 'MA'
     }
     
     # Maximum component lengths to prevent overly long IDs
@@ -72,104 +91,113 @@ class IDGenerator:
     def normalize_topic(self, topic: str) -> str:
         """
         @function normalize_topic
-        @description Normalizes topic name to short code for ID generation
+        @description Normalizes topic name to 3-letter abbreviation for ID generation
         @param topic: Full topic name
-        @returns: Normalized topic code
+        @returns: 3-letter normalized topic code
         @example:
-            # Extract abbreviation from parentheses
-            code = normalize_topic("Discounted Cash Flow (DCF)")  # Returns: "DCF"
-            
-            # Use first words if no abbreviation
-            code = normalize_topic("Mergers and Acquisitions")  # Returns: "MERGERSACQ"
+            code = normalize_topic("Accounting")  # Returns: "ACC"
+            code = normalize_topic("DCF")         # Returns: "DCF"
         """
-        # First, try to extract abbreviation from parentheses
+        topic_lower = topic.lower().strip()
+        
+        # First check predefined abbreviations
+        if topic_lower in self.TOPIC_ABBREVIATIONS:
+            return self.TOPIC_ABBREVIATIONS[topic_lower]
+        
+        # Extract abbreviation from parentheses if present
         parentheses_match = re.search(r'\(([^)]+)\)', topic)
         if parentheses_match:
             abbrev = parentheses_match.group(1)
-            # Clean up abbreviation
             clean_abbrev = re.sub(r'[^A-Za-z0-9]', '', abbrev)
-            if clean_abbrev and len(clean_abbrev) <= self.MAX_TOPIC_CODE_LENGTH:
-                return clean_abbrev.upper()
+            if clean_abbrev and len(clean_abbrev) <= 4:
+                return clean_abbrev.upper()[:3]
         
-        # No abbreviation found, create one from the topic name
-        # Remove common words and extract meaningful parts
-        topic_clean = re.sub(r'\([^)]*\)', '', topic)  # Remove parentheses content
-        topic_clean = re.sub(r'[^A-Za-z0-9\s]', '', topic_clean)  # Remove special chars
+        # Remove parentheses content and clean
+        topic_clean = re.sub(r'\([^)]*\)', '', topic)
+        topic_clean = re.sub(r'[^A-Za-z0-9\s]', '', topic_clean).strip()
         
-        # Split into words and take first letters of significant words
-        words = topic_clean.split()
-        significant_words = [w for w in words if len(w) > 2 and w.lower() not in ['the', 'and', 'of', 'for', 'to', 'in', 'on', 'at', 'by']]
+        # If already short, use as-is
+        if len(topic_clean) <= 3:
+            return topic_clean.upper().ljust(3, 'X')
         
-        if not significant_words:
-            significant_words = words  # Fallback to all words
+        # Split into words
+        words = [w for w in topic_clean.split() if len(w) > 0]
         
-        # Create abbreviation
-        if len(significant_words) == 1:
-            # Single word - take first N characters
-            return significant_words[0][:self.MAX_TOPIC_CODE_LENGTH].upper()
-        else:
-            # Multiple words - take first letter of each or first few letters
-            abbrev = ''.join(word[0].upper() for word in significant_words[:4])
-            if len(abbrev) < 3 and significant_words:
-                # If too short, take more letters from first word
-                abbrev = significant_words[0][:min(4, self.MAX_TOPIC_CODE_LENGTH)].upper()
-            return abbrev[:self.MAX_TOPIC_CODE_LENGTH]
+        if not words:
+            return 'UNK'
+        
+        if len(words) == 1:
+            # Single word - take first 3 characters
+            return words[0][:3].upper()
+        
+        # Multiple words - take first letter of each word, up to 3
+        abbrev = ''.join(word[0].upper() for word in words[:3])
+        
+        # If we have less than 3 letters, pad with more from first word
+        if len(abbrev) < 3 and len(words[0]) > 1:
+            needed = 3 - len(abbrev)
+            abbrev += words[0][1:1+needed].upper()
+        
+        return abbrev[:3].ljust(3, 'X')
 
     def normalize_subtopic(self, subtopic: str) -> str:
         """
         @function normalize_subtopic
-        @description Normalizes subtopic name to short code for ID generation
+        @description Normalizes subtopic name to 3-letter abbreviation for ID generation
         @param subtopic: Full subtopic name
-        @returns: Normalized subtopic code
+        @returns: 3-letter normalized subtopic code
         @example:
-            code = normalize_subtopic("WACC Calculation")  # Returns: "WACC"
-            code = normalize_subtopic("Terminal Value")     # Returns: "TERMVAL"
+            code = normalize_subtopic("WACC Calculation")  # Returns: "WAC"
+            code = normalize_subtopic("Undefined")         # Returns: "UND"
         """
+        subtopic_clean = subtopic.strip()
+        
+        # Handle special cases
+        if subtopic_clean.lower() in ['undefined', 'unknown', 'misc', 'general']:
+            return 'UND'
+        
         # Remove special characters and extra spaces
-        clean_subtopic = re.sub(r'[^A-Za-z0-9\s]', '', subtopic)
+        clean_subtopic = re.sub(r'[^A-Za-z0-9\s]', '', subtopic_clean)
         clean_subtopic = re.sub(r'\s+', ' ', clean_subtopic.strip())
         
+        if not clean_subtopic:
+            return 'UND'
+        
         # Split into words
-        words = clean_subtopic.split()
+        words = [w for w in clean_subtopic.split() if len(w) > 0]
         
         if not words:
-            return "UNKNOWN"
+            return 'UND'
         
         if len(words) == 1:
-            # Single word - use as is (truncated if needed)
-            return words[0][:self.MAX_SUBTOPIC_CODE_LENGTH].upper()
+            # Single word - take first 3 characters
+            word = words[0]
+            if len(word) <= 3:
+                return word.upper().ljust(3, 'X')
+            return word[:3].upper()
         
-        # Multiple words - try different strategies
-        # Strategy 1: Look for abbreviations (all caps words)
-        abbrev_words = [w for w in words if w.isupper() and len(w) > 1]
-        if abbrev_words:
-            return abbrev_words[0][:self.MAX_SUBTOPIC_CODE_LENGTH]
+        # Multiple words - take first letter of each word, up to 3
+        abbrev = ''.join(word[0].upper() for word in words[:3])
         
-        # Strategy 2: Take first letter of each word
-        initials = ''.join(word[0].upper() for word in words)
-        if len(initials) <= self.MAX_SUBTOPIC_CODE_LENGTH:
-            return initials
+        # If we have less than 3 letters, pad with more from first word
+        if len(abbrev) < 3 and len(words[0]) > 1:
+            needed = 3 - len(abbrev)
+            abbrev += words[0][1:1+needed].upper()
         
-        # Strategy 3: Combine first word with initials of others
-        if len(words[0]) <= 4:
-            remaining_initials = ''.join(word[0].upper() for word in words[1:])
-            combined = words[0].upper() + remaining_initials
-            return combined[:self.MAX_SUBTOPIC_CODE_LENGTH]
-        
-        # Strategy 4: Use first word only
-        return words[0][:self.MAX_SUBTOPIC_CODE_LENGTH].upper()
+        return abbrev[:3].ljust(3, 'X')
 
     def get_type_code(self, question_type: str) -> str:
         """
         @function get_type_code
-        @description Maps question type to single letter code
+        @description Maps question type to single letter code (Q for Question, P for Problem)
         @param question_type: Full question type name
-        @returns: Single letter type code
+        @returns: Single letter type code (Q or P)
         @example:
-            code = get_type_code("GenConcept")  # Returns: "G"
+            code = get_type_code("Question")    # Returns: "Q"
             code = get_type_code("Problem")     # Returns: "P"
+            code = get_type_code("GenConcept")  # Returns: "Q" (mapped to Question)
         """
-        return self.TYPE_CODES.get(question_type, 'G')  # Default to 'G' for GenConcept
+        return self.TYPE_CODES.get(question_type, 'Q')  # Default to 'Q' for Question
 
     async def get_next_sequence(self, base_id: str, supabase_client: Client) -> int:
         """

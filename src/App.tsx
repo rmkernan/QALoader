@@ -3,6 +3,7 @@
  * @description Main application component. Sets up the AppProvider, Toaster, and handles routing between LoginView and the main application layout (Sidebar + active view).
  * @created 2025.06.08 9:00 PM ET
  * @updated 2025.06.09 1:45 PM ET - Refactored project structure into src/ and public/ directories and updated JSDoc.
+ * @updated June 19, 2025. 3:56 PM Eastern Time - Added component mount timing logs for performance tracking
  * 
  * @architectural-context
  * Layer: UI Component (Root Application Shell)
@@ -21,7 +22,7 @@
  * 
  * @mock-data-context N/A (Consumes AppContext which handles its own mock states).
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
 import LoaderView from './components/LoaderView';
@@ -30,6 +31,10 @@ import LoginView from './components/LoginView'; // Import LoginView
 import { View } from './types';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { Toaster } from 'react-hot-toast'; // Import Toaster
+
+// Track component load time
+const appLoadTime = performance.now();
+console.log('[FRONTEND] App component loading...');
 
 /**
  * @component AppContent
@@ -40,6 +45,10 @@ import { Toaster } from 'react-hot-toast'; // Import Toaster
 const AppContent: React.FC = () => {
   const { isAuthenticated, isContextLoading } = useAppContext();
   const [activeView, setActiveView] = useState<View>(View.DASHBOARD);
+  
+  useEffect(() => {
+    console.log(`[FRONTEND] AppContent mounted - Auth: ${isAuthenticated}, Loading: ${isContextLoading} (+${(performance.now() - appLoadTime).toFixed(2)}ms)`);
+  }, [isAuthenticated, isContextLoading]);
 
   const renderView = () => {
     switch (activeView) {

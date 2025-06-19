@@ -61,6 +61,28 @@ React Frontend → FastAPI Backend → Supabase Database
 (Port 5173)      (Port 8000)       (Cloud PostgreSQL)
 ```
 
+## Critical Markdown Format Understanding
+
+**IMPORTANT for future development**: The question markdown format has each question as a COMPLETE SELF-CONTAINED unit:
+
+```markdown
+# Topic: Accounting
+## Subtopic: undefined  
+### Difficulty: Basic
+#### Type: Problem
+    **Question:** What's the difference between LIFO and FIFO?
+    **Answer:** [answer content]
+
+# Topic: Accounting
+## Subtopic: Financial Statements
+### Difficulty: Advanced  
+#### Type: Question
+    **Question:** How do you calculate...
+    **Answer:** [answer content]
+```
+
+**DO NOT** assume topics/subtopics are shared across questions - each question block starts with `# Topic:` and contains ALL its own headers. This is critical for proper validation and topic extraction.
+
 ### Frontend Structure
 - **Views**: LoginView, DashboardView, LoaderView, CurationView
 - **State Management**: React Context (AppContext.tsx)

@@ -3,6 +3,7 @@
 @description Supabase database client initialization and connection management. Handles graceful fallback when database is not configured.
 @created 2025.06.09 3:26 PM ET
 @updated 2025.06.09 4:11 PM ET - Added comprehensive documentation and error handling documentation
+@updated June 19, 2025. 3:56 PM Eastern Time - Added detailed timing logs for database initialization
 
 @architectural-context
 Layer: Database Connection Layer
@@ -58,9 +59,20 @@ async def init_db():
         # Called automatically by FastAPI on startup
         await init_db()
     """
-    # For now, we assume tables are created via Supabase dashboard
-    # Future enhancement: Add migration system for automated table creation
-    print("Database initialization completed")
+    if supabase:
+        # Test the connection with a simple query
+        try:
+            test_start = time.time()
+            print("[DATABASE] Testing database connection...")
+            # Simple test query to verify connectivity
+            result = supabase.table('all_questions').select('id').limit(1).execute()
+            print(f"[DATABASE] ✓ Database connection verified (+{time.time() - test_start:.2f}s)")
+        except Exception as e:
+            print(f"[DATABASE] ⚠ Database test query failed: {e}")
+    else:
+        print("[DATABASE] ⚠ Running without database - mock mode active")
+    
+    print("[DATABASE] Database initialization completed")
 
 
 async def get_db():

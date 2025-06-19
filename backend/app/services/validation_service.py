@@ -8,6 +8,8 @@
 @updated June 19, 2025. 11:39 AM Eastern Time - Updated validation patterns to handle new markdown format with **Answer:** instead of **Brief Answer:**
 @updated June 19, 2025. 11:44 AM Eastern Time - Added support for optional **Notes for Tutor:** field parsing
 @updated June 19, 2025. 2:12 PM Eastern Time - Removed topic parameter from parse_markdown_to_questions - topics extracted from content
+@updated June 19, 2025. 4:00 PM Eastern Time - Updated valid question types to prioritize Question and Problem types
+@updated June 19, 2025. 4:15 PM Eastern Time - Made topic required in question parsing - no more Unknown topic defaults
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -17,8 +19,20 @@ Pattern: Service layer pattern with validation and transformation responsibiliti
 @workflow-context
 User Journey: File upload validation and processing workflow
 Sequence Position: Called by upload router endpoints to validate markdown files before database operations
-Inputs: Raw markdown file content and topic information
+Inputs: Raw markdown file content (each question has complete header hierarchy)
 Outputs: Validation results and transformed question data ready for database insertion
+
+@markdown-format-specification
+CRITICAL: Each question is a complete self-contained unit with full headers:
+# Topic: [TopicName]
+## Subtopic: [SubtopicName]  
+### Difficulty: [Basic|Advanced]
+#### Type: [Question|Problem|etc]
+    **Question:** [question text]
+    **Answer:** [answer text]
+    **Notes for Tutor:** [optional notes]
+
+DO NOT assume topics/subtopics are shared across questions - each has its own complete hierarchy!
 
 @authentication-context
 Auth Requirements: Called by authenticated upload endpoints only
@@ -119,7 +133,7 @@ class ValidationService:
     
     # Valid values for validation
     VALID_DIFFICULTIES = ['Basic', 'Advanced']
-    VALID_TYPES = ['Definition', 'Problem', 'GenConcept', 'Calculation', 'Analysis', 'Question']
+    VALID_TYPES = ['Question', 'Problem', 'Definition', 'GenConcept', 'Calculation', 'Analysis']
     
     # Content limits
     MAX_TOPIC_LENGTH = 100
@@ -251,13 +265,15 @@ class ValidationService:
         questions = []
         question_blocks = self._extract_question_blocks(content)
         
-        for block in question_blocks:
+        for i, block in enumerate(question_blocks, 1):
             try:
                 question = self._parse_question_block(block)
                 if question:
                     questions.append(question)
+                else:
+                    structure_result.errors.append(f"Question block {i}: Missing required topic or subtopic header")
             except Exception as e:
-                structure_result.errors.append(f"Error parsing question block: {str(e)}")
+                structure_result.errors.append(f"Error parsing question block {i}: {str(e)}")
         
         # Validate content
         if questions:
@@ -296,9 +312,29 @@ class ValidationService:
     def _extract_question_blocks(self, content: str) -> List[str]:
         """
         @function _extract_question_blocks
-        @description Extracts individual question blocks from markdown content while preserving subtopic context
+        @description Extracts individual question blocks from markdown content
         @param content: Raw markdown content
-        @returns: List of question block strings with subtopic context included
+        @returns: List of question block strings with full hierarchical context included
+        
+        @critical-format-understanding
+        The markdown format has each question as a COMPLETE SELF-CONTAINED unit:
+        
+        # Topic: Accounting
+        ## Subtopic: undefined  
+        ### Difficulty: Basic
+        #### Type: Problem
+            **Question:** What's the difference between LIFO and FIFO?
+            **Answer:** [answer content]
+        
+        # Topic: Accounting
+        ## Subtopic: Financial Statements
+        ### Difficulty: Advanced  
+        #### Type: Question
+            **Question:** How do you calculate...
+            **Answer:** [answer content]
+        
+        IMPORTANT: Each question block starts with # Topic: and contains ALL its own headers.
+        The extraction logic preserves this complete hierarchy for each question.
         """
         blocks = []
         lines = content.split('\n')
@@ -413,17 +449,17 @@ class ValidationService:
             if notes_text:
                 notes_for_tutor = notes_text
         
-        # Extract topic from the block
-        topic = "Unknown"
+        # Extract topic from the block - REQUIRED
         topic_match = self.PATTERNS['topic'].search(block)
-        if topic_match:
-            topic = topic_match.group(1).strip()
+        if not topic_match:
+            return None  # Topic is required - reject question without topic
+        topic = topic_match.group(1).strip()
         
         # Extract subtopic from the block (now properly included by _extract_question_blocks)
-        subtopic = "Unknown"
         subtopic_match = self.PATTERNS['subtopic'].search(block)
-        if subtopic_match:
-            subtopic = subtopic_match.group(1).strip()
+        if not subtopic_match:
+            return None  # Subtopic is also required
+        subtopic = subtopic_match.group(1).strip()
         
         return ParsedQuestion(
             topic=topic,

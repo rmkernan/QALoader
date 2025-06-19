@@ -4,6 +4,9 @@
  * @created June 14, 2025. 4:05 p.m. Eastern Time
  * @updated June 19, 2025. 12:03 PM Eastern Time - Added 'Question' to ALLOWED_QUESTION_TYPES to match backend validation
  * @updated June 19, 2025. 12:15 PM Eastern Time - Fixed regex patterns to handle indented content and match backend validation
+ * @updated June 19, 2025. 3:49 PM Eastern Time - Fixed extractQuestionBlocks to include topic context for proper topic extraction
+@updated June 19, 2025. 4:15 PM Eastern Time - Added validation to skip question blocks that lack required topic/subtopic context
+@updated June 19, 2025. 4:17 PM Eastern Time - Fixed extractQuestionBlocks to capture complete question blocks with their preceding headers
  * 
  * @architectural-context
  * Layer: Frontend Service Layer (validation logic)
@@ -20,6 +23,18 @@
  * Purpose: Immediate format checking before server calls
  * Scope: Markdown structure, hierarchy, required patterns
  * Performance: <100ms for typical files, runs in browser main thread
+ * 
+ * @markdown-format-specification
+ * CRITICAL: Each question is a complete self-contained unit with full headers:
+ * # Topic: [TopicName]
+ * ## Subtopic: [SubtopicName]  
+ * ### Difficulty: [Basic|Advanced]
+ * #### Type: [Question|Problem|etc]
+ *     **Question:** [question text]
+ *     **Answer:** [answer text]
+ *     **Notes for Tutor:** [optional notes]
+ * 
+ * DO NOT assume topics/subtopics are shared across questions - each has its own!
  */
 
 /**
@@ -60,12 +75,12 @@ const MARKDOWN_PATTERNS = {
  * @description Valid question types that match backend constraints
  */
 const ALLOWED_QUESTION_TYPES = [
-    'Definition', 
-    'Problem', 
-    'GenConcept', 
-    'Calculation', 
-    'Analysis',
-    'Question'
+    'Question',
+    'Problem',
+    'Definition',   // Will map to Question
+    'GenConcept',   // Will map to Question
+    'Calculation',  // Will map to Problem
+    'Analysis'      // Will map to Question
 ];
 
 /**
@@ -362,7 +377,28 @@ const validateQuestionBlocks = (content: string, _lines: string[]): {
 
 /**
  * @function extractQuestionBlocks
- * @description Extracts individual question blocks from markdown content
+ * @description Extracts individual question blocks from markdown content, each with their complete header context
+ * 
+ * @critical-format-understanding
+ * The markdown format has each question as a COMPLETE SELF-CONTAINED unit with its own full header hierarchy:
+ * 
+ * # Topic: Accounting
+ * ## Subtopic: undefined  
+ * ### Difficulty: Basic
+ * #### Type: Problem
+ *     **Question:** What's the difference between LIFO and FIFO?
+ *     **Answer:** [answer content]
+ * 
+ * # Topic: Accounting
+ * ## Subtopic: Financial Statements
+ * ### Difficulty: Advanced  
+ * #### Type: Question
+ *     **Question:** How do you calculate...
+ *     **Answer:** [answer content]
+ * 
+ * IMPORTANT: Each question block starts with # Topic: and contains ALL its own headers.
+ * DO NOT try to track "current topic" across multiple questions - each is independent!
+ * 
  * @param content - File content string
  * @returns Array of question blocks with content and line numbers
  */
@@ -370,54 +406,47 @@ const extractQuestionBlocks = (content: string): Array<{ content: string; startL
     const blocks: Array<{ content: string; startLine: number; endLine: number }> = [];
     const lines = content.split('\n');
     
-    let currentBlock: string[] = [];
-    let blockStartLine = 0;
-    let inQuestionBlock = false;
-
-    lines.forEach((line, index) => {
-        // Start of new question block (#### Type:)
-        if (line.match(/^#### Type:/)) {
-            // Save previous block if exists
-            if (currentBlock.length > 0) {
-                blocks.push({
-                    content: currentBlock.join('\n'),
-                    startLine: blockStartLine,
-                    endLine: index
-                });
-            }
+    let i = 0;
+    while (i < lines.length) {
+        // Look for the start of a question block sequence: # Topic: -> ## Subtopic: -> ### Difficulty: -> #### Type:
+        const topicMatch = lines[i]?.match(/^# Topic: (.+)$/);
+        if (topicMatch && i + 3 < lines.length) {
+            const subtopicMatch = lines[i + 1]?.match(/^## Subtopic.*?: (.+)$/);
+            const difficultyMatch = lines[i + 2]?.match(/^### Difficulty: (Basic|Advanced)$/);
+            const typeMatch = lines[i + 3]?.match(/^#### Type: (.+)$/);
             
-            // Start new block
-            currentBlock = [line];
-            blockStartLine = index + 1;
-            inQuestionBlock = true;
-        } 
-        // End of question block (next heading or EOF)
-        else if (line.match(/^#{1,4}\s/) && inQuestionBlock) {
-            // Save current block
-            if (currentBlock.length > 0) {
+            if (subtopicMatch && difficultyMatch && typeMatch) {
+                // Found a complete question block header sequence
+                const blockStartLine = i + 1;
+                const questionBlock: string[] = [
+                    lines[i],     // # Topic:
+                    lines[i + 1], // ## Subtopic:
+                    lines[i + 2], // ### Difficulty:
+                    lines[i + 3]  // #### Type:
+                ];
+                
+                // Continue collecting lines until we hit the next # Topic: or end of file
+                let j = i + 4;
+                while (j < lines.length && !lines[j].match(/^# Topic: /)) {
+                    questionBlock.push(lines[j]);
+                    j++;
+                }
+                
                 blocks.push({
-                    content: currentBlock.join('\n'),
+                    content: questionBlock.join('\n'),
                     startLine: blockStartLine,
-                    endLine: index
+                    endLine: j
                 });
+                
+                // Move to the next potential block
+                i = j;
+            } else {
+                // Incomplete block sequence, move to next line
+                i++;
             }
-            
-            currentBlock = [];
-            inQuestionBlock = false;
+        } else {
+            i++;
         }
-        // Continue building current block
-        else if (inQuestionBlock) {
-            currentBlock.push(line);
-        }
-    });
-
-    // Handle last block
-    if (currentBlock.length > 0 && inQuestionBlock) {
-        blocks.push({
-            content: currentBlock.join('\n'),
-            startLine: blockStartLine,
-            endLine: lines.length
-        });
     }
 
     return blocks;

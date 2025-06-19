@@ -1,0 +1,8 @@
+{
+  "name": "qaloader-scripts",
+  "version": "1.0.0",
+  "description": "Helper scripts for Q&A Loader development",
+  "dependencies": {
+    "chalk": "^5.3.0"
+  }
+}

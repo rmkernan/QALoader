@@ -4,6 +4,7 @@
 @created 2025.06.09 3:26 PM ET
 @updated 2025.06.09 4:07 PM ET - Added comprehensive documentation headers and function documentation
 @updated June 13, 2025. 6:34 p.m. Eastern Time - Added additional CORS origins for WSL development environment compatibility
+@updated June 19, 2025. 3:56 PM Eastern Time - Added detailed startup timing logs to identify performance bottlenecks
 
 @architectural-context
 Layer: API Application Entry Point
@@ -23,11 +24,18 @@ Security: CORS restricted to localhost frontend ports, JWT validation in protect
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import time
+import os
 
 from app.database import init_db
 from app.routers import auth, questions, upload
 
+# Track startup time
+startup_start = time.time()
+
+print(f"[STARTUP] Initializing FastAPI application...")
 app = FastAPI(title="Q&A Loader API", version="1.0.0")
+print(f"[STARTUP] FastAPI app created (+{time.time() - startup_start:.2f}s)")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -54,13 +62,20 @@ async def startup_event():
         # Called automatically by FastAPI on application startup
         # No manual invocation required
     """
+    event_start = time.time()
+    print(f"[STARTUP] Running startup event handler...")
+    
+    # Database initialization
+    print(f"[STARTUP] Initializing database connection...")
     await init_db()
+    print(f"[STARTUP] Database initialized (+{time.time() - event_start:.2f}s)")
     
     # Log system startup event
     try:
+        print(f"[STARTUP] Logging system startup event...")
+        log_start = time.time()
         from app.database import supabase
         from app.services.question_service import QuestionService
-        import os
         
         question_service = QuestionService(supabase)
         await question_service.log_system_event('System Startup', {
@@ -68,10 +83,15 @@ async def startup_event():
             'server': 'FastAPI Backend',
             'port': 8000,
             'version': '1.0.0',
-            'environment': os.getenv('ENVIRONMENT', 'development')
+            'environment': os.getenv('ENVIRONMENT', 'development'),
+            'startup_time': f"{time.time() - startup_start:.2f}s"
         })
+        print(f"[STARTUP] System event logged (+{time.time() - log_start:.2f}s)")
     except Exception as e:
-        print(f"Failed to log startup event: {e}")
+        print(f"[STARTUP] Failed to log startup event: {e}")
+    
+    total_time = time.time() - startup_start
+    print(f"[STARTUP] ✅ Backend startup complete! Total time: {total_time:.2f}s")
 
 
 @app.get("/")

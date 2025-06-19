@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "start": "concurrently \"cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000\" \"vite\"",
     "start:backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000",
-    "start:frontend": "vite"
+    "start:frontend": "vite",
+    "start:debug": "node scripts/start-with-logging.js",
+    "start:timed": "time npm run start"
   },
   "dependencies": {
     "@google/genai": "^1.4.0",
