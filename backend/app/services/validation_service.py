@@ -5,6 +5,8 @@
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Initial creation with comprehensive validation logic
 @updated June 14, 2025. 3:40 p.m. Eastern Time - Fixed subtopic parsing by preserving hierarchical context during question block extraction
 @updated June 14, 2025. 4:20 p.m. Eastern Time - Fixed critical parsing logic that was only capturing 1 question instead of all 89 questions due to flawed flow control
+@updated June 19, 2025. 11:39 AM Eastern Time - Updated validation patterns to handle new markdown format with **Answer:** instead of **Brief Answer:**
+@updated June 19, 2025. 11:44 AM Eastern Time - Added support for optional **Notes for Tutor:** field parsing
 
 @architectural-context
 Layer: Service Layer (Business Logic)
@@ -107,13 +109,14 @@ class ValidationService:
         'subtopic': re.compile(r'^## Subtopic.*?:\s*(.+)$', re.MULTILINE),
         'difficulty': re.compile(r'^### Difficulty:\s*(Basic|Advanced)$', re.MULTILINE),
         'type': re.compile(r'^#### Type:\s*(.+)$', re.MULTILINE),
-        'question': re.compile(r'^\*\*Question:\*\*\s*(.+)$', re.MULTILINE),
-        'answer': re.compile(r'^\*\*Brief Answer:\*\*\s*(.+)$', re.MULTILINE | re.DOTALL),
+        'question': re.compile(r'^\s*\*\*Question:\*\*\s*(.+)$', re.MULTILINE),
+        'answer': re.compile(r'^\s*\*\*Answer:\*\*\s*(.+)$', re.MULTILINE | re.DOTALL),
+        'notes_for_tutor': re.compile(r'^\s*\*\*Notes for Tutor:\*\*\s*(.+?)(?=\n\n#|\n\s*$|$)', re.MULTILINE | re.DOTALL),
     }
     
     # Valid values for validation
     VALID_DIFFICULTIES = ['Basic', 'Advanced']
-    VALID_TYPES = ['Definition', 'Problem', 'GenConcept', 'Calculation', 'Analysis']
+    VALID_TYPES = ['Definition', 'Problem', 'GenConcept', 'Calculation', 'Analysis', 'Question']
     
     # Content limits
     MAX_TOPIC_LENGTH = 100
@@ -155,7 +158,7 @@ class ValidationService:
         parsed_count = len(question_blocks)
         
         if parsed_count == 0:
-            errors.append("No question blocks found. Check formatting of **Question:** and **Brief Answer:** sections")
+            errors.append("No question blocks found. Check formatting of **Question:** and **Answer:** sections. **Notes for Tutor:** is optional.")
         
         # Validate each question block structure
         for i, block in enumerate(question_blocks, 1):
@@ -308,7 +311,7 @@ class ValidationService:
             """Helper function to save the current question block if valid"""
             if in_question_block and len(current_question_block) > 3:
                 block_content = '\n'.join(current_question_block)
-                if '**Question:**' in block_content and '**Brief Answer:**' in block_content:
+                if '**Question:**' in block_content and '**Answer:**' in block_content:
                     blocks.append(block_content)
         
         for line in lines:
@@ -344,8 +347,8 @@ class ValidationService:
                 current_question_block = []
                 continue
             
-            # Detect question start
-            if line_stripped.startswith('**Question:**'):
+            # Detect question start (with or without indentation)
+            if '**Question:**' in line_stripped:
                 # Save any existing block before starting new one
                 save_current_block()
                 
@@ -381,17 +384,32 @@ class ValidationService:
         type_match = self.PATTERNS['type'].search(block)
         question_match = self.PATTERNS['question'].search(block)
         answer_match = self.PATTERNS['answer'].search(block)
+        notes_match = self.PATTERNS['notes_for_tutor'].search(block)
         
         if not all([difficulty_match, type_match, question_match, answer_match]):
             return None
         
-        # Extract answer content (everything after **Brief Answer:** until next section or end)
+        # Extract answer content (everything after **Answer:** until Notes for Tutor or end)
         answer_start = answer_match.start()
-        answer_content = block[answer_start:]
-        answer_text = re.sub(r'^\*\*Brief Answer:\*\*\s*', '', answer_content, flags=re.MULTILINE)
+        if notes_match:
+            # Answer ends where Notes for Tutor begins
+            answer_end = notes_match.start()
+            answer_content = block[answer_start:answer_end]
+        else:
+            # Answer goes to end of block
+            answer_content = block[answer_start:]
         
+        answer_text = re.sub(r'^\s*\*\*Answer:\*\*\s*', '', answer_content, flags=re.MULTILINE)
         # Clean up answer text (remove extra whitespace, but preserve formatting)
         answer_text = re.sub(r'\n\s*\n\s*\n', '\n\n', answer_text.strip())
+        
+        # Extract notes for tutor if present
+        notes_for_tutor = None
+        if notes_match:
+            notes_text = notes_match.group(1).strip()
+            # Don't include empty notes
+            if notes_text:
+                notes_for_tutor = notes_text
         
         # Extract subtopic from the block (now properly included by _extract_question_blocks)
         subtopic = "Unknown"
@@ -405,6 +423,7 @@ class ValidationService:
             type=type_match.group(1),
             question=question_match.group(1).strip(),
             answer=answer_text,
+            notes_for_tutor=notes_for_tutor,
             line_number=None  # Would need line tracking for this
         )
 
@@ -429,7 +448,7 @@ class ValidationService:
             errors.append(f"Question block {block_number}: Missing **Question:** section")
         
         if not self.PATTERNS['answer'].search(block):
-            errors.append(f"Question block {block_number}: Missing **Brief Answer:** section")
+            errors.append(f"Question block {block_number}: Missing **Answer:** section")
         
         return errors
 
