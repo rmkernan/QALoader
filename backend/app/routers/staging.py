@@ -4,6 +4,7 @@
 @created June 20, 2025. 10:05 AM Eastern Time
 @updated June 20, 2025. 10:05 AM Eastern Time - Initial creation with comprehensive staging endpoints
 @updated June 20, 2025. 12:11 PM Eastern Time - Fixed staged_id column references to question_id to match table schema
+@updated June 20, 2025. 2:52 PM Eastern Time - Fixed duplicate resolution bug by correcting current_user parameter type from dict to str
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -382,7 +383,7 @@ async def get_batch_duplicates(
 async def resolve_duplicate(
     duplicate_id: str,
     resolution_request: DuplicateResolutionRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     """
     @api POST /api/staging/duplicates/{duplicate_id}/resolve
@@ -415,14 +416,14 @@ async def resolve_duplicate(
             .update({
                 "resolution": resolution_request.resolution,
                 "resolution_notes": resolution_request.resolution_notes,
-                "resolved_by": current_user.get('email', 'unknown'),
+                "resolved_by": current_user,
                 "resolved_at": datetime.utcnow().isoformat()
             })\
             .eq("duplicate_id", duplicate_id)\
             .execute()
         
         # Update staged question based on resolution
-        if resolution_request.resolution == "keep_existing":
+        if resolution_request.resolution == "use_existing":
             # Reject the staged question
             supabase.table("staged_questions")\
                 .update({
@@ -432,7 +433,7 @@ async def resolve_duplicate(
                 .eq("question_id", duplicate["staged_question_id"])\
                 .execute()
         
-        elif resolution_request.resolution == "replace":
+        elif resolution_request.resolution == "use_new":
             # Approve staged question, will replace existing on import
             supabase.table("staged_questions")\
                 .update({

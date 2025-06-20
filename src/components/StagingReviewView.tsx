@@ -4,6 +4,8 @@
  * @created June 20, 2025. 10:52 AM Eastern Time
  * @updated June 20, 2025. 12:21 PM Eastern Time - Fixed batch list to show full timestamp instead of date only
  * @updated June 20, 2025. 12:31 PM Eastern Time - Added workflow instructions panel to batch detail view
+ * @updated June 20, 2025. 2:31 PM Eastern Time - Fixed duplicate resolution filtering to use correct field name
+ * @updated June 20, 2025. 2:58 PM Eastern Time - Fixed resolution values to match database constraint (use_existing, use_new, keep_both)
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -245,7 +247,7 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
    */
   const handleResolveDuplicate = async (
     duplicateId: string, 
-    resolution: "keep_existing" | "replace" | "keep_both"
+    resolution: "use_existing" | "use_new" | "keep_both"
   ) => {
     setIsLoading(true);
     try {
@@ -683,7 +685,7 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
       );
     }
 
-    const pendingDuplicates = duplicates.filter(d => d.resolution_status === 'pending');
+    const pendingDuplicates = duplicates.filter(d => !d.resolution || d.resolution === 'pending');
 
     return (
       <div className="space-y-6">
@@ -744,11 +746,15 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-3">Existing Question (Production)</h4>
                       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <div className="text-sm text-gray-600">
-                          <em>Existing question ID: {duplicate.existing_question_id}</em>
+                        <div className="text-sm text-gray-700 mb-2">
+                          <strong>Topic:</strong> {duplicate.existing_question?.topic}
+                          {duplicate.existing_question?.subtopic && ` › ${duplicate.existing_question.subtopic}`}
                         </div>
-                        <div className="text-sm text-gray-500 mt-2">
-                          (Fetch and display existing question details here)
+                        <div className="text-sm text-gray-700 mb-2">
+                          <strong>Q:</strong> {duplicate.existing_question?.question}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <strong>ID:</strong> {duplicate.existing_question_id}
                         </div>
                       </div>
                     </div>
@@ -757,16 +763,16 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
                   {/* Resolution Actions */}
                   <div className="flex justify-center gap-4 mt-6">
                     <button
-                      onClick={() => handleResolveDuplicate(duplicate.duplicate_id, 'keep_existing')}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-                    >
-                      Keep Existing
-                    </button>
-                    <button
-                      onClick={() => handleResolveDuplicate(duplicate.duplicate_id, 'replace')}
+                      onClick={() => handleResolveDuplicate(duplicate.duplicate_id, 'use_new')}
                       className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
                     >
                       Replace with New
+                    </button>
+                    <button
+                      onClick={() => handleResolveDuplicate(duplicate.duplicate_id, 'use_existing')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                    >
+                      Keep Existing
                     </button>
                     <button
                       onClick={() => handleResolveDuplicate(duplicate.duplicate_id, 'keep_both')}

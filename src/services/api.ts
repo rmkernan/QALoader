@@ -664,7 +664,8 @@ export const getStagingDuplicates = async (
     throw new Error(await handleApiError(response));
   }
 
-  return response.json();
+  const data = await response.json();
+  return data.duplicates || [];
 };
 
 /**

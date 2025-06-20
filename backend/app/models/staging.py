@@ -5,6 +5,7 @@
 @updated June 20, 2025. 9:59 AM Eastern Time - Initial creation with comprehensive staging workflow models
 @updated June 20, 2025. 1:01 PM Eastern Time - Fixed StagedQuestion model to match database schema and updated type validation
 @updated June 20, 2025. 1:18 PM Eastern Time - Made StagingDuplicate.resolution optional to handle NULL values
+@updated June 20, 2025. 2:58 PM Eastern Time - Updated DuplicateResolution enum to match database constraint values
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -62,10 +63,11 @@ class DuplicateResolution(str, Enum):
     @enum DuplicateResolution
     @description Resolution options for duplicate questions
     """
-    KEEP_EXISTING = "keep_existing"
-    REPLACE = "replace"
+    USE_EXISTING = "use_existing"
+    USE_NEW = "use_new"
     KEEP_BOTH = "keep_both"
     PENDING = "pending"
+    MERGE = "merge"
 
 
 class UploadBatchBase(BaseModel):

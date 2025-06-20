@@ -13,6 +13,7 @@
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection interfaces for PostgreSQL pg_trgm integration
  * @updated June 19, 2025. 6:04 PM Eastern Time - Removed simple login option, consolidated to backend authentication only
  * @updated June 20, 2025. 10:52 AM Eastern Time - Added staging workflow types (STAGING view, UploadBatch, StagedQuestion, StagingDuplicate interfaces)
+ * @updated June 20, 2025. 2:58 PM Eastern Time - Fixed DuplicateResolutionRequest to use database-compatible resolution values
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -319,11 +320,11 @@ export interface BatchReviewRequest {
 /**
  * @interface DuplicateResolutionRequest
  * @description Request payload for resolving duplicate questions
- * @field {"keep_existing" | "replace" | "keep_both"} resolution - Resolution action
+ * @field {"use_existing" | "use_new" | "keep_both"} resolution - Resolution action
  * @field {string} resolution_notes - Optional notes about the resolution
  */
 export interface DuplicateResolutionRequest {
-  resolution: "keep_existing" | "replace" | "keep_both";
+  resolution: "use_existing" | "use_new" | "keep_both";
   resolution_notes?: string;
 }
 
