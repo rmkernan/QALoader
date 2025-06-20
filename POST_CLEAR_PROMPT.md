@@ -3,6 +3,7 @@
 **Use this prompt to re-engage after conversation clear:**
 
 ---
+**This work should be done on a new branch. 
 
 I need to implement a staging workflow for the Q&A Loader application. This will change the upload process so that all new questions go to a staging table first, get checked for duplicates against the main table, and then require manual review before being imported to production.
 
@@ -51,3 +52,5 @@ Please start by reading the context documents and then begin implementation with
 - `STAGING_WORKFLOW_HANDOFF_CONTEXT.md`
 - `STAGING_WORKFLOW_TECHNICAL_SPEC.md`
 - `STAGING_WORKFLOW_IMPLEMENTATION_PLAN.md`
+
+Review this entire prompt and then formulate an action plan. Then present this plan to the user for approval before altering any code. Make sure you're doing all this work on a new git branch. 

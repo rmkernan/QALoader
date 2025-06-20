@@ -4,6 +4,7 @@
  * @created June 10, 2025. 10:15 a.m. Eastern Time
  * @updated June 10, 2025. 10:15 a.m. Eastern Time - Revised documentation for LLM conciseness.
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate management navigation for PostgreSQL pg_trgm integration
+ * @updated June 20, 2025. 10:59 AM Eastern Time - Added staging icon to iconMap for Phase 3 staging workflow
  * 
  * @architectural-context
  * Layer: UI Component (Primary Navigation)
@@ -24,7 +25,7 @@
 import React from 'react';
 import { View } from '../types';
 import { NAV_ITEMS, APP_TITLE } from '../constants';
-import { DashboardIcon, UploadIcon, TuneIcon, DuplicateIcon, AppLogoIcon } from './icons/IconComponents';
+import { DashboardIcon, UploadIcon, TuneIcon, DuplicateIcon, StagingIcon, AppLogoIcon } from './icons/IconComponents';
 import { useAppContext } from '../contexts/AppContext';
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ const iconMap: Record<View, React.FC<{className?: string}>> = {
     [View.LOADER]: UploadIcon,
     [View.CURATION]: TuneIcon,
     [View.DUPLICATES]: DuplicateIcon,
+    [View.STAGING]: StagingIcon,
 };
 
 /**

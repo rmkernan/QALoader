@@ -4,6 +4,7 @@
  * @created June 8, 2025. 9:30 p.m. Eastern Time
  * @updated June 9, 2025. 1:02 p.m. Eastern Time - Applied LLM-focused documentation standards.
 @updated June 19, 2025. 6:01 PM Eastern Time - Added DuplicateIcon for duplicate management feature
+ * @updated June 20, 2025. 11:00 AM Eastern Time - Added StagingIcon for staging review feature
  * 
  * @architectural-context
  * Layer: UI Utility (Icon Library)
@@ -171,5 +172,20 @@ export const DuplicateIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) =>
 export const ChevronDownIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+  </svg>
+);
+
+/**
+ * @component StagingIcon
+ * @description Renders a staging/review icon (clipboard with checkmark).
+ * @param {IconProps} props - Component props.
+ * @returns {JSX.Element}
+ * @usage `<StagingIcon className="h-5 w-5" />`
+ * @accessibility `aria-hidden="true"` used as icon is decorative.
+ */
+export const StagingIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+    <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-1a1 1 0 100-2 2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm6 4a1 1 0 011 1v1.586l.293-.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-1-1a1 1 0 111.414-1.414l.293.293V10a1 1 0 011-1z" clipRule="evenodd" />
   </svg>
 );
