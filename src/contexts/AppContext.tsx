@@ -15,6 +15,7 @@
  * @updated June 19, 2025. 12:11 PM Eastern Time - Removed unused geminiService import as part of cleanup
  * @updated June 19, 2025. 6:04 PM Eastern Time - Removed simple login option, consolidated to backend authentication only
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection support with post-upload notifications
+ * @updated June 20, 2025. 11:04 AM Eastern Time - Added staging workflow support with useStaging parameter for Phase 3 implementation
  * 
  * @architectural-context
  * Layer: Context (Global State Management)
@@ -330,9 +331,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const errors = result.errors || {};
     const warnings = result.warnings || [];
     const duplicateCount = result.duplicateCount || 0;
+    const batchId = result.batchId;
     
-    // Note: Array processing with defensive programming for undefined fields
+    // Check if this is a staging upload
+    if (batchId) {
+      // Staging workflow result
+      let stagingMessage = `📋 ${successfulUploads.length} questions uploaded to staging for review.`;
+      
+      if (duplicateCount > 0) {
+        stagingMessage += `\n⚠️ ${duplicateCount} potential duplicates detected.`;
+      }
+      
+      toast.success(stagingMessage, {
+        duration: 8000,
+        style: {
+          maxWidth: '500px',
+        }
+      });
+      
+      // Show navigation toast
+      setTimeout(() => {
+        toast(
+          `Batch ID: ${batchId}\nReview at Staging Review → ${fileName}`,
+          {
+            icon: '🔍',
+            duration: 10000,
+            position: 'bottom-right'
+          }
+        );
+      }, 1500);
+      
+      logActivity("File uploaded to staging", `${fileName} - ${successfulUploads.length} questions, Batch ID: ${batchId}`);
+      return;
+    }
     
+    // Direct upload (non-staging) result handling
     if (failedUploads.length === 0) {
       // Complete success
       let successMessage = `✅ All ${successfulUploads.length} questions uploaded successfully!`;
@@ -524,7 +557,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (newQuestionData.uploadedBy) backendQuestion.uploaded_by = newQuestionData.uploadedBy;
       if (newQuestionData.uploadNotes) backendQuestion.upload_notes = newQuestionData.uploadNotes;
       
-      const actualNewQuestion = await createQuestionAPI(backendQuestion);
+      const actualNewQuestion = await createQuestionAPI(backendQuestion as Omit<Question, 'id'>);
       
       // Transform backend response to frontend format
       const transformedQuestion = {
@@ -584,7 +617,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     dryRun: boolean,
     uploadedOn?: string,
     uploadedBy?: string,
-    uploadNotes?: string
+    uploadNotes?: string,
+    useStaging: boolean = true
   ): Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void> => {
     setIsContextLoading(true);
     
@@ -657,7 +691,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             false,  // replaceExisting - always false for now
             uploadedOn, 
             uploadedBy, 
-            uploadNotes
+            uploadNotes,
+            useStaging
           );
           
           // Note: Debug logging available if needed for upload troubleshooting

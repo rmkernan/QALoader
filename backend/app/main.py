@@ -6,6 +6,7 @@
 @updated June 13, 2025. 6:34 p.m. Eastern Time - Added additional CORS origins for WSL development environment compatibility
 @updated June 19, 2025. 3:56 PM Eastern Time - Added detailed startup timing logs to identify performance bottlenecks
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicates router for duplicate question management
+@updated June 20, 2025. 10:06 AM Eastern Time - Added staging router for question review workflow
 
 @architectural-context
 Layer: API Application Entry Point
@@ -29,7 +30,7 @@ import time
 import os
 
 from app.database import init_db
-from app.routers import auth, questions, upload, duplicates
+from app.routers import auth, questions, upload, duplicates, staging
 
 # Track startup time
 startup_start = time.time()
@@ -52,6 +53,7 @@ app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(questions.router, prefix="/api", tags=["questions"])
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(duplicates.router, tags=["duplicates"])
+app.include_router(staging.router, prefix="/api", tags=["staging"])
 
 
 @app.on_event("startup")

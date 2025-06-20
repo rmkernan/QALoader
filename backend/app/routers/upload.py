@@ -7,6 +7,8 @@
 @updated June 14, 2025. 4:46 p.m. Eastern Time - CRITICAL FIX: Added missing updated_at field to database insertion, resolving zero upload issue
 @updated June 19, 2025. 2:08 PM Eastern Time - Removed topic parameter from validation and upload endpoints - topics extracted from file content
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection using PostgreSQL pg_trgm extension
+@updated June 20, 2025. 10:04 AM Eastern Time - Modified upload endpoint to use staging workflow for review before production
+@updated June 20, 2025. 12:16 PM Eastern Time - Added detailed error logging for staging workflow debugging
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -38,6 +40,7 @@ from app.database import supabase
 from app.routers.auth import get_current_user
 from app.services.validation_service import validation_service, ValidationResult, BatchUploadResult
 from app.services.duplicate_service import duplicate_service
+from app.services.staging_service import StagingService
 from app.utils.id_generator import id_generator
 from app.models.question import (
     QuestionCreate, 
@@ -45,6 +48,10 @@ from app.models.question import (
     BatchUploadRequest,
     ValidationResult as ValidationResultModel,
     BatchUploadResult as BatchUploadResultModel
+)
+from app.models.staging import (
+    UploadBatchCreate,
+    StagedQuestionCreate
 )
 
 router = APIRouter()
@@ -165,10 +172,10 @@ async def validate_markdown_file(
         await file.seek(0)
 
 
-@router.post("/upload-markdown", response_model=BatchUploadResultModel)
+@router.post("/upload-markdown", response_model=Dict[str, Any])
 async def upload_markdown_file(
     file: UploadFile = File(..., description="Markdown file to upload with embedded topics"),
-    replace_existing: bool = Form(False, description="Whether to replace existing questions"),
+    use_staging: bool = Form(True, description="Whether to use staging workflow (default: True)"),
     uploaded_on: str = Form(None, description="American timestamp when questions were uploaded (Eastern Time)"),
     uploaded_by: str = Form(None, description="Free text field for who uploaded the questions"),
     upload_notes: str = Form(None, description="Free text notes about this upload"),
@@ -176,13 +183,13 @@ async def upload_markdown_file(
 ):
     """
     @api POST /api/upload-markdown
-    @description Validates and uploads questions from markdown file to database with metadata tracking
+    @description Validates and uploads questions to staging area for review before production
     @param file: Uploaded markdown file containing questions with embedded topics
-    @param replace_existing: Whether to replace existing questions (not currently used)
+    @param use_staging: Whether to use staging workflow (default: True, set False for direct upload)
     @param uploaded_on: American timestamp when questions were uploaded (Eastern Time)
     @param uploaded_by: Free text field for who uploaded the questions (max 25 chars)
     @param upload_notes: Free text notes about this upload (max 100 chars)
-    @returns: BatchUploadResult with detailed upload status for each question
+    @returns: Upload result with batch ID for staging review or direct upload results
     @authentication: Required JWT token in Authorization header
     @errors:
         - 400: Invalid file format or validation errors
@@ -195,7 +202,7 @@ async def upload_markdown_file(
         Content-Type: multipart/form-data
         Authorization: Bearer <jwt_token>
         
-        topic=DCF&file=<markdown_file>&uploaded_on=June 14, 2025. 2:18 p.m. Eastern Time&uploaded_by=John Smith&upload_notes=Initial DCF questions
+        file=<markdown_file>&uploaded_by=John Smith&upload_notes=Q2 2025 questions
     """
     start_time = time.time()
     
@@ -221,7 +228,53 @@ async def upload_markdown_file(
                 }
             )
         
-        # Process questions for upload
+        # Use staging workflow if enabled
+        if use_staging:
+            # Create upload batch
+            batch_data = UploadBatchCreate(
+                file_name=file.filename or "unknown.md",
+                total_questions=len(questions),
+                uploaded_by=uploaded_by or current_user.get('email', 'unknown'),
+                notes=upload_notes
+            )
+            
+            batch = await StagingService.create_batch(batch_data)
+            batch_id = batch['batch_id']
+            
+            # Stage questions
+            staged_questions = []
+            for question in questions:
+                staged_questions.append(StagedQuestionCreate(
+                    upload_batch_id=batch_id,
+                    topic=question.topic,
+                    subtopic=question.subtopic,
+                    difficulty=question.difficulty,
+                    type=question.type,
+                    question=question.question,
+                    answer=question.answer,
+                    notes_for_tutor=question.notes_for_tutor,
+                    uploaded_by=uploaded_by or current_user.get('email', 'unknown'),
+                    upload_notes=upload_notes
+                ))
+            
+            staging_result = await StagingService.stage_questions(batch_id, staged_questions)
+            
+            # Run duplicate detection
+            duplicate_result = await StagingService.detect_duplicates(batch_id)
+            
+            # Return staging result
+            return {
+                "success": True,
+                "message": "Questions uploaded to staging for review",
+                "batch_id": batch_id,
+                "review_url": f"/review/batch/{batch_id}",
+                "total_questions": len(questions),
+                "duplicates_found": duplicate_result['duplicates_found'],
+                "warnings": validation_result.warnings,
+                "next_steps": "Please review the questions in the staging area before importing to production"
+            }
+        
+        # Legacy direct upload (if staging disabled)
         upload_result = BatchUploadResult(
             total_attempted=len(questions),
             successful_uploads=[],

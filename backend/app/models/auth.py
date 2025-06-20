@@ -2,6 +2,7 @@
 @file backend/app/models/auth.py
 @description Pydantic models for authentication endpoints. Defines request/response schemas for login operations and JWT token handling.
 @created June 13, 2025. 12:03 p.m. Eastern Time
+@updated June 20, 2025. 10:08 AM Eastern Time - Added UserInDB model for internal user representation
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -136,3 +137,21 @@ class PasswordResetResponse(BaseModel):
 
     message: str = Field(..., description="Human-readable status message")
     success: bool = Field(..., description="Whether operation was successful")
+
+
+class UserInDB(BaseModel):
+    """
+    @class UserInDB
+    @description Internal model for user database representation
+    @example:
+        # User from database
+        user = UserInDB(
+            username="admin",
+            email="admin@qaloader.com",
+            hashed_password="$2b$12$..."
+        )
+    """
+    
+    username: str = Field(..., description="Username")
+    email: Optional[str] = Field(None, description="User email address")
+    hashed_password: str = Field(..., description="Hashed password")

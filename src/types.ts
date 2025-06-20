@@ -12,6 +12,8 @@
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Added notesForTutor field to Question interface for tutor guidance support
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection interfaces for PostgreSQL pg_trgm integration
  * @updated June 19, 2025. 6:04 PM Eastern Time - Removed simple login option, consolidated to backend authentication only
+ * @updated June 20, 2025. 10:52 AM Eastern Time - Added staging workflow types (STAGING view, UploadBatch, StagedQuestion, StagingDuplicate interfaces)
+ * @updated June 20, 2025. 2:58 PM Eastern Time - Fixed DuplicateResolutionRequest to use database-compatible resolution values
  * 
  * @architectural-context
  * Layer: Core Types / Data Structures
@@ -34,6 +36,7 @@ export enum View {
   LOADER = 'loader',
   CURATION = 'curation',
   DUPLICATES = 'duplicates',
+  STAGING = 'staging',
 }
 /* eslint-enable no-unused-vars */
 
@@ -105,6 +108,7 @@ export interface ValidationResult {
  * @field {number} processingTimeMs - Server processing time in milliseconds
  * @field {number} duplicateCount - Number of potential duplicates found
  * @field {DuplicateGroup[]} duplicateGroups - Grouped duplicate information
+ * @field {string} batchId - Batch ID when using staging workflow
  */
 export interface BatchUploadResult {
   totalAttempted: number;
@@ -115,6 +119,7 @@ export interface BatchUploadResult {
   processingTimeMs: number;
   duplicateCount?: number;
   duplicateGroups?: DuplicateGroup[];
+  batchId?: string;
 }
 
 /**
@@ -189,7 +194,8 @@ export interface AppContextType {
     _dryRun: boolean,
     _uploadedOn?: string,
     _uploadedBy?: string,
-    _uploadNotes?: string
+    _uploadNotes?: string,
+    _useStaging?: boolean
   ) => Promise<{ parsedQuestions: ParsedQuestionFromAI[], report: ValidationReport } | void>;
 
   exportQuestionsToMarkdown: (_selectedTopic?: string, _selectedSubtopic?: string, _selectedDifficulty?: string, _selectedType?: string, _searchText?: string) => void;
@@ -221,6 +227,105 @@ export interface Filters {
   uploadedBy: string;
   uploadNotes: string;
   uploadedOn: string;
+}
+
+/**
+ * @interface UploadBatch
+ * @description Represents a batch of questions uploaded for staging review
+ * @field {string} batch_id - Unique identifier for the batch
+ * @field {string} uploaded_by - User who uploaded the batch
+ * @field {string} uploaded_at - ISO timestamp of upload
+ * @field {string} file_name - Original uploaded file name
+ * @field {number} total_questions - Total number of questions in batch
+ * @field {number} questions_pending - Questions awaiting review
+ * @field {number} questions_approved - Questions approved for production
+ * @field {number} questions_rejected - Questions rejected during review
+ * @field {number} questions_duplicate - Questions flagged as duplicates
+ * @field {string} status - Current batch status
+ */
+export interface UploadBatch {
+  batch_id: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  file_name: string;
+  total_questions: number;
+  questions_pending: number;
+  questions_approved: number;
+  questions_rejected: number;
+  questions_duplicate: number;
+  status: "pending" | "reviewing" | "completed" | "cancelled";
+}
+
+/**
+ * @interface StagedQuestion
+ * @description Individual question in staging awaiting review
+ * @field {string} question_id - Unique identifier for the staged question
+ * @field {string} batch_id - ID of the batch this question belongs to
+ * @field {string} topic - Question topic
+ * @field {string} subtopic - Question subtopic
+ * @field {string} difficulty - Question difficulty level
+ * @field {string} type - Question type
+ * @field {string} question - Question text
+ * @field {string} answer - Answer text
+ * @field {string} status - Review status of the question
+ * @field {string} duplicate_of - ID of existing question if duplicate
+ * @field {number} similarity_score - Similarity score if duplicate
+ */
+export interface StagedQuestion {
+  question_id: string;
+  batch_id: string;
+  topic: string;
+  subtopic: string;
+  difficulty: string;
+  type: string;
+  question: string;
+  answer: string;
+  status: "pending" | "approved" | "rejected" | "duplicate";
+  duplicate_of?: string;
+  similarity_score?: number;
+}
+
+/**
+ * @interface StagingDuplicate
+ * @description Duplicate detection result for staging workflow
+ * @field {string} duplicate_id - Unique identifier for the duplicate record
+ * @field {string} staged_question_id - ID of the staged question
+ * @field {string} existing_question_id - ID of the existing production question
+ * @field {number} similarity_score - Similarity score (0-1)
+ * @field {string} resolution_status - How the duplicate was resolved
+ * @field {string} resolution_notes - Notes about the resolution
+ */
+export interface StagingDuplicate {
+  duplicate_id: string;
+  staged_question_id: string;
+  existing_question_id: string;
+  similarity_score: number;
+  resolution_status: "pending" | "keep_existing" | "replace" | "keep_both";
+  resolution_notes?: string;
+}
+
+/**
+ * @interface BatchReviewRequest
+ * @description Request payload for reviewing staged questions
+ * @field {string[]} question_ids - IDs of questions to review
+ * @field {"approve" | "reject"} action - Action to take on questions
+ * @field {string} review_notes - Optional notes about the review
+ */
+export interface BatchReviewRequest {
+  question_ids: string[];
+  action: "approve" | "reject";
+  review_notes?: string;
+}
+
+/**
+ * @interface DuplicateResolutionRequest
+ * @description Request payload for resolving duplicate questions
+ * @field {"use_existing" | "use_new" | "keep_both"} resolution - Resolution action
+ * @field {string} resolution_notes - Optional notes about the resolution
+ */
+export interface DuplicateResolutionRequest {
+  resolution: "use_existing" | "use_new" | "keep_both";
+  resolution_notes?: string;
 }
 
 // For environment variables, especially API_KEY

@@ -774,3 +774,8 @@ class QuestionService:
         # Reverse to show oldest to newest
         trends.reverse()
         return trends
+
+
+# Create service instance for export
+from app.database import supabase
+question_service = QuestionService(supabase)

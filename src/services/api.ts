@@ -11,6 +11,7 @@
  * @updated June 14, 2025. 3:57 p.m. Eastern Time - Enhanced uploadMarkdownFile function to accept optional metadata parameters (uploadedOn, uploadedBy, uploadNotes)
  * @updated June 19, 2025. 1:54 PM Eastern Time - Removed topic parameter from validation and upload functions - topics extracted from file content
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection API functions for PostgreSQL pg_trgm integration
+ * @updated June 20, 2025. 10:52 AM Eastern Time - Added staging workflow API endpoints for batch management and review
  * 
  * @architectural-context
  * Layer: Service Layer (API Integration)
@@ -28,7 +29,15 @@
  * Security: Handles JWT token attachment, response validation, error standardization
  */
 
-import { Question, DuplicateGroup } from '../types';
+import { 
+  Question, 
+  DuplicateGroup, 
+  UploadBatch, 
+  StagedQuestion, 
+  StagingDuplicate,
+  BatchReviewRequest,
+  DuplicateResolutionRequest 
+} from '../types';
 import { SESSION_TOKEN_KEY } from '../constants';
 
 // API Base Configuration
@@ -386,11 +395,13 @@ export const uploadMarkdownFile = async (
   replaceExisting: boolean = false,
   uploadedOn?: string, 
   uploadedBy?: string, 
-  uploadNotes?: string
+  uploadNotes?: string,
+  useStaging: boolean = true
 ) => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('replace_existing', replaceExisting.toString());
+  formData.append('use_staging', useStaging.toString());
   
   // Append optional metadata fields (frontend camelCase to backend snake_case mapping)
   if (uploadedOn) formData.append('uploaded_on', uploadedOn);
@@ -499,6 +510,194 @@ export const batchDeleteDuplicates = async (questionIds: string[]): Promise<Bulk
     await handleApiError(response);
   }
   
+  return response.json();
+};
+
+// =============================================================================
+// STAGING WORKFLOW API ENDPOINTS
+// =============================================================================
+
+/**
+ * @function getStagingBatches
+ * @description Fetches list of upload batches with optional filters
+ * @param {Object} params - Query parameters for filtering
+ * @param {"pending" | "reviewing" | "completed" | "cancelled"} params.status - Filter by batch status
+ * @param {number} params.limit - Maximum number of results (default: 50)
+ * @param {number} params.offset - Pagination offset (default: 0)
+ * @returns {Promise<{batches: UploadBatch[], total: number}>} List of batches and total count
+ * @throws {Error} When API request fails
+ * @example
+ * const { batches, total } = await getStagingBatches({ status: 'pending', limit: 20 });
+ */
+export const getStagingBatches = async (params?: {
+  status?: "pending" | "reviewing" | "completed" | "cancelled";
+  limit?: number;
+  offset?: number;
+}): Promise<{ batches: UploadBatch[], total: number }> => {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+  const response = await fetch(
+    `${API_BASE_URL}/staging/batches?${queryParams}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await handleApiError(response));
+  }
+
+  return response.json();
+};
+
+/**
+ * @function getStagingBatch
+ * @description Fetches detailed information about a specific batch including its questions
+ * @param {string} batchId - Unique identifier of the batch
+ * @returns {Promise<{batch: UploadBatch, questions: StagedQuestion[]}>} Batch details with questions
+ * @throws {Error} When API request fails
+ * @example
+ * const { batch, questions } = await getStagingBatch('batch123');
+ */
+export const getStagingBatch = async (
+  batchId: string
+): Promise<{ batch: UploadBatch, questions: StagedQuestion[] }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/staging/batches/${batchId}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await handleApiError(response));
+  }
+
+  return response.json();
+};
+
+/**
+ * @function reviewStagedQuestions
+ * @description Approve or reject multiple staged questions
+ * @param {string} batchId - Batch containing the questions
+ * @param {BatchReviewRequest} reviewData - Review decision and notes
+ * @returns {Promise<{success: boolean, updated_count: number}>} Review result
+ * @throws {Error} When API request fails
+ * @example
+ * await reviewStagedQuestions('batch123', {
+ *   question_ids: ['q1', 'q2'],
+ *   action: 'approve',
+ *   review_notes: 'Questions look good'
+ * });
+ */
+export const reviewStagedQuestions = async (
+  batchId: string,
+  reviewData: BatchReviewRequest
+): Promise<{ success: boolean, updated_count: number }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/staging/batches/${batchId}/review`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(reviewData),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await handleApiError(response));
+  }
+
+  return response.json();
+};
+
+/**
+ * @function importBatchToProduction
+ * @description Import all approved questions from a batch to production
+ * @param {string} batchId - Batch to import
+ * @returns {Promise<{success: boolean, imported_count: number, failed_count: number}>} Import result
+ * @throws {Error} When API request fails
+ * @example
+ * const result = await importBatchToProduction('batch123');
+ * console.log(`Imported ${result.imported_count} questions`);
+ */
+export const importBatchToProduction = async (
+  batchId: string
+): Promise<{ success: boolean, imported_count: number, failed_count: number }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/staging/batches/${batchId}/import`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await handleApiError(response));
+  }
+
+  return response.json();
+};
+
+/**
+ * @function getStagingDuplicates
+ * @description Get all duplicate questions detected in a batch
+ * @param {string} batchId - Batch to check for duplicates
+ * @returns {Promise<StagingDuplicate[]>} List of duplicate records
+ * @throws {Error} When API request fails
+ * @example
+ * const duplicates = await getStagingDuplicates('batch123');
+ */
+export const getStagingDuplicates = async (
+  batchId: string
+): Promise<StagingDuplicate[]> => {
+  const response = await fetch(
+    `${API_BASE_URL}/staging/duplicates/${batchId}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await handleApiError(response));
+  }
+
+  const data = await response.json();
+  return data.duplicates || [];
+};
+
+/**
+ * @function resolveStagingDuplicate
+ * @description Resolve a duplicate by choosing which version to keep
+ * @param {string} duplicateId - ID of the duplicate record
+ * @param {DuplicateResolutionRequest} resolution - Resolution decision
+ * @returns {Promise<{success: boolean, message: string}>} Resolution result
+ * @throws {Error} When API request fails
+ * @example
+ * await resolveStagingDuplicate('dup123', {
+ *   resolution: 'keep_existing',
+ *   resolution_notes: 'Existing version is more comprehensive'
+ * });
+ */
+export const resolveStagingDuplicate = async (
+  duplicateId: string,
+  resolution: DuplicateResolutionRequest
+): Promise<{ success: boolean, message: string }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/staging/duplicates/${duplicateId}/resolve`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(resolution),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await handleApiError(response));
+  }
+
   return response.json();
 };
 
