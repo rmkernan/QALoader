@@ -4,6 +4,7 @@
 @created June 14, 2025. 11:27 a.m. Eastern Time
 @updated June 14, 2025. 11:27 a.m. Eastern Time - Initial creation with semantic ID generation logic
 @updated June 19, 2025. 4:00 PM Eastern Time - Updated abbreviation system for topics, subtopics, and question types
+@updated June 20, 2025. 4:25 PM Eastern Time - Modified to check both staged_questions and all_questions tables for ID uniqueness
 
 @architectural-context
 Layer: Utility Layer (Helper Functions)
@@ -21,7 +22,7 @@ Auth Requirements: Uses authenticated database client passed from calling servic
 Security: No direct authentication handling, relies on caller's authentication context
 
 @database-context
-Tables: Queries all_questions table to ensure ID uniqueness
+Tables: Queries both staged_questions and all_questions tables to ensure ID uniqueness
 Operations: SELECT queries to check existing IDs and find next available sequence numbers
 Transactions: Read-only operations for ID conflict detection
 """
@@ -202,7 +203,7 @@ class IDGenerator:
     async def get_next_sequence(self, base_id: str, supabase_client: Client) -> int:
         """
         @function get_next_sequence
-        @description Finds the next available sequence number for a base ID pattern
+        @description Finds the next available sequence number for a base ID pattern by checking both staged and production tables
         @param base_id: Base ID pattern (e.g., "DCF-WACC-B-G")
         @param supabase_client: Authenticated Supabase client
         @returns: Next available sequence number
@@ -211,27 +212,40 @@ class IDGenerator:
             # If DCF-WACC-B-G-001 and DCF-WACC-B-G-002 exist, returns 3
         """
         try:
-            # Query for existing IDs with this base pattern
             pattern = f"{base_id}-%"
-            result = supabase_client.table('all_questions')\
+            max_sequence = 0
+            
+            # Check all_questions table
+            all_questions_result = supabase_client.table('all_questions')\
                 .select('question_id')\
                 .like('question_id', pattern)\
                 .order('question_id', desc=True)\
                 .limit(50)\
                 .execute()
             
-            if not result.data:
-                return 1  # No existing questions with this pattern
+            if all_questions_result.data:
+                for row in all_questions_result.data:
+                    question_id = row['question_id']
+                    sequence_match = re.search(r'-(\d+)$', question_id)
+                    if sequence_match:
+                        sequence = int(sequence_match.group(1))
+                        max_sequence = max(max_sequence, sequence)
             
-            # Extract sequence numbers and find the highest
-            max_sequence = 0
-            for row in result.data:
-                question_id = row['question_id']
-                # Extract sequence number from end of ID
-                sequence_match = re.search(r'-(\d+)$', question_id)
-                if sequence_match:
-                    sequence = int(sequence_match.group(1))
-                    max_sequence = max(max_sequence, sequence)
+            # Check staged_questions table
+            staged_result = supabase_client.table('staged_questions')\
+                .select('question_id')\
+                .like('question_id', pattern)\
+                .order('question_id', desc=True)\
+                .limit(50)\
+                .execute()
+            
+            if staged_result.data:
+                for row in staged_result.data:
+                    question_id = row['question_id']
+                    sequence_match = re.search(r'-(\d+)$', question_id)
+                    if sequence_match:
+                        sequence = int(sequence_match.group(1))
+                        max_sequence = max(max_sequence, sequence)
             
             return max_sequence + 1
             
@@ -243,7 +257,7 @@ class IDGenerator:
     async def ensure_unique_id(self, base_id: str, supabase_client: Client) -> str:
         """
         @function ensure_unique_id
-        @description Ensures ID uniqueness by checking database and incrementing sequence if needed
+        @description Ensures ID uniqueness by checking both staged and production tables and incrementing sequence if needed
         @param base_id: Base ID pattern without sequence
         @param supabase_client: Authenticated Supabase client
         @returns: Unique question ID with sequence number
@@ -256,23 +270,29 @@ class IDGenerator:
         # Generate candidate ID
         candidate_id = f"{base_id}-{sequence:03d}"
         
-        # Double-check uniqueness
+        # Double-check uniqueness in both tables
         max_attempts = 10
         attempt = 0
         
         while attempt < max_attempts:
             try:
-                # Check if this specific ID exists
-                result = supabase_client.table('all_questions')\
+                # Check all_questions table
+                all_questions_result = supabase_client.table('all_questions')\
                     .select('question_id')\
                     .eq('question_id', candidate_id)\
                     .execute()
                 
-                if not result.data:
-                    # ID is unique
+                # Check staged_questions table
+                staged_result = supabase_client.table('staged_questions')\
+                    .select('question_id')\
+                    .eq('question_id', candidate_id)\
+                    .execute()
+                
+                if not all_questions_result.data and not staged_result.data:
+                    # ID is unique in both tables
                     return candidate_id
                 
-                # ID exists, try next sequence
+                # ID exists in one of the tables, try next sequence
                 sequence += 1
                 candidate_id = f"{base_id}-{sequence:03d}"
                 attempt += 1
