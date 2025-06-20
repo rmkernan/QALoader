@@ -4,6 +4,7 @@
 @created June 20, 2025. 10:01 AM Eastern Time
 @updated June 20, 2025. 10:01 AM Eastern Time - Initial creation with comprehensive staging operations
 @updated June 20, 2025. 12:16 PM Eastern Time - Fixed question insertion issue and added error logging
+@updated June 20, 2025. 4:54 PM Eastern Time - Fixed duplicate ID generation within batch by tracking IDs per batch
 
 @architectural-context
 Layer: Service (Business Logic)
@@ -105,18 +106,33 @@ class StagingService:
             
             logger.info(f"Starting to stage {len(questions)} questions for batch {batch_id}")
             
+            # Track generated IDs within this batch to avoid duplicates
+            batch_id_tracker = {}
+            
             for i, question in enumerate(questions):
                 try:
                     logger.debug(f"Processing question {i+1}: {question.topic} - {question.subtopic}")
                     
-                    # Generate question ID
-                    question_id = await id_generator.generate_unique_question_id(
+                    # Generate base ID
+                    base_id = id_generator.generate_question_id(
                         question.topic,
                         question.subtopic,
                         question.difficulty,
-                        question.type,
-                        supabase
+                        question.type
                     )
+                    
+                    # Check if we've seen this base ID in this batch
+                    if base_id not in batch_id_tracker:
+                        # First time seeing this base ID in batch, get sequence from database
+                        sequence = await id_generator.get_next_sequence(base_id, supabase)
+                        batch_id_tracker[base_id] = sequence
+                    else:
+                        # We've seen this base ID before in this batch, increment
+                        batch_id_tracker[base_id] += 1
+                        sequence = batch_id_tracker[base_id]
+                    
+                    # Generate the full question ID
+                    question_id = f"{base_id}-{sequence:03d}"
                     
                     logger.debug(f"Generated question ID: {question_id}")
                     
@@ -150,6 +166,19 @@ class StagingService:
             
             logger.info(f"Prepared {len(staged_records)} staged records, inserting into database...")
             
+            # Check for duplicate IDs within the batch
+            ids_in_batch = [r['question_id'] for r in staged_records]
+            if len(ids_in_batch) != len(set(ids_in_batch)):
+                # Find duplicates
+                seen = set()
+                duplicates = []
+                for id in ids_in_batch:
+                    if id in seen:
+                        duplicates.append(id)
+                    seen.add(id)
+                logger.error(f"Duplicate IDs found within batch: {duplicates}")
+                raise Exception(f"Duplicate question IDs generated within batch: {duplicates}")
+            
             # Bulk insert staged questions
             try:
                 result = supabase.table("staged_questions").insert(staged_records).execute()
@@ -170,7 +199,8 @@ class StagingService:
                 
             except Exception as e:
                 logger.error(f"Database insert failed: {str(e)}")
-                logger.error(f"Staged records being inserted: {staged_records}")
+                # Only log question IDs, not full records
+                logger.error(f"Question IDs being inserted: {[r['question_id'] for r in staged_records]}")
                 raise
             
         except Exception as e:

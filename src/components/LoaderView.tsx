@@ -10,6 +10,7 @@
  * @updated June 14, 2025. 2:18 p.m. Eastern Time - Added upload metadata fields (uploaded_on, uploaded_by, upload_notes) with American timestamp generation and character validation
  * @updated June 16, 2025. 1:42 p.m. Eastern Time - Changed page title from "Load Questions from Markdown" to "Question Loader" for consistency with navigation
  * @updated June 19, 2025. 1:48 PM Eastern Time - Removed topic selection step, topics now extracted from markdown file content
+ * @updated June 20, 2025. 3:53 PM Eastern Time - Removed typing requirement from upload confirmation dialog
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -716,18 +717,6 @@ const LoaderView: React.FC = () => {
               </div>
             </div>
 
-            <label htmlFor="confirmation-input" className="block text-sm font-medium text-slate-700 mb-1">
-              To confirm, please type "<span className="font-semibold">UPLOAD</span>" below:
-            </label>
-            <input
-              id="confirmation-input"
-              type="text"
-              value={confirmationInput}
-              onChange={(e) => setConfirmationInput(e.target.value)}
-              className="w-full p-2 border border-slate-300 rounded-md shadow-sm mb-6 bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Type topic name here"
-              aria-describedby="confirmation-modal-title"
-            />
             <div className="flex justify-end gap-4">
               <button
                 type="button"
@@ -741,7 +730,7 @@ const LoaderView: React.FC = () => {
                 type="button"
                 onClick={handleConfirmLoad}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50 transition-colors duration-150 ease-in-out"
-                disabled={confirmationInput.toUpperCase() !== 'UPLOAD' || isLoadingToDB || uploadStatus === 'uploading'}
+                disabled={isLoadingToDB || uploadStatus === 'uploading'}
               >
                 {isLoadingToDB ? 'Uploading...' : 'Confirm Upload'}
               </button>

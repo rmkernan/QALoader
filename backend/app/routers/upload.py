@@ -9,6 +9,7 @@
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection using PostgreSQL pg_trgm extension
 @updated June 20, 2025. 10:04 AM Eastern Time - Modified upload endpoint to use staging workflow for review before production
 @updated June 20, 2025. 12:16 PM Eastern Time - Added detailed error logging for staging workflow debugging
+@updated June 20, 2025. 4:00 PM Eastern Time - Fixed current_user parameter type from dict to str to match auth dependency
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -32,6 +33,7 @@ Transactions: No explicit transactions - allows partial success for better user 
 """
 
 import time
+import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, Depends
 from typing import List, Dict, Any
@@ -55,6 +57,7 @@ from app.models.staging import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # File upload constraints
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -118,7 +121,7 @@ def categorize_database_error(error: Exception, question_id: str) -> str:
 @router.post("/validate-markdown", response_model=ValidationResultModel)
 async def validate_markdown_file(
     file: UploadFile = File(..., description="Markdown file to validate"),
-    current_user: dict = Depends(get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     """
     @api POST /api/validate-markdown
@@ -149,8 +152,12 @@ async def validate_markdown_file(
         content = await file.read()
         content_str = content.decode('utf-8')
         
+        # Log first 500 chars of content for debugging
+        logger.info(f"File content preview (first 500 chars): {content_str[:500]}")
+        
         # Parse and validate questions
         questions, validation_result = validation_service.parse_markdown_to_questions(content_str)
+        logger.info(f"Parsed {len(questions)} questions from file")
         
         # Return validation result
         return ValidationResultModel(
@@ -179,7 +186,7 @@ async def upload_markdown_file(
     uploaded_on: str = Form(None, description="American timestamp when questions were uploaded (Eastern Time)"),
     uploaded_by: str = Form(None, description="Free text field for who uploaded the questions"),
     upload_notes: str = Form(None, description="Free text notes about this upload"),
-    current_user: dict = Depends(get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     """
     @api POST /api/upload-markdown
@@ -214,8 +221,12 @@ async def upload_markdown_file(
         content = await file.read()
         content_str = content.decode('utf-8')
         
+        # Log first 500 chars of content for debugging
+        logger.info(f"File content preview (first 500 chars): {content_str[:500]}")
+        
         # Parse and validate questions
         questions, validation_result = validation_service.parse_markdown_to_questions(content_str)
+        logger.info(f"Parsed {len(questions)} questions from file")
         
         # If validation failed, return validation errors
         if not validation_result.is_valid:
@@ -234,7 +245,7 @@ async def upload_markdown_file(
             batch_data = UploadBatchCreate(
                 file_name=file.filename or "unknown.md",
                 total_questions=len(questions),
-                uploaded_by=uploaded_by or current_user.get('email', 'unknown'),
+                uploaded_by=uploaded_by or current_user,
                 notes=upload_notes
             )
             
@@ -253,7 +264,7 @@ async def upload_markdown_file(
                     question=question.question,
                     answer=question.answer,
                     notes_for_tutor=question.notes_for_tutor,
-                    uploaded_by=uploaded_by or current_user.get('email', 'unknown'),
+                    uploaded_by=uploaded_by or current_user,
                     upload_notes=upload_notes
                 ))
             
@@ -262,16 +273,19 @@ async def upload_markdown_file(
             # Run duplicate detection
             duplicate_result = await StagingService.detect_duplicates(batch_id)
             
-            # Return staging result
+            # Return staging result in expected format
             return {
                 "success": True,
                 "message": "Questions uploaded to staging for review",
-                "batch_id": batch_id,
-                "review_url": f"/review/batch/{batch_id}",
-                "total_questions": len(questions),
-                "duplicates_found": duplicate_result['duplicates_found'],
+                "batchId": batch_id,
+                "totalAttempted": len(questions),
+                "successfulUploads": staging_result.get('question_ids', []),
+                "failedUploads": [],
+                "errors": {},
                 "warnings": validation_result.warnings,
-                "next_steps": "Please review the questions in the staging area before importing to production"
+                "duplicateCount": duplicate_result['duplicates_found'],
+                "reviewUrl": f"/review/batch/{batch_id}",
+                "nextSteps": "Please review the questions in the staging area before importing to production"
             }
         
         # Legacy direct upload (if staging disabled)
@@ -376,7 +390,7 @@ async def upload_markdown_file(
 async def batch_replace_questions(
     topic: str,
     questions: List[ParsedQuestionFromAI],
-    current_user: dict = Depends(get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     """
     @api POST /api/topics/{topic}/questions/batch-replace
