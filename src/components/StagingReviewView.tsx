@@ -6,6 +6,8 @@
  * @updated June 20, 2025. 12:31 PM Eastern Time - Added workflow instructions panel to batch detail view
  * @updated June 20, 2025. 2:31 PM Eastern Time - Fixed duplicate resolution filtering to use correct field name
  * @updated June 20, 2025. 2:58 PM Eastern Time - Fixed resolution values to match database constraint (use_existing, use_new, keep_both)
+ * @updated June 20, 2025. 3:14 PM Eastern Time - Fixed batch detail refresh after duplicate resolution to always update duplicate count
+ * @updated June 20, 2025. 3:20 PM Eastern Time - Removed automatic navigation to batch detail, only refresh when user manually clicks Back
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -258,15 +260,10 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
       
       toast.success('Duplicate resolved successfully');
       
-      // Reload duplicates
+      // Reload duplicates list to remove resolved duplicate
       if (selectedBatch) {
         const dupes = await getStagingDuplicates(selectedBatch.batch_id);
         setDuplicates(dupes);
-        
-        // If no more duplicates, reload batch detail
-        if (dupes.length === 0) {
-          await loadBatchDetail(selectedBatch.batch_id);
-        }
       }
     } catch (error) {
       toast.error('Failed to resolve duplicate');
@@ -274,6 +271,17 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
     } finally {
       setIsLoading(false);
     }
+  };
+
+  /**
+   * @function handleBackToBatchDetail
+   * @description Handle navigation back to batch detail and refresh batch data
+   */
+  const handleBackToBatchDetail = async () => {
+    if (selectedBatch) {
+      await loadBatchDetail(selectedBatch.batch_id);
+    }
+    setViewMode('detail');
   };
 
   // Load batches on mount and when filters change
@@ -676,7 +684,7 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
         <div className="bg-white p-6 rounded-lg shadow-sm text-center">
           <p className="text-gray-500">No duplicates to resolve</p>
           <button
-            onClick={() => setViewMode('detail')}
+            onClick={handleBackToBatchDetail}
             className="mt-4 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Back to Batch Detail
@@ -699,7 +707,7 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
               </p>
             </div>
             <button
-              onClick={() => setViewMode('detail')}
+              onClick={handleBackToBatchDetail}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Back to Batch Detail
