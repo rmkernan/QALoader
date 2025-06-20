@@ -393,3 +393,11 @@ async def send_reset_email(email: str, reset_token: str) -> bool:
     """)
     
     return True
+
+
+# Create service instance for export
+class AuthService:
+    """Service class for authentication operations"""
+    pass
+
+auth_service = AuthService()

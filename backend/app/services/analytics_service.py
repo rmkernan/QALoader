@@ -613,3 +613,6 @@ class AnalyticsService:
             return f"Consider diversifying beyond {max_diff[0]} questions"
         else:
             return "Good balance across difficulty levels"
+# Create service instance for export
+from app.database import supabase
+analytics_service = AnalyticsService(supabase)
