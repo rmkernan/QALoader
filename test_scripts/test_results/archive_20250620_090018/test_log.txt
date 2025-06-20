@@ -1,0 +1,20 @@
+Fri Jun 20 08:54:00 EDT 2025: Test run started
+UPLOAD SUCCESS: low_similarity_pairs.md - 6 questions
+UPLOAD SUCCESS: clean_unique_questions.md - 6 questions
+UPLOAD SUCCESS: cross_topic_duplicates.md - 6 questions
+UPLOAD SUCCESS: edge_cases.md - 7 questions
+UPLOAD SUCCESS: high_similarity_pairs.md - 6 questions
+UPLOAD SUCCESS: medium_similarity_pairs.md - 6 questions
+UPLOAD COMPLETE: All 6 files uploaded successfully
+FAIL: high_similarity_pairs.md @ 0.60 - 0/3 pairs
+FAIL: high_similarity_pairs.md @ 0.70 - 0/3 pairs
+FAIL: high_similarity_pairs.md @ 0.80 - 0/3 pairs
+FAIL: high_similarity_pairs.md @ 0.85 - 0/3 pairs
+FAIL: high_similarity_pairs.md @ 0.90 - 0/3 pairs
+CLEANUP SUCCESS: low_similarity_pairs.md - 6 questions deleted
+CLEANUP SUCCESS: clean_unique_questions.md - 6 questions deleted
+CLEANUP SUCCESS: cross_topic_duplicates.md - 6 questions deleted
+CLEANUP SUCCESS: edge_cases.md - 7 questions deleted
+CLEANUP SUCCESS: high_similarity_pairs.md - 6 questions deleted
+CLEANUP SUCCESS: medium_similarity_pairs.md - 6 questions deleted
+CLEANUP VERIFICATION: 158 questions remaining in database

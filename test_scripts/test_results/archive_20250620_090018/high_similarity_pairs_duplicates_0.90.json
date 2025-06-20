@@ -1,0 +1,1 @@
+{"count":0,"groups":[],"error":"{'code': 'PGRST202', 'details': 'Searched for the function public.execute_sql with parameters params, query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.', 'hint': None, 'message': 'Could not find the function public.execute_sql(params, query) in the schema cache'}"}

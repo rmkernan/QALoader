@@ -26,7 +26,7 @@ Transactions: Individual operations for flexibility
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
-from app.services.auth_service import get_current_user
+from app.routers.auth import get_current_user
 from app.services.duplicate_service import duplicate_service
 from app.database import supabase
 

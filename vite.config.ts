@@ -39,7 +39,7 @@ function startupLoggingPlugin(): Plugin {
             
             // Log when first request is received
             let firstRequest = true;
-            server.middlewares.use((req, res, next) => {
+            server.middlewares.use((req, _res, next) => {
                 if (firstRequest && req.url === '/') {
                     firstRequest = false;
                     log('First page request received', 'info');

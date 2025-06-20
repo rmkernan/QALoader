@@ -2,6 +2,7 @@
 @file backend/app/services/duplicate_service.py
 @description Service for detecting duplicate questions using PostgreSQL pg_trgm
 @created June 19, 2025. 6:01 PM Eastern Time
+@updated June 20, 2025. 9:02 AM Eastern Time - Added fallback detection methods for missing database functions
 
 @architectural-context
 Layer: Service (Business Logic)
@@ -59,16 +60,38 @@ class DuplicateService:
             ORDER BY score DESC
             """
             
-            # Execute query using Supabase RPC
-            result = supabase.rpc(
-                'execute_sql',
-                {
-                    'query': query,
-                    'params': [question_ids, threshold]
-                }
-            ).execute()
+            # Try multiple approaches for database query
+            result = None
             
-            if result.data:
+            # Approach 1: Try using execute_sql RPC (if available)
+            try:
+                result = supabase.rpc(
+                    'execute_sql',
+                    {
+                        'query': query,
+                        'params': [question_ids, threshold]
+                    }
+                ).execute()
+            except Exception as rpc_error:
+                logger.warning(f"execute_sql RPC not available: {str(rpc_error)}")
+                
+                # Approach 2: Try using find_duplicates_for_questions function
+                try:
+                    result = supabase.rpc(
+                        'find_duplicates_for_questions',
+                        {
+                            'question_ids': question_ids,
+                            'threshold': threshold
+                        }
+                    ).execute()
+                except Exception as func_error:
+                    logger.warning(f"find_duplicates_for_questions not available: {str(func_error)}")
+                    
+                    # Approach 3: Use fallback application-level detection
+                    from .duplicate_service_fallback import duplicate_service_fallback
+                    return await duplicate_service_fallback.detect_duplicates(question_ids, threshold)
+            
+            if result and result.data:
                 return self._group_duplicates(result.data)
             else:
                 return {"count": 0, "groups": []}
