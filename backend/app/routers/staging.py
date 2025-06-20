@@ -3,6 +3,7 @@
 @description API endpoints for staging workflow management including batch review, duplicate resolution, and import operations
 @created June 20, 2025. 10:05 AM Eastern Time
 @updated June 20, 2025. 10:05 AM Eastern Time - Initial creation with comprehensive staging endpoints
+@updated June 20, 2025. 12:11 PM Eastern Time - Fixed staged_id column references to question_id to match table schema
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)
@@ -150,7 +151,7 @@ async def get_batch_details(
         # Get duplicates
         duplicates_result = supabase.table("staging_duplicates")\
             .select("*")\
-            .in_("staged_question_id", [q["staged_id"] for q in questions_result.data] if questions_result.data else [])\
+            .in_("staged_question_id", [q["question_id"] for q in questions_result.data] if questions_result.data else [])\
             .execute()
         
         # Get statistics
@@ -175,6 +176,10 @@ async def get_batch_details(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[DEBUG] Batch detail error: {str(e)}")
+        print(f"[DEBUG] Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error getting batch details: {str(e)}")
 
 
@@ -223,7 +228,7 @@ async def review_batch_questions(
         - 500: Database error
     """
     try:
-        reviewer_email = current_user.get('email', 'unknown')
+        reviewer_email = current_user  # current_user is already the username/email string
         
         if review_request.action == "approve":
             result = await StagingService.approve_questions(
@@ -253,7 +258,7 @@ async def review_batch_questions(
 @router.post("/batches/{batch_id}/import", response_model=ImportResponse)
 async def import_approved_questions(
     batch_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     """
     @api POST /api/staging/batches/{batch_id}/import
@@ -286,7 +291,7 @@ async def import_approved_questions(
                 detail="No approved questions to import"
             )
         
-        if batch["status"] not in [BatchStatus.REVIEWING, BatchStatus.PENDING]:
+        if batch["status"] not in [BatchStatus.REVIEWING, BatchStatus.PENDING, BatchStatus.COMPLETED]:
             raise HTTPException(
                 status_code=409,
                 detail=f"Batch is not ready for import. Current status: {batch['status']}"
@@ -295,7 +300,7 @@ async def import_approved_questions(
         # Perform import
         import_result = await StagingService.import_approved(
             batch_id,
-            current_user.get('email', 'unknown')
+            current_user
         )
         
         return ImportResponse(**import_result)
@@ -324,14 +329,14 @@ async def get_batch_duplicates(
     try:
         # Get staged question IDs for the batch
         questions_result = supabase.table("staged_questions")\
-            .select("staged_id")\
+            .select("question_id")\
             .eq("upload_batch_id", batch_id)\
             .execute()
         
         if not questions_result.data:
             return {"duplicates": [], "count": 0}
         
-        question_ids = [q["staged_id"] for q in questions_result.data]
+        question_ids = [q["question_id"] for q in questions_result.data]
         
         # Get duplicates
         duplicates_result = supabase.table("staging_duplicates")\
@@ -347,7 +352,7 @@ async def get_batch_duplicates(
             # Get staged question details
             staged_result = supabase.table("staged_questions")\
                 .select("question, topic, subtopic")\
-                .eq("staged_id", dup["staged_question_id"])\
+                .eq("question_id", dup["staged_question_id"])\
                 .single()\
                 .execute()
             
@@ -424,7 +429,7 @@ async def resolve_duplicate(
                     "status": QuestionStatus.REJECTED,
                     "review_notes": f"Duplicate of {duplicate['existing_question_id']} - keeping existing"
                 })\
-                .eq("staged_id", duplicate["staged_question_id"])\
+                .eq("question_id", duplicate["staged_question_id"])\
                 .execute()
         
         elif resolution_request.resolution == "replace":
@@ -434,7 +439,7 @@ async def resolve_duplicate(
                     "status": QuestionStatus.APPROVED,
                     "review_notes": f"Will replace {duplicate['existing_question_id']}"
                 })\
-                .eq("staged_id", duplicate["staged_question_id"])\
+                .eq("question_id", duplicate["staged_question_id"])\
                 .execute()
         
         elif resolution_request.resolution == "keep_both":
@@ -446,13 +451,13 @@ async def resolve_duplicate(
                     "similarity_score": None,
                     "review_notes": "Keeping both questions despite similarity"
                 })\
-                .eq("staged_id", duplicate["staged_question_id"])\
+                .eq("question_id", duplicate["staged_question_id"])\
                 .execute()
         
         # Update batch counts
         batch_id = supabase.table("staged_questions")\
             .select("upload_batch_id")\
-            .eq("staged_id", duplicate["staged_question_id"])\
+            .eq("question_id", duplicate["staged_question_id"])\
             .single()\
             .execute()
         

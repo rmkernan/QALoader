@@ -3,6 +3,7 @@
 @description Service layer for staging workflow operations including batch management, duplicate detection, and import operations
 @created June 20, 2025. 10:01 AM Eastern Time
 @updated June 20, 2025. 10:01 AM Eastern Time - Initial creation with comprehensive staging operations
+@updated June 20, 2025. 12:16 PM Eastern Time - Fixed question insertion issue and added error logging
 
 @architectural-context
 Layer: Service (Business Logic)
@@ -102,54 +103,80 @@ class StagingService:
             staged_records = []
             current_time = datetime.utcnow()
             
-            for question in questions:
-                # Generate question ID
-                question_id = await id_generator.generate_unique_question_id(
-                    question.topic,
-                    question.subtopic,
-                    question.difficulty,
-                    question.type,
-                    supabase
-                )
-                
-                # Format uploaded_on timestamp
-                uploaded_on = current_time.strftime("%m/%d/%y %-I:%M%p ET")
-                
-                staged_record = {
-                    "question_id": question_id,
-                    "upload_batch_id": batch_id,
-                    "topic": question.topic,
-                    "subtopic": question.subtopic,
-                    "difficulty": question.difficulty,
-                    "type": question.type,
-                    "question": question.question,
-                    "answer": question.answer,
-                    "notes_for_tutor": question.notes_for_tutor,
-                    "status": QuestionStatus.PENDING,
-                    "created_at": current_time.isoformat(),
-                    "uploaded_by": question.uploaded_by,
-                    "uploaded_on": uploaded_on,
-                    "upload_notes": question.upload_notes
-                }
-                
-                staged_records.append(staged_record)
+            logger.info(f"Starting to stage {len(questions)} questions for batch {batch_id}")
+            
+            for i, question in enumerate(questions):
+                try:
+                    logger.debug(f"Processing question {i+1}: {question.topic} - {question.subtopic}")
+                    
+                    # Generate question ID
+                    question_id = await id_generator.generate_unique_question_id(
+                        question.topic,
+                        question.subtopic,
+                        question.difficulty,
+                        question.type,
+                        supabase
+                    )
+                    
+                    logger.debug(f"Generated question ID: {question_id}")
+                    
+                    # Format uploaded_on timestamp
+                    uploaded_on = current_time.strftime("%m/%d/%y %-I:%M%p ET")
+                    
+                    staged_record = {
+                        "question_id": question_id,
+                        "upload_batch_id": batch_id,
+                        "topic": question.topic,
+                        "subtopic": question.subtopic,
+                        "difficulty": question.difficulty,
+                        "type": question.type,
+                        "question": question.question,
+                        "answer": question.answer,
+                        "notes_for_tutor": question.notes_for_tutor,
+                        "status": QuestionStatus.PENDING,
+                        "created_at": current_time.isoformat(),
+                        "uploaded_by": question.uploaded_by,
+                        "uploaded_on": uploaded_on,
+                        "upload_notes": question.upload_notes
+                    }
+                    
+                    staged_records.append(staged_record)
+                    logger.debug(f"Prepared staged record for {question_id}")
+                    
+                except Exception as e:
+                    logger.error(f"Error preparing question {i+1}: {str(e)}")
+                    logger.error(f"Question data: {question}")
+                    raise
+            
+            logger.info(f"Prepared {len(staged_records)} staged records, inserting into database...")
             
             # Bulk insert staged questions
-            result = supabase.table("staged_questions").insert(staged_records).execute()
-            
-            if not result.data:
-                raise Exception("Failed to stage questions")
-            
-            logger.info(f"Staged {len(result.data)} questions for batch {batch_id}")
-            
-            return {
-                "batch_id": batch_id,
-                "staged_count": len(result.data),
-                "question_ids": [q["question_id"] for q in result.data]
-            }
+            try:
+                result = supabase.table("staged_questions").insert(staged_records).execute()
+                logger.info(f"Database insert completed. Result: {result}")
+                
+                if not result.data:
+                    logger.error("Database insert returned no data")
+                    logger.error(f"Result object: {result}")
+                    raise Exception("Failed to stage questions - no data returned from database")
+                
+                logger.info(f"Successfully staged {len(result.data)} questions for batch {batch_id}")
+                
+                return {
+                    "batch_id": batch_id,
+                    "staged_count": len(result.data),
+                    "question_ids": [q["question_id"] for q in result.data]
+                }
+                
+            except Exception as e:
+                logger.error(f"Database insert failed: {str(e)}")
+                logger.error(f"Staged records being inserted: {staged_records}")
+                raise
             
         except Exception as e:
-            logger.error(f"Error staging questions: {str(e)}")
+            logger.error(f"Error staging questions for batch {batch_id}: {str(e)}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
 
     @staticmethod
@@ -567,7 +594,7 @@ class StagingService:
                         "uploaded_by": staged["uploaded_by"],
                         "uploaded_on": staged["uploaded_on"],
                         "upload_notes": staged["upload_notes"],
-                        "updated_at": datetime.utcnow().strftime("%m/%d/%y %-I:%M%p ET")
+                        "updated_at": datetime.utcnow().strftime("%m/%d/%y %I:%M%p ET")
                     }
                     
                     # Insert into production
@@ -578,7 +605,7 @@ class StagingService:
                     if insert_result.data:
                         imported_ids.append(staged["question_id"])
                         
-                        # Update staged question status
+                        # Mark staged question as imported to prevent re-import
                         supabase.table("staged_questions")\
                             .update({"status": QuestionStatus.IMPORTED})\
                             .eq("question_id", staged["question_id"])\
@@ -591,6 +618,9 @@ class StagingService:
                     failed_ids.append(staged["question_id"])
                     errors[staged["question_id"]] = str(e)
                     logger.error(f"Error importing question {staged['question_id']}: {str(e)}")
+                    print(f"[DEBUG] Import error for {staged['question_id']}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
             
             # Update batch status
             final_status = BatchStatus.COMPLETED if len(failed_ids) == 0 else BatchStatus.CANCELLED
@@ -621,6 +651,9 @@ class StagingService:
             
         except Exception as e:
             logger.error(f"Error importing approved questions: {str(e)}")
+            print(f"[DEBUG] Critical import error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             
             # Update batch status to failed
             supabase.table("upload_batches")\

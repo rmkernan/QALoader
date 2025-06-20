@@ -3,6 +3,8 @@
 @description Pydantic data models for the staging workflow system. Defines schemas for upload batches, staged questions, and duplicate detection.
 @created June 20, 2025. 9:59 AM Eastern Time
 @updated June 20, 2025. 9:59 AM Eastern Time - Initial creation with comprehensive staging workflow models
+@updated June 20, 2025. 1:01 PM Eastern Time - Fixed StagedQuestion model to match database schema and updated type validation
+@updated June 20, 2025. 1:18 PM Eastern Time - Made StagingDuplicate.resolution optional to handle NULL values
 
 @architectural-context
 Layer: Data Models (Pydantic schemas)
@@ -178,7 +180,7 @@ class StagedQuestionBase(BaseModel):
         @returns: The validated type value
         @raises ValueError: If type is not in allowed values
         """
-        allowed = ["Definition", "Problem", "GenConcept", "Calculation", "Analysis", "Question"]
+        allowed = ["Question", "Problem"]
         if v not in allowed:
             raise ValueError(f"Type must be one of: {allowed}")
         return v
@@ -227,8 +229,9 @@ class StagedQuestion(StagedQuestionBase):
     reviewed_by: Optional[str] = Field(None, description="User who reviewed the question")
     reviewed_at: Optional[datetime] = Field(None, description="When the question was reviewed")
     created_at: datetime = Field(..., description="When the question was staged")
+    updated_at: datetime = Field(..., description="When the question was last updated")
     uploaded_by: str = Field(..., description="User who uploaded the question")
-    uploaded_on: str = Field(..., description="Timestamp in MM/DD/YY H:MMPM ET format")
+    uploaded_on: Optional[str] = Field(None, description="Timestamp in MM/DD/YY H:MMPM ET format")
     upload_notes: Optional[str] = Field(None, description="Notes about the upload")
 
     class Config:
@@ -253,7 +256,7 @@ class StagingDuplicate(BaseModel):
     staged_question_id: str = Field(..., description="Question ID of the staged question")
     existing_question_id: str = Field(..., description="ID of the existing question")
     similarity_score: float = Field(..., ge=0, le=1, description="Similarity score (0-1)")
-    resolution: DuplicateResolution = Field(DuplicateResolution.PENDING, description="How the duplicate was resolved")
+    resolution: Optional[DuplicateResolution] = Field(None, description="How the duplicate was resolved")
     resolution_notes: Optional[str] = Field(None, description="Notes about the resolution")
     resolved_by: Optional[str] = Field(None, description="User who resolved the duplicate")
     resolved_at: Optional[datetime] = Field(None, description="When the duplicate was resolved")

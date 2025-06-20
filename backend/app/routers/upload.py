@@ -8,6 +8,7 @@
 @updated June 19, 2025. 2:08 PM Eastern Time - Removed topic parameter from validation and upload endpoints - topics extracted from file content
 @updated June 19, 2025. 6:01 PM Eastern Time - Added duplicate detection using PostgreSQL pg_trgm extension
 @updated June 20, 2025. 10:04 AM Eastern Time - Modified upload endpoint to use staging workflow for review before production
+@updated June 20, 2025. 12:16 PM Eastern Time - Added detailed error logging for staging workflow debugging
 
 @architectural-context
 Layer: API Route Layer (FastAPI endpoints)

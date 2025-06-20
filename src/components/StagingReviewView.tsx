@@ -2,6 +2,8 @@
  * @file components/StagingReviewView.tsx
  * @description Staging workflow view for reviewing and managing uploaded question batches before production import
  * @created June 20, 2025. 10:52 AM Eastern Time
+ * @updated June 20, 2025. 12:21 PM Eastern Time - Fixed batch list to show full timestamp instead of date only
+ * @updated June 20, 2025. 12:31 PM Eastern Time - Added workflow instructions panel to batch detail view
  * 
  * @architectural-context
  * Layer: UI Component (Application View/Page)
@@ -340,7 +342,7 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
                       {batch.file_name}
                     </div>
                     <div className="text-sm text-gray-500">
-                      by {batch.uploaded_by} • {new Date(batch.uploaded_at).toLocaleDateString()}
+                      by {batch.uploaded_by} • {new Date(batch.uploaded_at).toLocaleString()}
                     </div>
                   </div>
                 </td>
@@ -494,6 +496,17 @@ const StagingReviewView: React.FC<StagingReviewViewProps> = ({ setActiveView: _s
             >
               Import to Production ({selectedBatch.questions_approved})
             </button>
+          </div>
+          
+          {/* Workflow Instructions */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">Review Workflow</h3>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p><strong>1. Review Questions:</strong> All uploaded questions start as "pending" - review each for quality and accuracy.</p>
+              <p><strong>2. Approve/Reject:</strong> Use individual buttons or bulk actions to approve good questions and reject poor ones.</p>
+              <p><strong>3. Resolve Duplicates:</strong> If any duplicates are detected, resolve them before importing.</p>
+              <p><strong>4. Import:</strong> Once reviewed, click "Import to Production" to add approved questions to the main database.</p>
+            </div>
           </div>
         </div>
 
